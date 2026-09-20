@@ -7,13 +7,11 @@ import ApplicationStatusList from "./ApplicationStatusList";
 import { scholarships, type Scholarship, money, demoDate } from "@/lib/ui-data";
 import {
   Action,
-  Badge,
   Banner,
   Heading,
   Icon,
   Notice,
   Panel,
-  Photo,
   Quote,
   ScholarshipCard,
   Timeline,
