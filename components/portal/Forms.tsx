@@ -1,5 +1,5 @@
 "use client";
-import { useState, type FormEvent, type ChangeEvent } from "react";
+import { useId, useState, type FormEvent, type ChangeEvent } from "react";
 import { scholarships, money } from "@/lib/ui-data";
 import type { Viewer } from "@/lib/auth/types";
 import { numericInputProps } from "@/lib/numeric-input";
@@ -19,11 +19,14 @@ export function FilePicker({
   onCount,
   selectedFiles,
   onFilesChange,
+  required = false,
 }: {
   onCount?: (n: number) => void;
   selectedFiles?: File[];
   onFilesChange?: (files: File[]) => void;
+  required?: boolean;
 }) {
+  const requirementId = useId();
   const [localFiles, setLocalFiles] = useState<File[]>([]),
     [error, setError] = useState("");
   const files = selectedFiles ?? localFiles;
@@ -54,16 +57,20 @@ export function FilePicker({
     <div>
       <label className="upload-box">
         <Icon name="upload" size={28} />
-        <strong>คลิกเพื่อเลือกเอกสาร</strong>
+        <strong>คลิกเพื่อเลือกเอกสาร {required && <span style={{ color: "#b91c1c" }} aria-hidden="true">*</span>}</strong>
         <small>PDF, DOC, DOCX, JPG, PNG · ขนาดไม่เกิน 10 MB ต่อไฟล์</small>
         <input
           aria-label="เลือกเอกสาร"
           type="file"
           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           multiple
+          required={required && files.length === 0}
+          aria-required={required}
+          aria-describedby={required ? requirementId : undefined}
           onChange={change}
         />
       </label>
+      {required && <p id={requirementId}>* จำเป็นต้องแนบเอกสารประกอบอย่างน้อย 1 ไฟล์ก่อนตรวจสอบใบสมัคร</p>}
       <small>
         ไฟล์ที่เลือกอยู่ในหน้านี้เท่านั้น ยังไม่ได้ส่งไปยังมหาวิทยาลัย
       </small>
@@ -583,6 +590,7 @@ export function ApplyForm({
                 ) : (
                   <>
                     <FilePicker
+                      required
                       onCount={setCount}
                       selectedFiles={selectedFiles}
                       onFilesChange={setSelectedFiles}
