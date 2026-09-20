@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import AuthPage from "@/components/auth/LoginPage";
 import { getViewer, requireRole } from "@/lib/auth/server";
 import { homeForRole } from "@/lib/auth/types";
+import { createClient } from "@/lib/supabase/server";
+import { applicationPrefill } from "@/lib/account/application-prefill";
 import {
   Applications,
   Dashboard,
@@ -54,13 +56,17 @@ export default async function Page({ params, searchParams }: Props) {
   }
   if (path === "apply" && student) {
     const query = await searchParams;
+    const client = await createClient();
+    const { data: profile, error } = await client.from("portal_profiles")
+      .select("phone,department,profile_details").eq("id", student.id).single();
+    if (error || !profile) throw new Error("โหลดข้อมูลสำหรับสมัครทุนไม่สำเร็จ กรุณาลองใหม่");
+    const scholarshipId = typeof query.scholarship === "string" ? query.scholarship : "academic";
     return (
       <ApplyForm
-        key={student.id}
+        key={`${student.id}:${scholarshipId}`}
         viewer={student}
-        scholarshipId={
-          typeof query.scholarship === "string" ? query.scholarship : "academic"
-        }
+        initialValues={applicationPrefill(student, profile)}
+        scholarshipId={scholarshipId}
       />
     );
   }

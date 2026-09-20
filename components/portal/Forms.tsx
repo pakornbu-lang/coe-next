@@ -415,15 +415,18 @@ const formSteps = [
 export function ApplyForm({
   scholarshipId = "academic",
   viewer,
+  initialValues = {},
 }: {
   scholarshipId?: string;
   viewer: Viewer;
+  initialValues?: Record<string, string>;
 }) {
   const item =
     scholarships.find((s) => s.id === scholarshipId) || scholarships[0];
   const [step, setStep] = useState(0),
     [values, setValues] = useState<Record<string, string>>(() => ({
       ...Object.fromEntries(formSteps.flat().map(([, key]) => [key, ""])),
+      ...initialValues,
       name: viewer.fullName,
       studentId: viewer.studentId,
       email: viewer.email,
@@ -459,6 +462,10 @@ export function ApplyForm({
       >
         <Badge>เฉพาะทุนภายในมหาวิทยาลัยเท่านั้น</Badge>
       </Heading>
+      <Notice>
+        เติมข้อมูลจากบัญชีสมาชิกและโปรไฟล์ของคุณให้แล้ว กรุณาตรวจสอบและกรอกช่องที่เหลือให้ครบ
+        การแก้ไขในใบสมัครนี้จะไม่เปลี่ยนข้อมูลโปรไฟล์ของคุณ
+      </Notice>
       <ol className="form-steps">
         {stepLabels.map((s, i) => (
           <li
