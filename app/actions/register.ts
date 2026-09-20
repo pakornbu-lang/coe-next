@@ -6,11 +6,16 @@ import {isAuthConfigured} from "@/lib/supabase/config";
 import {siteUrl} from "@/lib/auth/site-url";
 export type RegisterState={error:string;success:string};
 export async function registerStudent(_previous:RegisterState,form:FormData):Promise<RegisterState>{
- const fullName=String(form.get("full_name")??"").trim();
+ const title=String(form.get("title")??"").trim();
+ const name=String(form.get("full_name")??"").trim();
+ if(!["นาย","นาง","นางสาว"].includes(title))
+   return {error:"กรุณาเลือกคำนำหน้าชื่อ นาย นาง หรือ นางสาว",success:""};
+ // Keep the existing profile schema and display the title wherever full_name is used.
+ const fullName=`${title} ${name}`;
  const studentId=String(form.get("student_id")??"").trim();
  const email=String(form.get("email")??"").trim().toLowerCase();
  const password=String(form.get("password")??"");
- if(!fullName||fullName.length>200||!/^[0-9]{8,12}$/.test(studentId)||!/^([^\s@]+)@(mail\.)?wu\.ac\.th$/.test(email)||email.length>254)
+ if(!name||fullName.length>200||!/^[0-9]{8,12}$/.test(studentId)||!/^([^\s@]+)@(mail\.)?wu\.ac\.th$/.test(email)||email.length>254)
    return {error:"กรุณากรอกชื่อ รหัสประจำตัว 8–12 หลัก และอีเมล @mail.wu.ac.th หรือ @wu.ac.th ให้ถูกต้อง",success:""};
  if(password.length<8||password.length>128||password!==String(form.get("confirm_password")??""))
    return {error:"รหัสผ่านต้องยาว 8–128 ตัวอักษร และทั้งสองช่องต้องตรงกัน",success:""};
