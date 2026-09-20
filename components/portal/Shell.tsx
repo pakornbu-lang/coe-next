@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Brand, Icon } from "./Shared";
 import LogoutButton from "@/components/auth/LogoutButton";
 import Avatar from "@/components/account/Avatar";
@@ -10,6 +10,32 @@ import { homeForRole, roleLabels, type Viewer } from "@/lib/auth/types";
 export default function Shell({ children, viewer }: { children: ReactNode; viewer: Viewer | null }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const profileMenu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const menu = profileMenu.current;
+    if (!menu) return;
+    menu.open = false;
+    function outside(event: PointerEvent) {
+      if (event.target instanceof Node && !menu!.contains(event.target)) menu!.open = false;
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape" && menu!.open) {
+        menu!.open = false;
+        menu!.querySelector("summary")?.focus();
+      }
+    }
+    function focusOutside(event: FocusEvent) {
+      if (event.target instanceof Node && !menu!.contains(event.target)) menu!.open = false;
+    }
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    document.addEventListener("focusin", focusOutside);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+      document.removeEventListener("focusin", focusOutside);
+    };
+  }, [path, viewer?.id]);
   const auth = path === "/login" || path === "/register";
   const landing = path === "/";
   const nav = !viewer
@@ -73,7 +99,7 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
                 <p>ยังไม่มีการแจ้งเตือนจากระบบจริง</p>
               </div>
             </details>
-            <details>
+            <details ref={profileMenu}>
               <summary aria-label="เมนูบัญชีผู้ใช้">
                 <Avatar version={viewer.avatarVersion} name={viewer.fullName} />
                 <span>
@@ -82,7 +108,11 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
                 </span>
                 <span>⌄</span>
               </summary>
-              <div className="popover">
+              <div className="popover" onClick={event => {
+                if (event.target instanceof Element && event.target.closest("a, button") && profileMenu.current) {
+                  profileMenu.current.open = false;
+                }
+              }}>
                 <Link href="/profile">โปรไฟล์ของฉัน</Link>
                 <Link href={homeForRole(viewer.role)}>หน้าหลักของฉัน</Link>
                 <Link href="/">กลับหน้าแรก</Link>
