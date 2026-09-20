@@ -66,6 +66,9 @@ export default async function Page({ params, searchParams }: Props) {
         key={`${student.id}:${scholarshipId}`}
         viewer={student}
         initialValues={applicationPrefill(student, profile)}
+        currentDate={new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit", day: "2-digit",
+        }).format(new Date())}
         scholarshipId={scholarshipId}
       />
     );

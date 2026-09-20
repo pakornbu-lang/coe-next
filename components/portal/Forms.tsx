@@ -416,10 +416,12 @@ export function ApplyForm({
   scholarshipId = "academic",
   viewer,
   initialValues = {},
+  currentDate,
 }: {
   scholarshipId?: string;
   viewer: Viewer;
   initialValues?: Record<string, string>;
+  currentDate: string;
 }) {
   const item =
     scholarships.find((s) => s.id === scholarshipId) || scholarships[0];
@@ -548,9 +550,9 @@ export function ApplyForm({
                                     ? "number"
                                     : "text"
                             }
-                            min={key === "gpa" ? 0 : 0}
+                            min={key === "birth" ? undefined : 0}
                             max={
-                              key === "gpa" ? 4 : key === "year" ? 8 : undefined
+                              key === "birth" ? currentDate : key === "gpa" ? 4 : key === "year" ? 8 : undefined
                             }
                             step={key === "gpa" ? "0.01" : "1"}
                             pattern={
