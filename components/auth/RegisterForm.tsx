@@ -2,6 +2,7 @@
 import Link from "next/link";
 import {useActionState} from "react";
 import {registerStudent} from "@/app/actions/register";
+import {numericInputProps} from "@/lib/numeric-input";
 export default function RegisterForm(){
  const [state,action,pending]=useActionState(registerStudent,{error:"",success:""});
  return <form action={action}>
@@ -15,7 +16,7 @@ export default function RegisterForm(){
  </select>
  <label htmlFor="register-first-name">ชื่อ *</label><input id="register-first-name" name="first_name" autoComplete="given-name" placeholder="ชื่อ โดยไม่ต้องใส่คำนำหน้า" required maxLength={96}/>
  <label htmlFor="register-last-name">นามสกุล *</label><input id="register-last-name" name="last_name" autoComplete="family-name" placeholder="นามสกุล" required maxLength={96}/>
- <label htmlFor="register-id">รหัสนักศึกษา *</label><input id="register-id" name="student_id" inputMode="numeric" pattern="[0-9]{8,12}" minLength={8} maxLength={12} required/>
+ <label htmlFor="register-id">รหัสนักศึกษา *</label><input id="register-id" name="student_id" {...numericInputProps()} pattern="[0-9]{8,12}" minLength={8} maxLength={12} required/>
  <label htmlFor="register-email">อีเมลมหาวิทยาลัย *</label><input id="register-email" name="email" type="email" autoComplete="email" placeholder="name@mail.wu.ac.th" required maxLength={254}/>
  <label htmlFor="register-password">รหัสผ่าน *</label><input id="register-password" name="password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required/>
  <label htmlFor="register-confirm">ยืนยันรหัสผ่าน *</label><input id="register-confirm" name="confirm_password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required/>

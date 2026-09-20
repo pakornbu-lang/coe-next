@@ -2,6 +2,7 @@
 import { useState, type FormEvent, type ChangeEvent } from "react";
 import { scholarships, money } from "@/lib/ui-data";
 import type { Viewer } from "@/lib/auth/types";
+import { numericInputProps } from "@/lib/numeric-input";
 import BirthDateFields from "./BirthDateFields";
 import {
   Action,
@@ -536,6 +537,8 @@ export function ApplyForm({
                         ) : (
                           <input
                             name={key}
+                            {...(["studentId", "postcode", "phone", "emergencyPhone", "accountNumber", "year", "credits", "members", "income", "siblings", "academicYear", "gpa"].includes(key)
+                              ? numericInputProps(key === "gpa" ? "decimal" : "integer") : {})}
                             value={values[key]}
                             onChange={(e) =>
                               setValues({ ...values, [key]: e.target.value })
@@ -563,6 +566,8 @@ export function ApplyForm({
                             pattern={
                               key === "studentId"
                                 ? "[0-9]{8,12}"
+                                : key === "accountNumber"
+                                  ? "[0-9]+"
                                 : key === "postcode"
                                   ? "[0-9]{5}"
                                   : key.toLowerCase().includes("phone")

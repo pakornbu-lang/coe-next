@@ -1,4 +1,5 @@
 "use client";
+import { numericInputProps } from "@/lib/numeric-input";
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -54,11 +55,11 @@ export default function ScholarshipForm() {
           <div className="portal-grid-two">
             <div className="portal-field">
               <label htmlFor="scholarship-amount">จำนวนเงินต่อทุน (บาท) <span aria-hidden="true">*</span></label>
-              <input id="scholarship-amount" name="amount" type="number" min="0.01" step="0.01" required placeholder="เช่น 10000" />
+              <input id="scholarship-amount" name="amount" type="number" {...numericInputProps("decimal")} min="0.01" step="0.01" required placeholder="เช่น 10000" />
             </div>
             <div className="portal-field">
               <label htmlFor="scholarship-quota">จำนวนโควตา (คน) <span aria-hidden="true">*</span></label>
-              <input id="scholarship-quota" name="quota" type="number" min="1" step="1" required placeholder="เช่น 20" />
+              <input id="scholarship-quota" name="quota" type="number" {...numericInputProps()} min="1" step="1" required placeholder="เช่น 20" />
             </div>
           </div>
           <div className="portal-field">
