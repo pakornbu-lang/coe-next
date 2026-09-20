@@ -22,7 +22,9 @@ export function saveDemoApplication(userId: string, scholarshipId: string, fileC
   const key = storageKey(userId);
   const items = parseDemoApplications(localStorage.getItem(key) ?? "[]");
   if (items.some(item => item.scholarshipId === scholarshipId)) return;
-  const next = { id: crypto.randomUUID(), scholarshipId, fileCount, submittedAt: new Date().toISOString() };
+  const id = typeof crypto.randomUUID === "function" ? crypto.randomUUID()
+    : Array.from(crypto.getRandomValues(new Uint32Array(4)), part => part.toString(16).padStart(8, "0")).join("");
+  const next = { id, scholarshipId, fileCount, submittedAt: new Date().toISOString() };
   const serialized = JSON.stringify([next, ...items]);
   parseDemoApplications(serialized);
   localStorage.setItem(key, serialized);
