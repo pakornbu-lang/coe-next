@@ -3,6 +3,7 @@ import { useId, useState, type FormEvent, type ChangeEvent } from "react";
 import { scholarships, money } from "@/lib/ui-data";
 import type { Viewer } from "@/lib/auth/types";
 import { numericInputProps } from "@/lib/numeric-input";
+import { saveDemoApplication } from "@/lib/demo-applications";
 import BirthDateFields from "./BirthDateFields";
 import {
   Action,
@@ -463,6 +464,12 @@ export function ApplyForm({
       setMessage("กรุณาเลือกเอกสารประกอบอย่างน้อย 1 ไฟล์");
       return;
     }
+    try {
+      saveDemoApplication(viewer.id, item.id, selectedFiles.length);
+    } catch {
+      setMessage("บันทึกรายการทดลองไม่ได้ กรุณาตรวจการอนุญาตจัดเก็บข้อมูลของเบราว์เซอร์แล้วลองอีกครั้ง");
+      return;
+    }
     setSubmitted(true);
   }
   return (
@@ -497,7 +504,9 @@ export function ApplyForm({
           <p>ชื่อผู้สมัคร: {values.name}</p>
           <p>ทุนที่สมัคร: {item.title}</p>
           <p>เอกสารที่เลือก: {count} ไฟล์</p>
+          <p>บันทึกรายการทดลองไว้ในเบราว์เซอร์นี้แล้ว โดยไม่เก็บข้อมูลส่วนตัวหรือไฟล์เอกสาร และจะแสดงบนแดชบอร์ดของบัญชีนี้</p>
           <div className="button-row">
+            <Action href="/dashboard">ดูสถานะบนแดชบอร์ด</Action>
             <Action href="/applications">ดูหน้าติดตามสถานะตัวอย่าง</Action>
             <button
               className="btn secondary"

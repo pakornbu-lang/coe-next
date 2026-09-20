@@ -43,7 +43,7 @@ export default async function Page({ params, searchParams }: Props) {
   if (path === "login") return <AuthPage />;
   if (path === "dashboard" && student) return <Dashboard viewer={student} />;
   if (path === "scholarships") return <SearchPage />;
-  if (path === "applications") return <Applications />;
+  if (path === "applications" && student) return <Applications key={student.id} viewer={student} />;
   if (path === "staff" && staff) return <StaffDashboard viewer={staff} />;
   if (path === "staff/scholarships") return <ManageScholarships />;
   if (path === "staff/evaluation") return <Evaluation />;
