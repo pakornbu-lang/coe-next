@@ -2,6 +2,7 @@
 import { useState, type FormEvent, type ChangeEvent } from "react";
 import { scholarships, money } from "@/lib/ui-data";
 import type { Viewer } from "@/lib/auth/types";
+import BirthDateFields from "./BirthDateFields";
 import {
   Action,
   Badge,
@@ -512,6 +513,12 @@ export function ApplyForm({
                 {step < 5 ? (
                   <div className="form-grid" key={step}>
                     {formSteps[step].map(([label, key]) => (
+                      key === "birth" ? <BirthDateFields
+                        key={key}
+                        value={values.birth}
+                        currentDate={currentDate}
+                        onChange={birth => setValues(current => ({ ...current, birth }))}
+                      /> :
                       <label className={step === 3 ? "wide" : ""} key={key}>
                         {label} <b>*</b>
                         {step === 3 ? (
@@ -534,9 +541,7 @@ export function ApplyForm({
                               setValues({ ...values, [key]: e.target.value })
                             }
                             type={
-                              key === "birth"
-                                ? "date"
-                                : key === "email"
+                              key === "email"
                                   ? "email"
                                   : [
                                         "gpa",
@@ -550,9 +555,9 @@ export function ApplyForm({
                                     ? "number"
                                     : "text"
                             }
-                            min={key === "birth" ? undefined : 0}
+                            min={0}
                             max={
-                              key === "birth" ? currentDate : key === "gpa" ? 4 : key === "year" ? 8 : undefined
+                              key === "gpa" ? 4 : key === "year" ? 8 : undefined
                             }
                             step={key === "gpa" ? "0.01" : "1"}
                             pattern={

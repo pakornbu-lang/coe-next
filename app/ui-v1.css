@@ -1235,6 +1235,11 @@ textarea {
   font-size: 17px;
   flex: 1;
 }
+.birth-date-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.birth-date-fields legend { font-weight: 600; margin-bottom: 8px; }
+.birth-date-selects { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 12px; }
+.birth-date-selects label { min-width: 0; }
+@media (max-width: 480px) { .birth-date-selects { grid-template-columns: 1fr; } }
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
