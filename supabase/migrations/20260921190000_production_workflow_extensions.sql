@@ -180,7 +180,7 @@ begin
 end;
 $$;
 
-revoke all on function public.committee_declare_conflict(uuid,boolean,text),public.staff_set_scholarship_process(uuid,integer,boolean,timestamptz,text),public.staff_schedule_interview(uuid,timestamptz,text,text,text,text),public.student_submit_appeal(uuid,text),public.staff_resolve_appeal(uuid,integer,text,text),public.published_scholarship_results(uuid) from public;
+revoke all on function public.committee_declare_conflict(uuid,boolean,text),public.staff_set_scholarship_process(uuid,integer,boolean,timestamptz,text),public.staff_schedule_interview(uuid,timestamptz,text,text,text,text),public.student_submit_appeal(uuid,text),public.staff_resolve_appeal(uuid,integer,text,text),public.published_scholarship_results(uuid) from public,anon;
 grant execute on function public.committee_declare_conflict(uuid,boolean,text),public.staff_set_scholarship_process(uuid,integer,boolean,timestamptz,text),public.staff_schedule_interview(uuid,timestamptz,text,text,text,text),public.student_submit_appeal(uuid,text),public.staff_resolve_appeal(uuid,integer,text,text) to authenticated;
 grant execute on function public.published_scholarship_results(uuid) to anon,authenticated;
 

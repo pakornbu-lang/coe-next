@@ -1,4 +1,5 @@
 "use client";
+import { numericInputProps } from "@/lib/numeric-input";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { documents, people, scholarships, statuses } from "@/lib/ui-data";
@@ -201,6 +202,7 @@ export function ManageScholarships() {
                     min="1"
                     step="1"
                     value={amount}
+                    {...numericInputProps()}
                     onChange={(e) => setAmount(e.target.value)}
                     required
                   />
@@ -212,6 +214,7 @@ export function ManageScholarships() {
                     min="1"
                     step="1"
                     value={quota}
+                    {...numericInputProps()}
                     onChange={(e) => setQuota(e.target.value)}
                     required
                   />
@@ -763,6 +766,7 @@ export function Evaluation() {
                             step="1"
                             required
                             value={scores[i]}
+                            {...numericInputProps()}
                             onChange={(e) =>
                               setScores(
                                 scores.map((x, j) =>

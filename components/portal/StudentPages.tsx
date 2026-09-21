@@ -2,28 +2,31 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Viewer } from "@/lib/auth/types";
+import { useDemoApplications, type DemoApplication } from "@/lib/demo-applications";
+import ApplicationStatusList from "./ApplicationStatusList";
 import { scholarships, type Scholarship, money, demoDate } from "@/lib/ui-data";
 import {
   Action,
-  Badge,
   Banner,
-  Donut,
   Heading,
   Icon,
   Notice,
   Panel,
-  Photo,
   Quote,
   ScholarshipCard,
-  Stats,
   Timeline,
 } from "./Shared";
 
 export function Dashboard({ viewer }: { viewer: Viewer }) {
+  const { items, loading, error } = useDemoApplications(viewer.id);
   return (
     <>
       <Banner title={viewer.fullName} />
-      <Stats />
+      <Panel title="ภาพรวมการทดลองสมัครทุน">
+        <p>{loading ? "กำลังโหลดรายการ…" : error ? "ไม่สามารถโหลดจำนวนรายการได้" : `คุณมีรายการทดลองสมัคร ${items.length} รายการ`}</p>
+        <p>ยังไม่มีการส่งใบสมัครจริงหรือผลพิจารณาจากเจ้าหน้าที่ รายการนี้เก็บเฉพาะในเบราว์เซอร์นี้</p>
+      </Panel>
+      <ApplicationStatusList items={statusItems(items, true)} loading={loading} error={error} demo />
       <div className="columns">
         <div className="stack">
           <Panel
@@ -58,12 +61,6 @@ export function Dashboard({ viewer }: { viewer: Viewer }) {
           </Panel>
         </div>
         <aside className="stack">
-          <Panel
-            title="สถานะใบสมัครของฉัน"
-            action={<Link href="/applications">ดูทั้งหมด ›</Link>}
-          >
-            <Donut />
-          </Panel>
           <Panel title="กำหนดการสำคัญ">
             <Timeline />
           </Panel>
@@ -416,115 +413,21 @@ export function DetailPage({ item }: { item: Scholarship }) {
   );
 }
 
-export function Applications() {
-  const [selected, setSelected] = useState(0);
-  const labels = [
-    "กำลังพิจารณา",
-    "อนุมัติแล้ว",
-    "ไม่ผ่านการคัดเลือก",
-    "เสร็จสิ้น",
-  ];
-  return (
-    <>
-      <Heading
-        title="ใบสมัครของฉัน"
-        description="ติดตามสถานะและรายละเอียดใบสมัครทุนการศึกษาของคุณ (เฉพาะทุนภายในมหาวิทยาลัยเท่านั้น)"
-      />
-      <div className="columns applications-layout">
-        <Panel title="ใบสมัครทั้งหมด" action={<span>4 รายการ</span>}>
-          <div className="application-list">
-            {scholarships.slice(0, 4).map((s, i) => (
-              <button
-                key={s.id}
-                className={`application-item ${selected === i ? "selected" : ""}`}
-                onClick={() => setSelected(i)}
-              >
-                <Photo index={s.image} />
-                <div>
-                  <h3>{s.title}</h3>
-                  <p>กองพัฒนานักศึกษา</p>
-                  <small>ยื่นใบสมัคร 15 เม.ย. 2568</small>
-                  <Badge>{labels[i]}</Badge>
-                </div>
-                <span>›</span>
-              </button>
-            ))}
-          </div>
-        </Panel>
-        <div className="stack">
-          <Panel>
-            <div className="application-summary">
-              <Photo index={selected} />
-              <div>
-                <h2>{scholarships[selected].title}</h2>
-                <p>กองพัฒนานักศึกษา</p>
-                <Badge>{labels[selected]}</Badge>
-              </div>
-            </div>
-            <div className="detail-metrics">
-              <div>
-                <Icon name="people" />
-                <span>
-                  <small>จำนวนทุน</small>
-                  <strong>{scholarships[selected].quota} ทุน</strong>
-                </span>
-              </div>
-              <div>
-                <Icon name="money" />
-                <span>
-                  <small>ทุนละ</small>
-                  <strong>{money(scholarships[selected].amount)} บาท</strong>
-                </span>
-              </div>
-              <div>
-                <Icon name="calendar" />
-                <span>
-                  <small>ปิดรับสมัคร</small>
-                  <strong>{demoDate(scholarships[selected].date)}</strong>
-                </span>
-              </div>
-            </div>
-          </Panel>
-          <Panel title="ความคืบหน้าใบสมัคร">
-            {selected === 0 ? (
-              <Timeline tracking />
-            ) : (
-              <>
-                <Notice>
-                  {selected === 1
-                    ? "ใบสมัครของคุณผ่านการอนุมัติแล้ว โปรดติดตามกำหนดการยืนยันสิทธิ์"
-                    : selected === 2
-                      ? "ใบสมัครนี้ไม่ผ่านการคัดเลือกในรอบปัจจุบัน สามารถค้นหาทุนอื่นที่เหมาะกับคุณได้"
-                      : "ใบสมัครนี้ดำเนินการเสร็จสิ้นแล้ว"}
-                </Notice>
-                <Action
-                  secondary
-                  href={`/scholarships/${scholarships[selected].id}`}
-                >
-                  ดูรายละเอียดทุน
-                </Action>
-              </>
-            )}
-          </Panel>
-          <div className="three-columns application-notices">
-            <Panel title="การดำเนินการถัดไป">
-              <p>
-                {selected === 0
-                  ? "อยู่ระหว่างการพิจารณา กรุณารอผลจากคณะกรรมการ"
-                  : selected === 1
-                    ? "ติดตามกำหนดการยืนยันสิทธิ์และการจ่ายทุน"
-                    : "ค้นหาโอกาสทางการศึกษาเพิ่มเติม"}
-              </p>
-            </Panel>
-            <Panel title="ข้อความจากกองทุนการศึกษา">
-              <p>
-                เอกสารในใบสมัครของคุณได้รับการตรวจสอบเรียบร้อยแล้ว
-                ขอบคุณที่สมัครทุนนะคะ
-              </p>
-            </Panel>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+function statusItems(items: DemoApplication[], dashboard = false) {
+  return items.map(item => ({
+    id: item.id,
+    title: scholarships.find(s => s.id === item.scholarshipId)?.title ?? "ทุนการศึกษา",
+    status: "ตรวจสอบใบสมัครแล้ว (ทดลอง)",
+    submittedAt: item.submittedAt,
+    href: dashboard ? `/applications#application-${item.id}` : `/scholarships/${item.scholarshipId}`,
+  }));
+}
+
+export function Applications({ viewer }: { viewer: Viewer }) {
+  const { items, loading, error } = useDemoApplications(viewer.id);
+  return <>
+    <Heading title="ใบสมัครของฉัน" description="รายการที่คุณทดลองสมัครในเบราว์เซอร์นี้" />
+    <Notice>รายการเหล่านี้ยังไม่ได้ส่งถึงเจ้าหน้าที่ และยังไม่มีผลการพิจารณาจริง หากเปลี่ยนเบราว์เซอร์หรือล้างข้อมูลเว็บไซต์ รายการอาจไม่ปรากฏ</Notice>
+    <ApplicationStatusList items={statusItems(items)} loading={loading} error={error} demo />
+  </>;
 }
