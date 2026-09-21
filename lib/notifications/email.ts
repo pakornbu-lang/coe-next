@@ -1,6 +1,7 @@
 import "server-only";
 
 import { siteUrl } from "@/lib/auth/site-url";
+import { appsScriptEmailConfigured, sendAppsScriptEmail } from "@/lib/notifications/apps-script";
 import { notificationEmailHtml, notificationEmailText } from "@/lib/notifications/template";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -16,17 +17,9 @@ type OutboxRow = {
 };
 
 function configuration() {
-  const appsScriptUrl = process.env.NOTIFICATION_APPS_SCRIPT_URL;
-  const appsScriptSecret = process.env.NOTIFICATION_APPS_SCRIPT_SECRET;
   const admin = createAdminClient();
-  if (!appsScriptUrl || !appsScriptSecret || !admin) return null;
-  try {
-    const url = new URL(appsScriptUrl);
-    if (url.protocol !== "https:" || !url.hostname.endsWith("script.google.com")) return null;
-  } catch {
-    return null;
-  }
-  return { appsScriptUrl, appsScriptSecret, admin };
+  if (!admin || !appsScriptEmailConfigured()) return null;
+  return { admin };
 }
 
 export async function dispatchNotificationEmails({ limit = 20 }: { limit?: number } = {}) {
@@ -65,31 +58,16 @@ export async function dispatchNotificationEmails({ limit = 20 }: { limit?: numbe
     let delivered = false;
     let providerId: string | null = null;
     let errorMessage = "";
-    try {
-      const actionUrl = new URL(row.href, siteUrl()).toString();
-      const response = await fetch(config.appsScriptUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          secret: config.appsScriptSecret,
-          message: {
-            to: row.to_email,
-            subject: row.subject,
-            text: notificationEmailText({ subject: row.subject, body: row.body, actionUrl }),
-            html: notificationEmailHtml({ subject: row.subject, body: row.body, actionUrl }),
-          },
-        }),
-      });
-      const payload = await response.json().catch(() => null) as { ok?: boolean; error?: string; requestId?: string } | null;
-      if (!response.ok) errorMessage = `Apps Script returned ${response.status}`;
-      else if (!payload?.ok) errorMessage = payload?.error || "Apps Script did not confirm delivery";
-      else {
-        delivered = true;
-        providerId = payload.requestId ?? null;
-      }
-    } catch {
-      errorMessage = "Unable to contact Google Apps Script";
-    }
+    const actionUrl = new URL(row.href, siteUrl()).toString();
+    const result = await sendAppsScriptEmail({
+      to: row.to_email,
+      subject: row.subject,
+      text: notificationEmailText({ subject: row.subject, body: row.body, actionUrl }),
+      html: notificationEmailHtml({ subject: row.subject, body: row.body, actionUrl }),
+    });
+    delivered = result.delivered;
+    providerId = result.providerId;
+    errorMessage = result.error;
     if (delivered) {
       await config.admin.from("notification_email_outbox").update({ status: "sent", sent_at: new Date().toISOString(), provider_id: providerId, last_error: null, updated_at: new Date().toISOString() }).eq("id", row.id);
       sent += 1;

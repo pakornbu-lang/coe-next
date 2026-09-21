@@ -74,3 +74,27 @@ export function notificationEmailHtml({ subject, body, actionUrl }: Notification
   </td></tr></table>
 </body></html>`;
 }
+
+export function passwordResetEmailText(actionUrl: string) {
+  return `ระบบติดตามทุนการศึกษา\nทุนภายในมหาวิทยาลัย\n\nตั้งรหัสผ่านใหม่\n\nมีการขอตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ\nเปิดลิงก์นี้เพื่อตั้งรหัสผ่านใหม่: ${actionUrl}\n\nหากคุณไม่ได้เป็นผู้ขอ สามารถละเว้นอีเมลนี้ได้`;
+}
+
+export function passwordResetEmailHtml(actionUrl: string) {
+  const safeUrl = escapeHtml(actionUrl);
+  return `<!doctype html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#edf9f2;color:#102447;font-family:Arial,'Noto Sans Thai',Tahoma,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#edf9f2;"><tr><td align="center" style="padding:32px 16px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 8px 28px rgba(20,78,52,.10);">
+      <tr><td align="center" style="padding:28px 32px 18px;"><div style="font-size:21px;line-height:1.35;font-weight:700;color:#0f2450;">ระบบติดตามทุนการศึกษา</div><div style="margin-top:2px;font-size:13px;line-height:1.5;color:#60708a;">ทุนภายในมหาวิทยาลัย</div></td></tr>
+      <tr><td style="padding:0 32px;"><div style="height:1px;background:#dce5ec;line-height:1px;font-size:1px;">&nbsp;</div></td></tr>
+      <tr><td style="padding:28px 32px 8px;text-align:center;"><div style="font-size:14px;font-weight:700;color:#1473d4;">ความปลอดภัยของบัญชี</div><h1 style="margin:7px 0 0;font-size:30px;line-height:1.3;color:#102447;">ตั้งรหัสผ่านใหม่</h1></td></tr>
+      <tr><td style="padding:18px 32px 8px;font-size:16px;line-height:1.75;color:#1b3155;">มีการขอตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ กดปุ่มด้านล่างเพื่อดำเนินการ</td></tr>
+      <tr><td align="center" style="padding:20px 32px 10px;"><a href="${safeUrl}" style="display:block;padding:14px 18px;border-radius:6px;background:#1677f1;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;">ตั้งรหัสผ่านใหม่</a></td></tr>
+      <tr><td align="center" style="padding:5px 32px 24px;font-size:12px;line-height:1.6;color:#6d7b90;">หากปุ่มไม่ทำงาน ให้คัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์:<br><span style="word-break:break-all;">${safeUrl}</span></td></tr>
+      <tr><td style="padding:0 32px;"><div style="height:1px;background:#dce5ec;line-height:1px;font-size:1px;">&nbsp;</div></td></tr>
+      <tr><td align="center" style="padding:18px 32px 28px;font-size:11px;line-height:1.7;color:#8491a2;">หากคุณไม่ได้เป็นผู้ขอ สามารถละเว้นอีเมลนี้ได้<br>อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ</td></tr>
+    </table>
+  </td></tr></table>
+</body></html>`;
+}

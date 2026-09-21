@@ -1,13 +1,54 @@
 "use server";
 
+import { createHmac } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isAuthConfigured } from "@/lib/supabase/config";
 import { siteUrl } from "@/lib/auth/site-url";
+import { appsScriptEmailConfigured, sendAppsScriptEmail } from "@/lib/notifications/apps-script";
+import { passwordResetEmailHtml, passwordResetEmailText } from "@/lib/notifications/template";
 
 export type PasswordResetState = { error: string; success: string };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const resetRequestedMessage = "หากอีเมลนี้มีบัญชีอยู่ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้ กรุณาตรวจ Inbox และ Spam";
+
+async function sendPasswordResetWithAppsScript(email: string, redirectTo: string) {
+  const admin = createAdminClient();
+  const rateLimitKey = process.env.NOTIFICATION_DISPATCH_SECRET;
+  if (!admin || !rateLimitKey || !appsScriptEmailConfigured()) return false;
+
+  const emailHash = createHmac("sha256", rateLimitKey).update(email).digest("hex");
+  const oneHourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
+  const { data: recent, error: rateError } = await admin
+    .from("password_reset_rate_limits")
+    .select("requested_at")
+    .eq("email_hash", emailHash)
+    .gte("requested_at", oneHourAgo)
+    .order("requested_at", { ascending: false })
+    .limit(3);
+  if (rateError) return false;
+  const latest = recent?.[0]?.requested_at ? new Date(recent[0].requested_at).getTime() : 0;
+  if ((recent?.length ?? 0) >= 3 || Date.now() - latest < 60_000) return true;
+
+  await admin.from("password_reset_rate_limits").delete().lt("requested_at", new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString());
+  const { error: insertError } = await admin.from("password_reset_rate_limits").insert({ email_hash: emailHash });
+  if (insertError) return false;
+
+  const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo } });
+  const actionUrl = data?.properties?.action_link;
+  if (error || !actionUrl) return true;
+
+  const subject = "[ระบบทุนการศึกษา] ตั้งรหัสผ่านใหม่";
+  const result = await sendAppsScriptEmail({
+    to: email,
+    subject,
+    text: passwordResetEmailText(actionUrl),
+    html: passwordResetEmailHtml(actionUrl),
+  });
+  return result.delivered;
+}
 
 export async function requestPasswordReset(_previous: PasswordResetState, formData: FormData): Promise<PasswordResetState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
@@ -15,14 +56,16 @@ export async function requestPasswordReset(_previous: PasswordResetState, formDa
   if (!isAuthConfigured()) return { error: "ระบบบัญชียังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล", success: "" };
 
   try {
-    const client = await createClient();
     const redirectTo = `${siteUrl()}/auth/callback?next=${encodeURIComponent("/reset-password")}`;
+    if (await sendPasswordResetWithAppsScript(email, redirectTo)) return { error: "", success: resetRequestedMessage };
+
+    const client = await createClient();
     const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
     if (error?.status === 429) return { error: "มีการขอลิงก์หลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่", success: "" };
   } catch {
     return { error: "ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่", success: "" };
   }
-  return { error: "", success: "หากอีเมลนี้มีบัญชีอยู่ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้ กรุณาตรวจ Inbox และ Spam" };
+  return { error: "", success: resetRequestedMessage };
 }
 
 export async function completePasswordReset(_previous: PasswordResetState, formData: FormData): Promise<PasswordResetState> {
