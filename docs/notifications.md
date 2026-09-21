@@ -34,6 +34,8 @@ NEXT_PUBLIC_SITE_URL=https://โดเมนจริงของระบบ
 ระบบพยายามส่งทันทีหลัง workflow สำเร็จอยู่แล้ว Scheduler ใช้ส่งซ้ำเฉพาะรายการที่ล้มเหลว
 
 - Scheduler ทั่วไป: เรียก `POST /api/notifications/dispatch` ทุก 5 นาที พร้อม header `Authorization: Bearer <NOTIFICATION_DISPATCH_SECRET>`
+- หาก deploy บน Vercel ไฟล์ `vercel.json` ตั้งเวลาเรียกทุก 5 นาทีไว้แล้ว ให้กำหนด `CRON_SECRET` ใน Project Environment Variables; Vercel จะส่งค่าใน Authorization header อัตโนมัติ
+- ตั้ง `NEXT_PUBLIC_SITE_URL` เป็น HTTPS origin จริงก่อนเปิดระบบ เพื่อให้ปุ่มในอีเมลเปิดเว็บจริงแทน localhost
 - Vercel: กำหนด `CRON_SECRET` แล้วสร้าง `vercel.json` ที่ root ของโปรเจกต์:
 
 ```json

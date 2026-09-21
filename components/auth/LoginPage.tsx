@@ -5,9 +5,8 @@ import RegisterForm from "./RegisterForm";
 import { login } from "@/app/actions/auth";
 import { Brand, Icon, Panel } from "@/components/portal/Shared";
 
-export default function LoginPage({ register = false }: { register?: boolean }) {
+export default function LoginPage({ register = false, resetComplete = false }: { register?: boolean; resetComplete?: boolean }) {
   const [visible, setVisible] = useState(false);
-  const [help, setHelp] = useState(false);
   const [state, action, pending] = useActionState(login, { error: "" });
   return (
     <div className="auth-page">
@@ -39,6 +38,7 @@ export default function LoginPage({ register = false }: { register?: boolean }) 
             <RegisterForm />
           ) : (
             <form action={action}>
+              {resetComplete && <p className="soft-box" role="status">ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว กรุณาเข้าสู่ระบบอีกครั้ง</p>}
               <label htmlFor="login-email">อีเมลมหาวิทยาลัย <b>*</b></label>
               <input id="login-email" name="email" type="email" required maxLength={254}
                 placeholder="name@mail.wu.ac.th" autoComplete="username" />
@@ -52,8 +52,7 @@ export default function LoginPage({ register = false }: { register?: boolean }) 
                   {visible ? "ซ่อน" : "แสดง"}
                 </button>
               </span>
-              <button className="text-button forgot" type="button" onClick={() => setHelp(!help)}>ลืมรหัสผ่าน?</button>
-              {help && <p role="status">กรุณาติดต่อผู้ดูแลโครงการเพื่อรีเซ็ตรหัสผ่าน ระบบยังไม่เปิดบริการรีเซ็ตด้วยอีเมล</p>}
+              <Link className="text-button forgot" href="/forgot-password">ลืมรหัสผ่าน?</Link>
               <button className="btn" type="submit" disabled={pending}>
                 {pending ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบ"}<Icon name="arrow" />
               </button>

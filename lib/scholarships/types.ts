@@ -44,6 +44,9 @@ export type ScholarshipSummary = {
   status: ScholarshipStatus;
   version: number;
   created_at: string;
+  required_reviewer_count?: number;
+  results_published_at?: string | null;
+  appeal_deadline?: string | null;
 };
 
 export type Requirement = {
@@ -108,6 +111,26 @@ export type Disbursement = {
   proof_path: string | null;
   version: number;
   updated_at: string;
+};
+
+export type ApplicationInterview = {
+  id: string;
+  scheduled_at: string;
+  location: string;
+  meeting_url: string | null;
+  note: string;
+  status: "scheduled" | "completed" | "cancelled" | "no_show";
+  version: number;
+};
+
+export type ApplicationAppeal = {
+  id: string;
+  reason: string;
+  status: "pending" | "upheld" | "rejected";
+  response: string | null;
+  submitted_at: string;
+  resolved_at: string | null;
+  version: number;
 };
 
 export type Notification = {

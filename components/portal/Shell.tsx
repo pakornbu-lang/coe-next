@@ -29,6 +29,7 @@ export default function Shell({ children, viewer, notifications = [] }: { childr
           ["/staff/scholarships", "ทุนการศึกษา", "cap"],
           ["/staff/review", "ตรวจเอกสาร", "check"],
           ["/staff/review?status=approved", "อนุมัติ / จ่ายทุน", "chart"],
+          ["/staff/reports", "รายงาน", "file"],
         ]
       : viewer.role === "committee"
         ? [

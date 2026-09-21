@@ -163,8 +163,9 @@ function parseRequirements(raw: string) {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line, index) => {
-      const [label, details = ""] = line.split("|").map((part) => part.trim());
-      return { label, details, required: true, sort_order: index + 1 };
+      const [label, details = "", requiredValue = "required"] = line.split("|").map((part) => part.trim());
+      const required = !["optional", "ไม่บังคับ", "false"].includes(requiredValue.toLowerCase());
+      return { label, details, required, sort_order: index + 1 };
     });
 }
 
@@ -190,7 +191,9 @@ export async function saveScholarship(_previous: WorkflowState, form: FormData):
   const amount = Number(value(form, "amount"));
   const quota = Number(value(form, "quota"));
   const minimumGpa = value(form, "minimum_gpa");
-  if ((id && (!uuid(id) || !Number.isSafeInteger(version) || version! < 1)) || !opensAt || !closesAt || !Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(quota) || !requirements.length || !criteria.length) {
+  const invalidRequirement = requirements.some((item) => item.label.length < 2 || item.label.length > 150 || item.details.length > 1000);
+  const invalidCriterion = criteria.some((item) => item.label.length < 2 || item.label.length > 150 || !Number.isFinite(item.max_score) || item.max_score <= 0 || item.max_score > 1000 || item.details.length > 1000);
+  if ((id && (!uuid(id) || !Number.isSafeInteger(version) || version! < 1)) || !opensAt || !closesAt || !Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(quota) || !requirements.length || !criteria.length || invalidRequirement || invalidCriterion) {
     return { error: "กรุณากรอกข้อมูลทุน รายการเอกสาร และเกณฑ์คะแนนให้ครบ", success: "" };
   }
   const client = await createClient();

@@ -3,7 +3,7 @@ import { Action, Icon, Panel } from "./Shared";
 import type { ScholarshipSummary } from "@/lib/scholarships/types";
 import { money, thaiDate } from "@/lib/scholarships/types";
 import { homeForRole, type Viewer } from "@/lib/auth/types";
-export function Landing({ scholarships, viewer }: { scholarships: ScholarshipSummary[]; viewer: Viewer | null }) {
+export function Landing({ scholarships, viewer, contact }: { scholarships: ScholarshipSummary[]; viewer: Viewer | null; contact: { department: string; phone: string; email: string; hours: string } }) {
   return (
     <>
       <section className="hero">
@@ -157,10 +157,10 @@ export function Landing({ scholarships, viewer }: { scholarships: ScholarshipSum
           </Panel>
           <Panel title="ติดต่อเจ้าหน้าที่">
             <div id="contact">
-              <p>กองพัฒนานักศึกษา มหาวิทยาลัย</p>
-              <p>☎ 02-123-4567 ต่อ 1234</p>
-              <p>✉ scholarship@university.ac.th</p>
-              <p>จันทร์ – ศุกร์ 08.30 – 16.30 น.</p>
+              <p>{contact.department}</p>
+              {contact.phone && <p>☎ {contact.phone}</p>}
+              {contact.email && <p>✉ <a href={`mailto:${contact.email}`}>{contact.email}</a></p>}
+              <p>{contact.hours}</p>
               <small>ติดต่อผ่านช่องทางของมหาวิทยาลัยในเวลาทำการ</small>
             </div>
           </Panel>
