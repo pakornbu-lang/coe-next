@@ -14,6 +14,21 @@ NOTIFICATION_DISPATCH_SECRET=ค่าสุ่มยาวอย่างน้
 NEXT_PUBLIC_SITE_URL=https://โดเมนจริงของระบบ
 ```
 
-หลังตั้งค่า ระบบส่งคิวที่มีอยู่ทันทีหลังรายการ workflow สำเร็จ และควรตั้ง scheduler ของผู้ให้บริการโฮสต์ให้เรียก `POST /api/notifications/dispatch` ทุก 5 นาที โดยกำหนด header `Authorization: Bearer <NOTIFICATION_DISPATCH_SECRET>` เพื่อส่งซ้ำรายการที่เคยล้มเหลว คำตอบ JSON มีเฉพาะจำนวนรายการ ไม่ส่งข้อมูลผู้สมัครหรือคีย์ลับกลับมา
+หลังตั้งค่า ระบบส่งคิวที่มีอยู่ทันทีหลังรายการ workflow สำเร็จ และควรตั้ง scheduler ของผู้ให้บริการโฮสต์เพื่อส่งซ้ำรายการที่เคยล้มเหลว คำตอบ JSON มีเฉพาะจำนวนรายการ ไม่ส่งข้อมูลผู้สมัครหรือคีย์ลับกลับมา
+
+## ตั้ง scheduler
+
+- ผู้ให้บริการ scheduler ทั่วไป: เรียก `POST /api/notifications/dispatch` ทุก 5 นาที และกำหนด header `Authorization: Bearer <NOTIFICATION_DISPATCH_SECRET>`
+- Vercel: กำหนด `CRON_SECRET` เป็นค่าสุ่มยาวอย่างน้อย 32 ตัวอักษร แล้วสร้าง `vercel.json` ที่ root ของโปรเจกต์ดังนี้ (Cron ของ Vercel เรียก `GET` และระบบรองรับแล้ว)
+
+```json
+{
+  "crons": [
+    { "path": "/api/notifications/dispatch", "schedule": "*/5 * * * *" }
+  ]
+}
+```
+
+Vercel Hobby เรียก Cron ได้สูงสุดวันละครั้ง; หากต้องการทุก 5 นาทีให้ใช้แพลนที่รองรับ หรือใช้ scheduler ภายนอกที่ส่ง `POST` พร้อม header ลับข้างต้น
 
 อีเมลยืนยันสมัครสมาชิกและเปลี่ยนอีเมลเป็นคนละส่วนกับอีเมลแจ้งเตือน workflow ต้องตั้งค่า Custom SMTP ใน Supabase Authentication ด้วยผู้ส่งที่ยืนยันโดเมนแล้ว และเพิ่ม `/auth/callback` ของโดเมนจริงใน Redirect URLs

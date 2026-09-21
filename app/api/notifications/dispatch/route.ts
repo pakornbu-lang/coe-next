@@ -9,10 +9,18 @@ function matchesSecret(provided: string, expected: string) {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-export async function POST(request: Request) {
-  const expected = process.env.NOTIFICATION_DISPATCH_SECRET;
+async function dispatch(request: Request) {
   const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-  if (!expected || !matchesSecret(provided, expected)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const secrets = [process.env.NOTIFICATION_DISPATCH_SECRET, process.env.CRON_SECRET].filter((secret): secret is string => Boolean(secret));
+  if (!secrets.length || !secrets.some((secret) => matchesSecret(provided, secret))) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const result = await dispatchNotificationEmails();
   return Response.json(result, { status: result.configured ? 200 : 503 });
+}
+
+export async function POST(request: Request) {
+  return dispatch(request);
+}
+
+export async function GET(request: Request) {
+  return dispatch(request);
 }
