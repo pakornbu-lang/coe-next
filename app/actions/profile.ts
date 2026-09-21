@@ -12,13 +12,15 @@ export async function updateMyProfile(_previous: ProfileState, form: FormData): 
   const value = (key: string) => String(form.get(key) ?? "").trim();
   const phone = value("phone"), department = value("department"), position = viewer.role === "student" ? "" : value("position");
   const details: Record<string, string> = { address: value("address") };
-  if (viewer.role === "student") for (const key of ["major", "education_level", "study_year", "gpa"]) details[key] = value(key);
+  if (viewer.role === "student") for (const key of ["major", "education_level", "study_year", "gpa", "parent_status", "parent_status_other"]) details[key] = value(key);
   const expertise = viewer.role === "committee" ? value("expertise") : "";
   const version = Number(value("version"));
   const fail = (error: string): ProfileState => ({ error, success: "", version: _previous.version });
-  if (details.address.length > 500 || (details.major?.length ?? 0) > 150 || (details.education_level?.length ?? 0) > 50) return fail("ข้อมูลยาวเกินกำหนด กรุณาตรวจสอบที่อยู่และข้อมูลการศึกษา");
+  if (details.address.length > 500 || (details.major?.length ?? 0) > 150 || (details.education_level?.length ?? 0) > 50 || (details.parent_status_other?.length ?? 0) > 150) return fail("ข้อมูลยาวเกินกำหนด กรุณาตรวจสอบที่อยู่และข้อมูลการศึกษา");
   if (details.study_year && !/^[1-8]$/.test(details.study_year)) return fail("ชั้นปีต้องอยู่ระหว่าง 1–8");
   if (details.gpa && (!/^[0-4](\.[0-9]{1,2})?$/.test(details.gpa) || Number(details.gpa) > 4)) return fail("เกรดเฉลี่ยต้องอยู่ระหว่าง 0–4 และมีทศนิยมไม่เกิน 2 ตำแหน่ง");
+  if (details.parent_status && !["อยู่ด้วยกัน", "แยกกันอยู่", "หย่า", "บิดาเสียชีวิต", "มารดาเสียชีวิต", "เสียชีวิตทั้งคู่", "other"].includes(details.parent_status)) return fail("กรุณาเลือกสถานะบิดามารดาจากรายการที่กำหนด");
+  if (details.parent_status === "other" && !details.parent_status_other) return fail("กรุณาระบุสถานะบิดามารดา");
   if (!Number.isSafeInteger(version) || version < 1) return fail("กรุณารีเฟรชหน้าแล้วลองใหม่");
   if (phone && (!/^\+?[0-9 ()-]{7,25}$/.test(phone) || phone.replace(/\D/g, "").length < 7)) {
     return fail("กรุณากรอกเบอร์โทรให้ถูกต้อง หรือเว้นว่างไว้");

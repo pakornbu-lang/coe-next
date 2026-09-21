@@ -1,4 +1,5 @@
 export type ScholarshipStatus = "draft" | "published" | "closed" | "archived";
+export type ScholarshipProgramKind = "academic" | "financial_need" | "activity" | "talent" | "research" | "emergency" | "general";
 export type ApplicationStatus =
   | "draft"
   | "submitted"
@@ -31,6 +32,8 @@ export type ScholarshipSummary = {
   id: string;
   title: string;
   scholarship_type_id: string | null;
+  program_kind: ScholarshipProgramKind;
+  cover_path: string | null;
   description: string;
   eligibility: string;
   amount: number;
@@ -118,6 +121,12 @@ export type Notification = {
 
 export const money = (amount: number) =>
   new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(amount);
+
+export const scholarshipCoverUrl = (path: string | null | undefined) => {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base || !path) return null;
+  return `${base}/storage/v1/object/public/scholarship-covers/${path.split("/").map(encodeURIComponent).join("/")}`;
+};
 
 export const thaiDate = (value: string, withTime = false) =>
   new Intl.DateTimeFormat("th-TH", {

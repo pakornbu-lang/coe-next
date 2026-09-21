@@ -7,6 +7,7 @@ import LogoutButton from "@/components/auth/LogoutButton";
 import Avatar from "@/components/account/Avatar";
 import { homeForRole, roleLabels, type Viewer } from "@/lib/auth/types";
 import type { Notification } from "@/lib/scholarships/types";
+import NotificationMenu from "./NotificationMenu";
 
 export default function Shell({ children, viewer, notifications = [] }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
   const path = usePathname();
@@ -66,13 +67,7 @@ export default function Shell({ children, viewer, notifications = [] }: { childr
           </div>
         ) : (
           <div className="account">
-            <details>
-              <summary aria-label="การแจ้งเตือน"><Icon name="bell" /></summary>
-              <div className="popover">
-                <strong>การแจ้งเตือน</strong>
-                {notifications.length ? notifications.map((notification) => <Link className={notification.read_at ? "" : "notification-unread"} key={notification.id} href={notification.href}><strong>{notification.title}</strong><small>{notification.body}</small></Link>) : <p>ยังไม่มีการแจ้งเตือน</p>}
-              </div>
-            </details>
+            <NotificationMenu notifications={notifications} />
             <details>
               <summary aria-label="เมนูบัญชีผู้ใช้">
                 <Avatar version={viewer.avatarVersion} name={viewer.fullName} />

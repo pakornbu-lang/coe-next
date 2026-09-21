@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
+import { prepareScholarshipCover, MAX_SCHOLARSHIP_COVER_BYTES } from "@/lib/scholarships/cover.mjs";
+import { dispatchNotificationEmails } from "@/lib/notifications/email";
 
 export type WorkflowState = {
   error: string;
@@ -44,6 +46,8 @@ function applicationData(form: FormData) {
     education_level: 50,
     income: 30,
     family_members: 3,
+    parent_status: 50,
+    parent_status_other: 150,
     reason: 5000,
     activities: 5000,
     emergency_name: 200,
@@ -55,6 +59,9 @@ function applicationData(form: FormData) {
     if (item.length > limit) throw new Error("INPUT_TOO_LONG");
     data[key] = item;
   }
+  if (data.income && (!/^\d+(\.\d{1,2})?$/.test(data.income) || Number(data.income) > 100000000)) throw new Error("INVALID_INCOME");
+  if (data.family_members && (!/^[1-9]\d?$/.test(data.family_members))) throw new Error("INVALID_FAMILY");
+  if (data.parent_status && !["อยู่ด้วยกัน", "แยกกันอยู่", "หย่า", "บิดาเสียชีวิต", "มารดาเสียชีวิต", "เสียชีวิตทั้งคู่", "other"].includes(data.parent_status)) throw new Error("INVALID_PARENT_STATUS");
   return data;
 }
 
@@ -72,8 +79,8 @@ export async function saveApplication(_previous: WorkflowState, form: FormData):
     const bankName = value(form, "bank_name");
     const accountHolder = value(form, "account_holder");
     const accountNumber = value(form, "account_number");
-    if (mode === "submit" && (!bankName || !accountHolder || !accountNumber)) {
-      return { error: "กรุณากรอกข้อมูลบัญชีรับเงินให้ครบก่อนส่งใบสมัคร", success: "", applicationId: applicationId || undefined };
+    if (mode === "submit" && (!bankName || !accountHolder || !accountNumber || !data.faculty || !data.major || !data.education_level || !data.study_year || !data.gpa || !data.phone || !data.address || !data.income || !data.family_members || !data.parent_status || (data.parent_status === "other" && !data.parent_status_other) || !data.reason)) {
+      return { error: "กรุณากรอกข้อมูลที่มีเครื่องหมาย * ให้ครบก่อนส่งใบสมัคร", success: "", applicationId: applicationId || undefined };
     }
     const client = await createClient();
     const { data: savedId, error } = await client.rpc("student_save_application", {
@@ -90,13 +97,16 @@ export async function saveApplication(_previous: WorkflowState, form: FormData):
     revalidatePath("/dashboard");
     revalidatePath("/applications");
     revalidatePath(`/applications/${savedId}`);
+    await dispatchNotificationEmails();
     return {
       error: "",
       success: mode === "submit" ? "ส่งใบสมัครแล้ว เจ้าหน้าที่จะตรวจสอบเอกสารตามลำดับ" : "บันทึกร่างแล้ว ตอนนี้คุณสามารถอัปโหลดเอกสารประกอบได้",
       applicationId: savedId,
     };
   } catch (error) {
-    return error instanceof Error && error.message === "INPUT_TOO_LONG" ? { error: "ข้อมูลบางช่องยาวเกินกำหนด", success: "" } : failure();
+    if (error instanceof Error && error.message === "INPUT_TOO_LONG") return { error: "ข้อมูลบางช่องยาวเกินกำหนด", success: "" };
+    if (error instanceof Error && ["INVALID_INCOME", "INVALID_FAMILY", "INVALID_PARENT_STATUS"].includes(error.message)) return { error: "กรุณาตรวจสอบข้อมูลรายได้ สมาชิกครอบครัว และสถานะบิดามารดา", success: "" };
+    return failure();
   }
 }
 
@@ -163,7 +173,7 @@ function parseCriteria(raw: string) {
 }
 
 export async function saveScholarship(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
-  await requireRole(["staff"]);
+  const viewer = await requireRole(["staff"]);
   const id = value(form, "id");
   const version = id ? Number(value(form, "version")) : null;
   const opensAt = toBangkokTimestamp(value(form, "opens_at"));
@@ -173,10 +183,22 @@ export async function saveScholarship(_previous: WorkflowState, form: FormData):
   const amount = Number(value(form, "amount"));
   const quota = Number(value(form, "quota"));
   const minimumGpa = value(form, "minimum_gpa");
-  if ((id && (!uuid(id) || !Number.isSafeInteger(version) || version! < 1)) || !opensAt || !closesAt || !Number.isFinite(amount) || !Number.isSafeInteger(quota) || !requirements.length || !criteria.length) {
+  if ((id && (!uuid(id) || !Number.isSafeInteger(version) || version! < 1)) || !opensAt || !closesAt || !Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(quota) || !requirements.length || !criteria.length) {
     return { error: "กรุณากรอกข้อมูลทุน รายการเอกสาร และเกณฑ์คะแนนให้ครบ", success: "" };
   }
   const client = await createClient();
+  const uploadedCover = form.get("cover");
+  const existingCoverPath = value(form, "current_cover_path") || null;
+  let coverPath = existingCoverPath;
+  if (uploadedCover instanceof File && uploadedCover.size) {
+    if (uploadedCover.size > MAX_SCHOLARSHIP_COVER_BYTES) return { error: "ภาพปกต้องมีขนาดไม่เกิน 5 MB", success: "" };
+    let coverBytes: Buffer;
+    try { coverBytes = await prepareScholarshipCover(Buffer.from(await uploadedCover.arrayBuffer())); }
+    catch { return { error: "กรุณาใช้ภาพ JPG, PNG หรือ WebP ที่ไม่ใช่ภาพเคลื่อนไหว และมีขนาดไม่เกิน 5 MB", success: "" }; }
+    coverPath = `${viewer.id}/${randomUUID()}.webp`;
+    const { error: uploadError } = await client.storage.from("scholarship-covers").upload(coverPath, coverBytes, { contentType: "image/webp", upsert: false });
+    if (uploadError) return { error: "อัปโหลดภาพปกไม่สำเร็จ กรุณาลองใหม่", success: "" };
+  }
   const { data, error } = await client.rpc("staff_save_scholarship", {
     p_id: id || null,
     p_version: version,
@@ -190,11 +212,17 @@ export async function saveScholarship(_previous: WorkflowState, form: FormData):
     p_opens_at: opensAt,
     p_closes_at: closesAt,
     p_status: value(form, "status"),
+    p_program_kind: value(form, "program_kind"),
+    p_cover_path: coverPath,
     p_requirements: requirements,
     p_criteria: criteria,
     p_reason: value(form, "reason"),
   });
-  if (error || !data) return failure(error?.code);
+  if (error || !data) {
+    if (coverPath && coverPath !== existingCoverPath) await client.storage.from("scholarship-covers").remove([coverPath]);
+    return failure(error?.code);
+  }
+  if (existingCoverPath && coverPath !== existingCoverPath) await client.storage.from("scholarship-covers").remove([existingCoverPath]);
   revalidatePath("/scholarships");
   revalidatePath("/staff");
   revalidatePath("/staff/scholarships");
@@ -220,6 +248,7 @@ export async function reviewApplicationDocuments(_previous: WorkflowState, form:
   if (error) return failure(error.code);
   revalidatePath(`/staff/review/${applicationId}`);
   revalidatePath("/staff/review");
+  await dispatchNotificationEmails();
   return { error: "", success: action === "verify" ? "ยืนยันการตรวจเอกสารแล้ว พร้อมมอบหมายกรรมการ" : "ส่งคำขอแก้ไขเอกสารให้นักศึกษาแล้ว" };
 }
 
@@ -233,6 +262,7 @@ export async function assignReviewer(_previous: WorkflowState, form: FormData): 
   if (error) return failure(error.code);
   revalidatePath(`/staff/review/${applicationId}`);
   revalidatePath("/staff/review");
+  await dispatchNotificationEmails();
   return { error: "", success: "มอบหมายกรรมการแล้ว" };
 }
 
@@ -255,6 +285,7 @@ export async function saveEvaluation(_previous: WorkflowState, form: FormData): 
   if (error) return failure(error.code);
   revalidatePath("/committee");
   revalidatePath(`/staff/evaluation?assignment=${assignmentId}`);
+  if (value(form, "mode") === "submit") await dispatchNotificationEmails();
   return { error: "", success: value(form, "mode") === "submit" ? "ส่งผลประเมินให้เจ้าหน้าที่แล้ว" : "บันทึกร่างผลประเมินแล้ว" };
 }
 
@@ -273,6 +304,7 @@ export async function decideApplication(_previous: WorkflowState, form: FormData
   if (error) return failure(error.code);
   revalidatePath(`/staff/review/${applicationId}`);
   revalidatePath("/staff/review");
+  await dispatchNotificationEmails();
   return { error: "", success: "บันทึกผลการพิจารณาและแจ้งนักศึกษาแล้ว" };
 }
 
@@ -313,5 +345,6 @@ export async function recordDisbursement(_previous: WorkflowState, form: FormDat
   if (existingPath && path !== existingPath) await client.storage.from("scholarship-payment-proofs").remove([existingPath]);
   revalidatePath(`/staff/review/${applicationId}`);
   revalidatePath("/staff");
+  await dispatchNotificationEmails();
   return { error: "", success: "บันทึกข้อมูลการจ่ายทุนแล้ว" };
 }

@@ -31,14 +31,16 @@ export default function ProfileForm({ profile, role, onSaved, onCancel }: { prof
         <label className="profile-wide">ที่อยู่ติดต่อ<textarea name="address" maxLength={500} rows={3} autoComplete="street-address" value={details.address ?? ""} onChange={e => detail("address",e.target.value)} /></label>
       </div>
       <h2 className="profile-section-title">{student ? "ข้อมูลการศึกษา" : "ข้อมูลการทำงาน"}</h2>
-      {student && <p className="profile-hint">ข้อมูลการศึกษาที่คุณกรอกเอง ยังไม่ใช่ผลการตรวจสอบคุณสมบัติทุน</p>}
+       {student && <p className="profile-hint">ข้อมูลการศึกษาที่คุณกรอกเอง ยังไม่ใช่ผลการตรวจสอบคุณสมบัติทุน</p>}
       <div className="profile-fields">
         <label>{student ? "คณะ / สำนักวิชา" : "หน่วยงาน / คณะ / สำนักวิชา"}<input name="department" maxLength={150} value={department} onChange={e => setDepartment(e.target.value)} autoComplete="organization" /></label>
         {student ? <>
           <label>สาขาวิชา<input name="major" maxLength={150} value={details.major ?? ""} onChange={e => detail("major",e.target.value)} /></label>
           <label>ระดับการศึกษา<select name="education_level" value={details.education_level ?? ""} onChange={e => detail("education_level",e.target.value)}><option value="">ยังไม่ระบุ</option><option>ปริญญาตรี</option><option>ปริญญาโท</option><option>ปริญญาเอก</option><option>อื่น ๆ</option></select></label>
           <label>ชั้นปี<input name="study_year" type="number" min="1" max="8" step="1" value={details.study_year ?? ""} onChange={e => detail("study_year",e.target.value)} /></label>
-          <label>เกรดเฉลี่ย (GPA)<input name="gpa" type="number" min="0" max="4" step="0.01" value={details.gpa ?? ""} onChange={e => detail("gpa",e.target.value)} /></label>
+           <label>เกรดเฉลี่ย (GPA)<input name="gpa" type="number" min="0" max="4" step="0.01" value={details.gpa ?? ""} onChange={e => detail("gpa",e.target.value)} /></label>
+           <label>สถานะบิดามารดา<select name="parent_status" value={details.parent_status ?? ""} onChange={e => detail("parent_status",e.target.value)}><option value="">ยังไม่ระบุ</option><option>อยู่ด้วยกัน</option><option>แยกกันอยู่</option><option>หย่า</option><option>บิดาเสียชีวิต</option><option>มารดาเสียชีวิต</option><option>เสียชีวิตทั้งคู่</option><option value="other">อื่น ๆ</option></select></label>
+           {details.parent_status === "other" && <label>ระบุสถานะบิดามารดา<input name="parent_status_other" maxLength={150} value={details.parent_status_other ?? ""} onChange={e => detail("parent_status_other",e.target.value)} /></label>}
         </> : <label>ตำแหน่งงาน<input name="position" maxLength={150} value={position} onChange={e => setPosition(e.target.value)} autoComplete="organization-title" /></label>}
         {committee && <label className="profile-wide">ความเชี่ยวชาญ<textarea name="expertise" maxLength={500} rows={4} value={expertise} onChange={e => setExpertise(e.target.value)} placeholder="ระบุสาขาหรือประสบการณ์ที่เกี่ยวข้องกับการพิจารณาทุน" /><span className="profile-hint">ไม่เกิน 500 ตัวอักษร</span></label>}
       </div>

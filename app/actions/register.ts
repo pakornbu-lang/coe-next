@@ -6,12 +6,18 @@ import {isAuthConfigured} from "@/lib/supabase/config";
 import {siteUrl} from "@/lib/auth/site-url";
 export type RegisterState={error:string;success:string};
 export async function registerStudent(_previous:RegisterState,form:FormData):Promise<RegisterState>{
- const fullName=String(form.get("full_name")??"").trim();
+ const prefix=String(form.get("prefix")??"").trim();
+ const prefixOther=String(form.get("prefix_other")??"").trim();
+ const firstName=String(form.get("first_name")??"").trim();
+ const lastName=String(form.get("last_name")??"").trim();
+ const allowedPrefixes=["นาย","นาง","นางสาว","ดร.","ผศ.","รศ.","ศ."];
+ const actualPrefix=prefix==="other"?prefixOther:prefix;
+ const fullName=[actualPrefix,firstName,lastName].filter(Boolean).join(" ");
  const studentId=String(form.get("student_id")??"").trim();
  const email=String(form.get("email")??"").trim().toLowerCase();
  const password=String(form.get("password")??"");
- if(!fullName||fullName.length>200||!/^[0-9]{8,12}$/.test(studentId)||!/^([^\s@]+)@(mail\.)?wu\.ac\.th$/.test(email)||email.length>254)
-   return {error:"กรุณากรอกชื่อ รหัสประจำตัว 8–12 หลัก และอีเมล @mail.wu.ac.th หรือ @wu.ac.th ให้ถูกต้อง",success:""};
+ if((!allowedPrefixes.includes(prefix)&&prefix!=="other")||!actualPrefix||actualPrefix.length>30||!firstName||firstName.length>100||!lastName||lastName.length>100||!fullName||fullName.length>200||!/^[0-9]{8,12}$/.test(studentId)||!/^([^\s@]+)@(mail\.)?wu\.ac\.th$/.test(email)||email.length>254)
+   return {error:"กรุณากรอกคำนำหน้า ชื่อ นามสกุล รหัสประจำตัว 8–12 หลัก และอีเมลมหาวิทยาลัยให้ถูกต้อง",success:""};
  if(password.length<8||password.length>128||password!==String(form.get("confirm_password")??""))
    return {error:"รหัสผ่านต้องยาว 8–128 ตัวอักษร และทั้งสองช่องต้องตรงกัน",success:""};
  if(!isAuthConfigured())return {error:"ระบบสมัครสมาชิกยังไม่พร้อมใช้งาน",success:""};
@@ -20,7 +26,7 @@ export async function registerStudent(_previous:RegisterState,form:FormData):Pro
    const client=await createClient();
    // Never accept a role from the form. The database independently forces student.
    const {data,error}=await client.auth.signUp({email,password,options:{
-     data:{full_name:fullName,student_id:studentId},emailRedirectTo:siteUrl()+"/auth/callback"
+     data:{full_name:fullName,student_id:studentId,prefix:actualPrefix,first_name:firstName,last_name:lastName},emailRedirectTo:siteUrl()+"/auth/callback"
    }});
    if(error){
      const message=error.status===429?"มีคำขอมากเกินไป กรุณารอสักครู่ก่อนลองอีกครั้ง":
