@@ -1,6 +1,7 @@
 import "server-only";
 
 import { siteUrl } from "@/lib/auth/site-url";
+import { notificationEmailHtml, notificationEmailText } from "@/lib/notifications/template";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type OutboxRow = {
@@ -13,10 +14,6 @@ type OutboxRow = {
   attempts: number;
   next_attempt_at: string;
 };
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-}
 
 function configuration() {
   const key = process.env.RESEND_API_KEY;
@@ -70,8 +67,8 @@ export async function dispatchNotificationEmails({ limit = 20 }: { limit?: numbe
           from: config.from,
           to: [row.to_email],
           subject: row.subject,
-          text: `${row.body}\n\nเปิดในระบบ: ${actionUrl}`,
-          html: `<main style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937"><h2>${escapeHtml(row.subject)}</h2><p>${escapeHtml(row.body).replace(/\n/g, "<br>")}</p><p><a href="${escapeHtml(actionUrl)}">เปิดรายการในระบบทุนการศึกษา</a></p></main>`,
+          text: notificationEmailText({ subject: row.subject, body: row.body, actionUrl }),
+          html: notificationEmailHtml({ subject: row.subject, body: row.body, actionUrl }),
         }),
       });
       if (!response.ok) errorMessage = `Email provider returned ${response.status}`;

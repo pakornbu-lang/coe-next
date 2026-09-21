@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="92" viewBox="0 0 180 92" role="img" aria-labelledby="title">
+  <title>ระบบติดตามทุนการศึกษา</title>
+  <rect width="180" height="92" rx="18" fill="#f1fbf5"/>
+  <path d="M89 67c-13-11-29-10-42-4V39c13-6 29-7 42 4m2 24c13-11 29-10 42-4V39c-13-6-29-7-42 4" fill="#fff" stroke="#18835a" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M90 43v24" stroke="#18835a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M91 35c0-14 9-23 23-25-1 15-9 24-23 25Z" fill="#56bd78"/>
+  <path d="M91 35c-1-12-8-19-19-21 0 13 7 20 19 21Z" fill="#7bce91"/>
+  <path d="M91 35V19m0 16 13-13m-13 13-10-11" fill="none" stroke="#168156" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
