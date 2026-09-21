@@ -19,7 +19,7 @@
 เพิ่มตัวแปรต่อไปนี้ใน Vercel หรือผู้ให้บริการที่ deploy เว็บไซต์ ห้าม commit คีย์เหล่านี้ลง Git และห้ามตั้งชื่อเป็น `NEXT_PUBLIC_`:
 
 ```text
-SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_SECRET_KEY=sb_secret_... (จาก Supabase → Settings → API Keys → Secret key)
 NOTIFICATION_APPS_SCRIPT_URL=https://script.google.com/macros/s/.../exec
 NOTIFICATION_APPS_SCRIPT_SECRET=ค่าเดียวกับ Script property
 NOTIFICATION_DISPATCH_SECRET=ค่าสุ่มอีกค่า สำหรับ scheduler ทั่วไป
