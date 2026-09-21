@@ -43,7 +43,6 @@ export function notificationEmailText({ subject, body, actionUrl }: Notification
 export function notificationEmailHtml({ subject, body, actionUrl }: NotificationEmail) {
   const title = heading(subject);
   const href = new URL(actionUrl).pathname;
-  const logoUrl = `${new URL(actionUrl).origin}/email-logo.svg`;
   const safeUrl = escapeHtml(actionUrl);
   const safeTitle = escapeHtml(title);
   const safeBody = escapeHtml(body).replace(/\n/g, "<br>");
@@ -54,8 +53,7 @@ export function notificationEmailHtml({ subject, body, actionUrl }: Notification
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#edf9f2;"><tr><td align="center" style="padding:32px 16px;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 8px 28px rgba(20,78,52,.10);">
       <tr><td align="center" style="padding:28px 32px 18px;">
-        <img src="${escapeHtml(logoUrl)}" width="126" height="64" alt="ระบบติดตามทุนการศึกษา" style="display:block;border:0;width:126px;height:auto;">
-        <div style="margin-top:9px;font-size:21px;line-height:1.35;font-weight:700;color:#0f2450;">ระบบติดตามทุนการศึกษา</div>
+        <div style="font-size:21px;line-height:1.35;font-weight:700;color:#0f2450;">ระบบติดตามทุนการศึกษา</div>
         <div style="margin-top:2px;font-size:13px;line-height:1.5;color:#60708a;">ทุนภายในมหาวิทยาลัย</div>
       </td></tr>
       <tr><td style="padding:0 32px;"><div style="height:1px;background:#dce5ec;line-height:1px;font-size:1px;">&nbsp;</div></td></tr>

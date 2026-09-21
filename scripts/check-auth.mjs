@@ -47,8 +47,14 @@ for (const account of accounts) {
     assert(user);
     const { data: profiles, error: profileError } = await client.from("portal_profiles").select("id,role,full_name");
     assert.equal(profileError, null);
-    if (account.role !== "admin") assert.equal(profiles.length, 1, "RLS must return only the caller's profile");
-    else assert(profiles.length >= 4, "Admin must read member accounts");
+    if (["student", "committee"].includes(account.role)) {
+      assert.equal(profiles.length, 1, "Students and committee members must read only their own profile");
+    } else if (account.role === "staff") {
+      assert(profiles.length >= 1, "Staff must read their own profile");
+      assert(profiles.every(profile => profile.id === user.id || profile.role === "committee"), "Staff may additionally read only committee profiles for assignment");
+    } else {
+      assert(profiles.length >= 4, "Admin must read member accounts");
+    }
     profiles.sort((a,b) => Number(b.id === user.id) - Number(a.id === user.id));
     assert.equal(profiles[0].id, user.id);
     assert.equal(profiles[0].role, account.role);

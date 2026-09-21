@@ -15,7 +15,7 @@ export default function RegisterForm(){
  <label htmlFor="register-password">รหัสผ่าน *</label><input id="register-password" name="password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required/>
  <label htmlFor="register-confirm">ยืนยันรหัสผ่าน *</label><input id="register-confirm" name="confirm_password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required/>
  <p>ใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร และตรวจสอบอีเมลให้ถูกต้องก่อนสมัคร</p>
- <button className="btn" disabled={pending}>{pending?"กำลังสมัครสมาชิก…":"สมัครสมาชิกนักศึกษา"}</button>
+ <button className="btn" disabled={pending} onClick={event=>event.currentTarget.form?.classList.add("form-validated")}>{pending?"กำลังสมัครสมาชิก…":"สมัครสมาชิกนักศึกษา"}</button>
  {state.error&&<p className="soft-box" role="alert">{state.error}</p>}
  {state.success&&<p className="soft-box" role="status">{state.success}</p>}
  <p className="auth-switch">มีบัญชีแล้ว? <Link href="/login">เข้าสู่ระบบ</Link></p>

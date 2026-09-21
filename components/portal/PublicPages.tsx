@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Action, Icon, Panel } from "./Shared";
 import type { ScholarshipSummary } from "@/lib/scholarships/types";
 import { money, thaiDate } from "@/lib/scholarships/types";
-export function Landing({ scholarships }: { scholarships: ScholarshipSummary[] }) {
+import { homeForRole, type Viewer } from "@/lib/auth/types";
+export function Landing({ scholarships, viewer }: { scholarships: ScholarshipSummary[]; viewer: Viewer | null }) {
   return (
     <>
       <section className="hero">
@@ -26,9 +27,9 @@ export function Landing({ scholarships }: { scholarships: ScholarshipSummary[] }
               <Icon name="search" />
               ดูทุนที่เปิดรับ
             </Action>
-            <Action href="/login" secondary>
+            <Action href={viewer ? homeForRole(viewer.role) : "/login"} secondary>
               <Icon name="arrow" />
-              เข้าสู่ระบบ
+              {viewer ? "ไปหน้าหลักของฉัน" : "เข้าสู่ระบบ"}
             </Action>
           </div>
         </div>

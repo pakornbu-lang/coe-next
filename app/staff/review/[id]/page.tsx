@@ -8,5 +8,5 @@ export default async function StaffReviewDetailPage({ params }: { params: Promis
   const { id } = await params;
   const detail = await getStaffApplicationDetail(id);
   if (!detail) notFound();
-  return <StaffReviewPanel application={detail.application} documents={detail.documents} committees={detail.committees} assignments={detail.assignments} paymentAccount={detail.paymentAccount} disbursement={detail.disbursement}/>;
+  return <StaffReviewPanel application={{ ...detail.application, scholarship: detail.scholarship }} documents={detail.documents} committees={detail.committees} assignments={detail.assignments} paymentAccount={detail.paymentAccount} disbursement={detail.disbursement}/>;
 }

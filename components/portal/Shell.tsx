@@ -28,7 +28,7 @@ export default function Shell({ children, viewer, notifications = [] }: { childr
           ["/staff", "แดชบอร์ด", "home"],
           ["/staff/scholarships", "ทุนการศึกษา", "cap"],
           ["/staff/review", "ตรวจเอกสาร", "check"],
-          ["/staff/scholarships#results", "ประกาศผล / จ่ายทุน", "chart"],
+          ["/staff/review?status=approved", "อนุมัติ / จ่ายทุน", "chart"],
         ]
       : viewer.role === "committee"
         ? [
@@ -54,8 +54,8 @@ export default function Shell({ children, viewer, notifications = [] }: { childr
         <nav className={open ? "open" : ""} aria-label="เมนูหลัก">
           {nav.map(([url, label, icon]) => (
             <Link key={url} href={url} onClick={() => setOpen(false)}
-              className={path === url || (url === "/scholarships" && path.startsWith("/scholarships/")) ? "active" : ""}
-              aria-current={path === url ? "page" : undefined}>
+              className={path === url.split(/[?#]/)[0] || (url === "/scholarships" && path.startsWith("/scholarships/")) ? "active" : ""}
+              aria-current={path === url.split(/[?#]/)[0] ? "page" : undefined}>
               <Icon name={icon} size={20} /><span>{label}</span>
             </Link>
           ))}
