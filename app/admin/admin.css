@@ -22,3 +22,17 @@
 .admin-empty{padding:36px;border:1px dashed #b8cadf;border-radius:12px;text-align:center}
 .admin-muted{font-size:13px}.admin-table-scroll{overflow:auto}.admin-area table{width:100%;border-collapse:collapse;min-width:460px}.admin-area th,.admin-area td{text-align:left;padding:12px;border-bottom:1px solid #e5eaf0}
 @media(max-width:760px){.admin-heading,.admin-card header{flex-direction:column;align-items:stretch}.admin-columns{grid-template-columns:1fr}.admin-card{padding:18px}.admin-filters{padding:16px}.admin-filters .btn{width:100%}}
+
+.reference-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.reference-stats .admin-card{display:grid;gap:10px}.reference-stats strong{font-size:30px}
+.reference-toolbar,.reference-dialog-heading{display:flex;justify-content:space-between;align-items:center;gap:20px}
+.reference-toolbar p{margin:4px 0 0}.reference-filters{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin:24px 0}
+.reference-dialog{width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 48px);box-sizing:border-box;padding:28px;border:1px solid #dfe7ef;border-radius:18px;color:#14215e;background:white;box-shadow:0 24px 80px #14215e33;overflow-y:auto}
+.reference-dialog::backdrop{background:rgb(15 23 42 / 48%)}
+body:has(.reference-dialog[open]){overflow:hidden}
+.reference-dialog-heading{align-items:flex-start}.reference-dialog-heading h2{margin:8px 0;font-size:23px}.reference-dialog-heading p{margin:0;font-size:14px}
+.reference-dialog-close{border:0;border-radius:8px;background:#f0f4f8;color:#526079;font-size:25px;width:36px;height:36px;cursor:pointer;flex-shrink:0}
+.reference-fields{display:grid;gap:16px;border:0;padding:0;margin:0;min-width:0}
+.reference-form-actions{display:flex;justify-content:flex-end;gap:10px;padding-top:8px}
+.reference-caption{text-align:left;font-size:13px;color:#526079;padding-bottom:12px}
+@media(max-width:600px){.reference-stats{grid-template-columns:1fr;gap:0}.reference-stats .admin-card{display:flex;justify-content:space-between;align-items:center}.reference-filters{grid-template-columns:1fr}.reference-toolbar{align-items:flex-start;flex-direction:column}.reference-dialog{padding:20px;max-height:calc(100dvh - 24px)}}

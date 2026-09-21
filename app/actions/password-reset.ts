@@ -12,12 +12,12 @@ import { passwordResetEmailHtml, passwordResetEmailText } from "@/lib/notificati
 export type PasswordResetState = { error: string; success: string };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const resetRequestedMessage = "หากอีเมลนี้มีบัญชีอยู่ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้ กรุณาตรวจ Inbox และ Spam";
+const resetRequestedMessage = "รับคำขอแล้ว หากอีเมลนี้ตรงกับบัญชีที่ลงทะเบียน ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้ กรุณาตรวจกล่องขาเข้า (Inbox) และจดหมายขยะ (Spam) หากไม่พบ ให้ตรวจว่าใช้อีเมลเดียวกับที่ลงทะเบียน";
 
 async function sendPasswordResetWithAppsScript(email: string, redirectTo: string) {
   const admin = createAdminClient();
   const rateLimitKey = process.env.NOTIFICATION_DISPATCH_SECRET;
-  if (!admin || !rateLimitKey || !appsScriptEmailConfigured()) return false;
+  if (!admin || !rateLimitKey || !appsScriptEmailConfigured()) return "unavailable" as const;
 
   const emailHash = createHmac("sha256", rateLimitKey).update(email).digest("hex");
   const oneHourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
@@ -28,17 +28,27 @@ async function sendPasswordResetWithAppsScript(email: string, redirectTo: string
     .gte("requested_at", oneHourAgo)
     .order("requested_at", { ascending: false })
     .limit(3);
-  if (rateError) return false;
+  if (rateError) throw new Error("Recovery rate limit unavailable");
   const latest = recent?.[0]?.requested_at ? new Date(recent[0].requested_at).getTime() : 0;
-  if ((recent?.length ?? 0) >= 3 || Date.now() - latest < 60_000) return true;
+  if ((recent?.length ?? 0) >= 3 || Date.now() - latest < 60_000) return "limited" as const;
 
   await admin.from("password_reset_rate_limits").delete().lt("requested_at", new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString());
   const { error: insertError } = await admin.from("password_reset_rate_limits").insert({ email_hash: emailHash });
-  if (insertError) return false;
+  if (insertError) throw new Error("Recovery rate limit unavailable");
 
   const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo } });
-  const actionUrl = data?.properties?.action_link;
-  if (error || !actionUrl) return true;
+  const tokenHash = data?.properties?.hashed_token;
+  if (error) {
+    if (error.code === "user_not_found") return "accepted" as const;
+    throw new Error("Unable to generate recovery link");
+  }
+  if (!tokenHash) throw new Error("Missing recovery token");
+  const recoveryUrl = new URL("/auth/callback", siteUrl());
+  recoveryUrl.searchParams.set("token_hash", tokenHash);
+  recoveryUrl.searchParams.set("type", "recovery");
+  recoveryUrl.searchParams.set("next", "/reset-password");
+  const actionUrl = recoveryUrl.toString();
+
 
   const subject = "[ระบบทุนการศึกษา] ตั้งรหัสผ่านใหม่";
   const result = await sendAppsScriptEmail({
@@ -47,7 +57,8 @@ async function sendPasswordResetWithAppsScript(email: string, redirectTo: string
     text: passwordResetEmailText(actionUrl),
     html: passwordResetEmailHtml(actionUrl),
   });
-  return result.delivered;
+  if (!result.delivered) throw new Error("Unable to send recovery email");
+  return "accepted" as const;
 }
 
 export async function requestPasswordReset(_previous: PasswordResetState, formData: FormData): Promise<PasswordResetState> {
@@ -57,10 +68,13 @@ export async function requestPasswordReset(_previous: PasswordResetState, formDa
 
   try {
     const redirectTo = `${siteUrl()}/auth/callback?next=${encodeURIComponent("/reset-password")}`;
-    if (await sendPasswordResetWithAppsScript(email, redirectTo)) return { error: "", success: resetRequestedMessage };
+    const result = await sendPasswordResetWithAppsScript(email, redirectTo);
+    if (result === "limited") return { error: "ส่งคำขอไปเมื่อไม่นานนี้ กรุณาตรวจ Inbox / Spam หรือรอแล้วลองใหม่", success: "" };
+    if (result === "accepted") return { error: "", success: resetRequestedMessage };
 
     const client = await createClient();
     const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error && error.status !== 429) return { error: "ส่งคำขอไม่สำเร็จ ระบบส่งอีเมลขัดข้อง กรุณาลองใหม่หรือติดต่อผู้ดูแล", success: "" };
     if (error?.status === 429) return { error: "มีการขอลิงก์หลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่", success: "" };
   } catch {
     return { error: "ไม่สามารถส่งคำขอได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่", success: "" };
