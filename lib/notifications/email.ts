@@ -16,11 +16,17 @@ type OutboxRow = {
 };
 
 function configuration() {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.NOTIFICATION_FROM_EMAIL;
+  const appsScriptUrl = process.env.NOTIFICATION_APPS_SCRIPT_URL;
+  const appsScriptSecret = process.env.NOTIFICATION_APPS_SCRIPT_SECRET;
   const admin = createAdminClient();
-  if (!key || !from || !admin) return null;
-  return { key, from, admin };
+  if (!appsScriptUrl || !appsScriptSecret || !admin) return null;
+  try {
+    const url = new URL(appsScriptUrl);
+    if (url.protocol !== "https:" || !url.hostname.endsWith("script.google.com")) return null;
+  } catch {
+    return null;
+  }
+  return { appsScriptUrl, appsScriptSecret, admin };
 }
 
 export async function dispatchNotificationEmails({ limit = 20 }: { limit?: number } = {}) {
@@ -56,28 +62,36 @@ export async function dispatchNotificationEmails({ limit = 20 }: { limit?: numbe
       .select("id")
       .maybeSingle();
     if (!claimed) continue;
-    let response: Response | null = null;
+    let delivered = false;
+    let providerId: string | null = null;
     let errorMessage = "";
     try {
       const actionUrl = new URL(row.href, siteUrl()).toString();
-      response = await fetch("https://api.resend.com/emails", {
+      const response = await fetch(config.appsScriptUrl, {
         method: "POST",
-        headers: { Authorization: `Bearer ${config.key}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: config.from,
-          to: [row.to_email],
-          subject: row.subject,
-          text: notificationEmailText({ subject: row.subject, body: row.body, actionUrl }),
-          html: notificationEmailHtml({ subject: row.subject, body: row.body, actionUrl }),
+          secret: config.appsScriptSecret,
+          message: {
+            to: row.to_email,
+            subject: row.subject,
+            text: notificationEmailText({ subject: row.subject, body: row.body, actionUrl }),
+            html: notificationEmailHtml({ subject: row.subject, body: row.body, actionUrl }),
+          },
         }),
       });
-      if (!response.ok) errorMessage = `Email provider returned ${response.status}`;
+      const payload = await response.json().catch(() => null) as { ok?: boolean; error?: string; requestId?: string } | null;
+      if (!response.ok) errorMessage = `Apps Script returned ${response.status}`;
+      else if (!payload?.ok) errorMessage = payload?.error || "Apps Script did not confirm delivery";
+      else {
+        delivered = true;
+        providerId = payload.requestId ?? null;
+      }
     } catch {
-      errorMessage = "Unable to contact email provider";
+      errorMessage = "Unable to contact Google Apps Script";
     }
-    if (response?.ok) {
-      const payload = await response.json().catch(() => null) as { id?: string } | null;
-      await config.admin.from("notification_email_outbox").update({ status: "sent", sent_at: new Date().toISOString(), provider_id: payload?.id ?? null, last_error: null, updated_at: new Date().toISOString() }).eq("id", row.id);
+    if (delivered) {
+      await config.admin.from("notification_email_outbox").update({ status: "sent", sent_at: new Date().toISOString(), provider_id: providerId, last_error: null, updated_at: new Date().toISOString() }).eq("id", row.id);
       sent += 1;
     } else {
       const delayMinutes = Math.min(60, 5 * 2 ** Math.min(row.attempts, 3));

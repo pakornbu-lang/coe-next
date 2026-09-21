@@ -1,25 +1,40 @@
-# การแจ้งเตือนและอีเมล
+# การแจ้งเตือนผ่าน Google Apps Script
 
-ระบบสร้างการแจ้งเตือนในเว็บและคิวอีเมลพร้อมกันเมื่อมีเหตุการณ์สำคัญ ได้แก่ นักศึกษาส่งใบสมัคร เจ้าหน้าที่ตรวจเอกสารหรือขอแก้ไข มอบหมายกรรมการ กรรมการส่งผล ตัดสินผล และบันทึกการโอนทุน ผู้ใช้เปิดรายการจากกระดิ่งแล้ว ระบบจะทำเครื่องหมายว่าอ่านแล้ว
+ระบบสร้างการแจ้งเตือนในเว็บและใส่อีเมลลงคิว Supabase พร้อมกัน เมื่อมีนักศึกษาส่งใบสมัคร, เจ้าหน้าที่ขอเอกสารเพิ่ม, มอบหมายกรรมการ, กรรมการส่งผล, ตัดสินผล หรือบันทึกการจ่ายทุน อีเมลใช้เทมเพลตสีเขียวอ่อนพร้อมตราระบบ กล่องรายละเอียด และปุ่มเปิดรายการจากอีเมลโดยตรง
 
-อีเมลใช้แม่แบบเดียวกับระบบ: พื้นหลังสีเขียวอ่อน, ตราระบบ, หัวข้อแจ้งเตือน, กล่องรายละเอียด และปุ่มเปิดรายการจากอีเมลโดยตรง รูปตราอยู่ที่ `/email-logo.svg` และจะใช้ URL ของระบบที่ deploy แล้วโดยอัตโนมัติ
+## 1. สร้าง Google Apps Script
 
-อีเมลใช้ [Resend](https://resend.com) ผ่านคิว `notification_email_outbox` ใน Supabase เพื่อให้ส่งซ้ำได้หากผู้ให้บริการอีเมลขัดข้อง ค่าต่อไปนี้ตั้งใน environment ของเครื่อง deploy เท่านั้น ห้าม commit ลง Git หรือใส่ใน `.env.local` ที่แชร์กัน:
+1. ลงชื่อเข้าใช้ Google ด้วยบัญชีที่จะเป็นผู้ส่ง เช่น `zreox9x00@gmail.com`
+2. เปิด [script.google.com](https://script.google.com) แล้วเลือก **New project**
+3. ลบเนื้อหาใน `Code.gs` แล้ววางโค้ดทั้งหมดจาก `docs/apps-script-notifier.gs`
+4. เลือก **Project Settings** → **Script properties** → **Add script property**
+5. ตั้งชื่อ `NOTIFICATION_APPS_SCRIPT_SECRET` และวางรหัสสุ่มยาวอย่างน้อย 32 ตัวอักษร
+6. กด **Deploy** → **New deployment** → เลือก **Web app**
+7. ตั้ง **Execute as: Me** และ **Who has access: Anyone** เพื่อให้เซิร์ฟเวอร์เว็บไซต์เรียกได้ โดย secret ในขั้นที่ 5 จะป้องกันคำขอจากภายนอก
+8. กด **Deploy** และอนุญาตสิทธิ์ MailApp เมื่อ Google ถาม
+9. คัดลอก URL ที่ลงท้ายด้วย `/exec` เท่านั้น ห้ามใช้ URL ที่ลงท้ายด้วย `/dev`
+
+## 2. ตั้งค่าบนเครื่อง deploy
+
+เพิ่มตัวแปรต่อไปนี้ใน Vercel หรือผู้ให้บริการที่ deploy เว็บไซต์ ห้าม commit คีย์เหล่านี้ลง Git และห้ามตั้งชื่อเป็น `NEXT_PUBLIC_`:
 
 ```text
 SUPABASE_SERVICE_ROLE_KEY=...
-RESEND_API_KEY=re_...
-NOTIFICATION_FROM_EMAIL=ระบบทุนการศึกษา <notifications@โดเมนที่ยืนยันแล้ว>
-NOTIFICATION_DISPATCH_SECRET=ค่าสุ่มยาวอย่างน้อย 32 ตัวอักษร
+NOTIFICATION_APPS_SCRIPT_URL=https://script.google.com/macros/s/.../exec
+NOTIFICATION_APPS_SCRIPT_SECRET=ค่าเดียวกับ Script property
+NOTIFICATION_DISPATCH_SECRET=ค่าสุ่มอีกค่า สำหรับ scheduler ทั่วไป
+CRON_SECRET=ค่าสุ่มอีกค่า สำหรับ Vercel Cron
 NEXT_PUBLIC_SITE_URL=https://โดเมนจริงของระบบ
 ```
 
-หลังตั้งค่า ระบบส่งคิวที่มีอยู่ทันทีหลังรายการ workflow สำเร็จ และควรตั้ง scheduler ของผู้ให้บริการโฮสต์เพื่อส่งซ้ำรายการที่เคยล้มเหลว คำตอบ JSON มีเฉพาะจำนวนรายการ ไม่ส่งข้อมูลผู้สมัครหรือคีย์ลับกลับมา
+หลังแก้ environment variables ต้อง deploy ใหม่เสมอ ระบบจะเลือก Google Apps Script เป็นผู้ส่งอีเมลทันทีเมื่อพบ URL และ secret ครบ
 
-## ตั้ง scheduler
+## 3. ตั้ง scheduler สำหรับส่งซ้ำ
 
-- ผู้ให้บริการ scheduler ทั่วไป: เรียก `POST /api/notifications/dispatch` ทุก 5 นาที และกำหนด header `Authorization: Bearer <NOTIFICATION_DISPATCH_SECRET>`
-- Vercel: กำหนด `CRON_SECRET` เป็นค่าสุ่มยาวอย่างน้อย 32 ตัวอักษร แล้วสร้าง `vercel.json` ที่ root ของโปรเจกต์ดังนี้ (Cron ของ Vercel เรียก `GET` และระบบรองรับแล้ว)
+ระบบพยายามส่งทันทีหลัง workflow สำเร็จอยู่แล้ว Scheduler ใช้ส่งซ้ำเฉพาะรายการที่ล้มเหลว
+
+- Scheduler ทั่วไป: เรียก `POST /api/notifications/dispatch` ทุก 5 นาที พร้อม header `Authorization: Bearer <NOTIFICATION_DISPATCH_SECRET>`
+- Vercel: กำหนด `CRON_SECRET` แล้วสร้าง `vercel.json` ที่ root ของโปรเจกต์:
 
 ```json
 {
@@ -29,6 +44,21 @@ NEXT_PUBLIC_SITE_URL=https://โดเมนจริงของระบบ
 }
 ```
 
-Vercel Hobby เรียก Cron ได้สูงสุดวันละครั้ง; หากต้องการทุก 5 นาทีให้ใช้แพลนที่รองรับ หรือใช้ scheduler ภายนอกที่ส่ง `POST` พร้อม header ลับข้างต้น
+Vercel Hobby เรียก Cron ได้สูงสุดวันละครั้ง หากต้องการทุก 5 นาทีให้ใช้แพลนที่รองรับหรือ scheduler ภายนอก
 
-อีเมลยืนยันสมัครสมาชิกและเปลี่ยนอีเมลเป็นคนละส่วนกับอีเมลแจ้งเตือน workflow ต้องตั้งค่า Custom SMTP ใน Supabase Authentication ด้วยผู้ส่งที่ยืนยันโดเมนแล้ว และเพิ่ม `/auth/callback` ของโดเมนจริงใน Redirect URLs
+## 4. ทดสอบและตรวจผล
+
+1. ใช้บัญชีนักศึกษาทดสอบสมัครทุน แล้วให้เจ้าหน้าที่กดขอแก้ไขเอกสาร
+2. ตรวจ Inbox และ Spam ของนักศึกษา อีเมลควรแสดงชื่อผู้ส่ง `ระบบติดตามทุนการศึกษา`
+3. ใน Supabase SQL Editor ตรวจสถานะ:
+
+```sql
+select to_email, subject, status, last_error, sent_at
+from public.notification_email_outbox
+order by created_at desc
+limit 20;
+```
+
+สถานะ `sent` หมายถึง Apps Script ยืนยันการส่งแล้ว ถ้าเป็น `failed` ให้ดู `last_error` และ Apps Script → **Executions**
+
+อีเมลสมัครสมาชิกและเปลี่ยนอีเมลของ Supabase เป็นคนละระบบกับแจ้งเตือน workflow และยังต้องตั้ง Custom SMTP ใน Supabase Authentication หากต้องการส่งถึงทุกคนจริง
