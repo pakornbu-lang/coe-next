@@ -1,7 +1,10 @@
 "use client";
-import { useState, type FormEvent, type ChangeEvent } from "react";
+import { useId, useState, type FormEvent, type ChangeEvent } from "react";
 import { scholarships, money } from "@/lib/ui-data";
 import type { Viewer } from "@/lib/auth/types";
+import { numericInputProps } from "@/lib/numeric-input";
+import { saveDemoApplication } from "@/lib/demo-applications";
+import BirthDateFields from "./BirthDateFields";
 import {
   Action,
   Badge,
@@ -17,11 +20,14 @@ export function FilePicker({
   onCount,
   selectedFiles,
   onFilesChange,
+  required = false,
 }: {
   onCount?: (n: number) => void;
   selectedFiles?: File[];
   onFilesChange?: (files: File[]) => void;
+  required?: boolean;
 }) {
+  const requirementId = useId();
   const [localFiles, setLocalFiles] = useState<File[]>([]),
     [error, setError] = useState("");
   const files = selectedFiles ?? localFiles;
@@ -52,16 +58,20 @@ export function FilePicker({
     <div>
       <label className="upload-box">
         <Icon name="upload" size={28} />
-        <strong>คลิกเพื่อเลือกเอกสาร</strong>
+        <strong>คลิกเพื่อเลือกเอกสาร {required && <span style={{ color: "#b91c1c" }} aria-hidden="true">*</span>}</strong>
         <small>PDF, DOC, DOCX, JPG, PNG · ขนาดไม่เกิน 10 MB ต่อไฟล์</small>
         <input
           aria-label="เลือกเอกสาร"
           type="file"
           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           multiple
+          required={required && files.length === 0}
+          aria-required={required}
+          aria-describedby={required ? requirementId : undefined}
           onChange={change}
         />
       </label>
+      {required && <p id={requirementId}>* จำเป็นต้องแนบเอกสารประกอบอย่างน้อย 1 ไฟล์ก่อนตรวจสอบใบสมัคร</p>}
       <small>
         ไฟล์ที่เลือกอยู่ในหน้านี้เท่านั้น ยังไม่ได้ส่งไปยังมหาวิทยาลัย
       </small>
@@ -415,15 +425,20 @@ const formSteps = [
 export function ApplyForm({
   scholarshipId = "academic",
   viewer,
+  initialValues = {},
+  currentDate,
 }: {
   scholarshipId?: string;
   viewer: Viewer;
+  initialValues?: Record<string, string>;
+  currentDate: string;
 }) {
   const item =
     scholarships.find((s) => s.id === scholarshipId) || scholarships[0];
   const [step, setStep] = useState(0),
     [values, setValues] = useState<Record<string, string>>(() => ({
       ...Object.fromEntries(formSteps.flat().map(([, key]) => [key, ""])),
+      ...initialValues,
       name: viewer.fullName,
       studentId: viewer.studentId,
       email: viewer.email,
@@ -449,6 +464,12 @@ export function ApplyForm({
       setMessage("กรุณาเลือกเอกสารประกอบอย่างน้อย 1 ไฟล์");
       return;
     }
+    try {
+      saveDemoApplication(viewer.id, item.id, selectedFiles.length);
+    } catch {
+      setMessage("บันทึกรายการทดลองไม่ได้ กรุณาตรวจการอนุญาตจัดเก็บข้อมูลของเบราว์เซอร์แล้วลองอีกครั้ง");
+      return;
+    }
     setSubmitted(true);
   }
   return (
@@ -459,6 +480,10 @@ export function ApplyForm({
       >
         <Badge>เฉพาะทุนภายในมหาวิทยาลัยเท่านั้น</Badge>
       </Heading>
+      <Notice>
+        เติมข้อมูลจากบัญชีสมาชิกและโปรไฟล์ของคุณให้แล้ว กรุณาตรวจสอบและกรอกช่องที่เหลือให้ครบ
+        การแก้ไขในใบสมัครนี้จะไม่เปลี่ยนข้อมูลโปรไฟล์ของคุณ
+      </Notice>
       <ol className="form-steps">
         {stepLabels.map((s, i) => (
           <li
@@ -479,7 +504,9 @@ export function ApplyForm({
           <p>ชื่อผู้สมัคร: {values.name}</p>
           <p>ทุนที่สมัคร: {item.title}</p>
           <p>เอกสารที่เลือก: {count} ไฟล์</p>
+          <p>บันทึกรายการทดลองไว้ในเบราว์เซอร์นี้แล้ว โดยไม่เก็บข้อมูลส่วนตัวหรือไฟล์เอกสาร และจะแสดงบนแดชบอร์ดของบัญชีนี้</p>
           <div className="button-row">
+            <Action href="/dashboard">ดูสถานะบนแดชบอร์ด</Action>
             <Action href="/applications">ดูหน้าติดตามสถานะตัวอย่าง</Action>
             <button
               className="btn secondary"
@@ -503,6 +530,12 @@ export function ApplyForm({
                 {step < 5 ? (
                   <div className="form-grid" key={step}>
                     {formSteps[step].map(([label, key]) => (
+                      key === "birth" ? <BirthDateFields
+                        key={key}
+                        value={values.birth}
+                        currentDate={currentDate}
+                        onChange={birth => setValues(current => ({ ...current, birth }))}
+                      /> :
                       <label className={step === 3 ? "wide" : ""} key={key}>
                         {label} <b>*</b>
                         {step === 3 ? (
@@ -520,14 +553,14 @@ export function ApplyForm({
                         ) : (
                           <input
                             name={key}
+                            {...(["studentId", "postcode", "phone", "emergencyPhone", "accountNumber", "year", "credits", "members", "income", "siblings", "academicYear", "gpa"].includes(key)
+                              ? numericInputProps(key === "gpa" ? "decimal" : "integer") : {})}
                             value={values[key]}
                             onChange={(e) =>
                               setValues({ ...values, [key]: e.target.value })
                             }
                             type={
-                              key === "birth"
-                                ? "date"
-                                : key === "email"
+                              key === "email"
                                   ? "email"
                                   : [
                                         "gpa",
@@ -541,7 +574,7 @@ export function ApplyForm({
                                     ? "number"
                                     : "text"
                             }
-                            min={key === "gpa" ? 0 : 0}
+                            min={0}
                             max={
                               key === "gpa" ? 4 : key === "year" ? 8 : undefined
                             }
@@ -549,6 +582,8 @@ export function ApplyForm({
                             pattern={
                               key === "studentId"
                                 ? "[0-9]{8,12}"
+                                : key === "accountNumber"
+                                  ? "[0-9]+"
                                 : key === "postcode"
                                   ? "[0-9]{5}"
                                   : key.toLowerCase().includes("phone")
@@ -564,6 +599,7 @@ export function ApplyForm({
                 ) : (
                   <>
                     <FilePicker
+                      required
                       onCount={setCount}
                       selectedFiles={selectedFiles}
                       onFilesChange={setSelectedFiles}

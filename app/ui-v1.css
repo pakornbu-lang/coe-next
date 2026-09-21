@@ -1235,6 +1235,17 @@ textarea {
   font-size: 17px;
   flex: 1;
 }
+.birth-date-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.birth-date-fields legend { font-weight: 600; margin-bottom: 8px; }
+.birth-date-selects { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 12px; }
+.birth-date-selects label { min-width: 0; }
+@media (max-width: 480px) { .birth-date-selects { grid-template-columns: 1fr; } }
+.dashboard-applications { list-style: none; padding: 0; margin: 0; }
+.dashboard-applications li { padding: 16px 0; border-bottom: 1px solid #e2e8f0; }
+.dashboard-applications li:last-child { border-bottom: 0; }
+.dashboard-applications a { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.dashboard-applications strong { overflow-wrap: anywhere; }
+.dashboard-applications p { color: #64748b; font-size: 14px; }
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -1,4 +1,5 @@
 import { requireViewer } from "@/lib/auth/server";
+import Link from "next/link";
 import ProfileOverview from "@/components/account/ProfileOverview";
 import EmailChangeForm from "@/components/account/EmailChangeForm";
 import { createClient } from "@/lib/supabase/server";
@@ -18,7 +19,7 @@ export default async function AccountPage() {
       <header className="profile-heading"><div><span className="profile-eyebrow">MY PROFILE</span><h1>โปรไฟล์ของฉัน</h1><p>จัดการข้อมูลส่วนตัวและข้อมูลติดต่อของคุณ</p></div></header>
       <ProfileOverview key={viewer.id} viewer={viewer} profile={data as PersonalProfile} />
       <EmailChangeForm key={viewer.email} email={viewer.email} pendingEmail={auth.user?.new_email} />
-    {viewer.role === "student" && <section id="documents" className="panel profile-security"><h2>เอกสารประกอบการสมัครทุน</h2><p>ระบบอัปโหลดและตรวจสอบเอกสารอยู่ระหว่างพัฒนา ข้อมูลโปรไฟล์ด้านบนสามารถบันทึกได้แล้ว</p></section>}
+    {viewer.role === "student" && <section id="documents" className="panel profile-security"><h2>เอกสารประกอบการสมัครทุน</h2><p>อัปโหลดและติดตามผลตรวจเอกสารได้จากใบสมัครของแต่ละทุน เพื่อให้เอกสารผูกกับรอบสมัครอย่างถูกต้อง</p><Link className="btn secondary" href="/applications">ดูใบสมัครของฉัน</Link></section>}
     </div>
   );
 }

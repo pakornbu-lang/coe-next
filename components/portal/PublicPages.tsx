@@ -1,9 +1,9 @@
-"use client";
 import Link from "next/link";
-
-import { scholarships } from "@/lib/ui-data";
 import { Action, Icon, Panel } from "./Shared";
-export function Landing() {
+import type { ScholarshipSummary } from "@/lib/scholarships/types";
+import { money, thaiDate } from "@/lib/scholarships/types";
+import { homeForRole, type Viewer } from "@/lib/auth/types";
+export function Landing({ scholarships, viewer, contact }: { scholarships: ScholarshipSummary[]; viewer: Viewer | null; contact: { department: string; phone: string; email: string; hours: string } }) {
   return (
     <>
       <section className="hero">
@@ -27,9 +27,9 @@ export function Landing() {
               <Icon name="search" />
               ดูทุนที่เปิดรับ
             </Action>
-            <Action href="/login" secondary>
+            <Action href={viewer ? homeForRole(viewer.role) : "/login"} secondary>
               <Icon name="arrow" />
-              เข้าสู่ระบบ
+              {viewer ? "ไปหน้าหลักของฉัน" : "เข้าสู่ระบบ"}
             </Action>
           </div>
         </div>
@@ -69,22 +69,14 @@ export function Landing() {
           <Link href="/scholarships">ดูทุนทั้งหมด →</Link>
         </div>
         <div className="landing-scholarships">
-          {[scholarships[0], scholarships[5], scholarships[2]].map((s, i) => (
+          {scholarships.filter((item) => item.status === "published").slice(0, 3).map((s, i) => (
             <article className={`landing-fund fund-${i}`} key={s.id}>
               <div className="section-title">
                 <span className="feature-icon">
                   <Icon name={["trophy", "money", "people"][i]} size={30} />
                 </span>
                 <div>
-                  <h3>
-                    {
-                      [
-                        "ทุนเรียนดี",
-                        "ทุนช่วยเหลือนักศึกษาขาดแคลนทุนทรัพย์",
-                        "ทุนส่งเสริมกิจกรรม",
-                      ][i]
-                    }
-                  </h3>
+                  <h3>{s.title}</h3>
                   <p>{s.description}</p>
                 </div>
                 <Link className="btn secondary" href={`/scholarships/${s.id}`}>
@@ -94,19 +86,20 @@ export function Landing() {
               <div className="fund-metrics">
                 <span>
                   <Icon name="money" />
-                  จำนวนเงิน<strong>{s.amount.toLocaleString()} บาท/ปี</strong>
+                  จำนวนเงิน<strong>{money(s.amount)} บาท</strong>
                 </span>
                 <span>
                   <Icon name="people" />
-                  จำนวนรับ<strong>{s.quota} ทุน</strong>
+                  จำนวนรับ<strong>{s.quota} คน</strong>
                 </span>
                 <span>
                   <Icon name="calendar" />
-                  เปิดรับสมัคร<strong>1 – 30 เม.ย. 2568</strong>
+                  ปิดรับสมัคร<strong>{thaiDate(s.closes_at, true)}</strong>
                 </span>
               </div>
             </article>
           ))}
+          {!scholarships.some((item) => item.status === "published") && <Panel><h3>ยังไม่มีทุนที่เปิดรับ</h3><p>กรุณาตรวจสอบประกาศอีกครั้งภายหลัง หรือติดต่อเจ้าหน้าที่ทุน</p></Panel>}
         </div>
         <div className="columns home-lower">
           <Panel title="ขั้นตอนการสมัคร">
@@ -153,25 +146,22 @@ export function Landing() {
         <div className="three-columns">
           <Panel title="ประกาศล่าสุด">
             <ul id="news" className="news-list">
-              {[
-                "เปิดรับสมัครทุนเรียนดี ประจำปีการศึกษา 2568",
-                "ขยายเวลารับสมัครทุนช่วยเหลือนักศึกษา",
-                "ประกาศรายชื่อผู้ผ่านการคัดเลือกทุนกิจกรรม",
-              ].map((n, i) => (
-                <li key={n}>
-                  <Link href={`/scholarships/${scholarships[i].id}`}>{n}</Link>
-                  <time>{28 - i * 3} เม.ย. 2568</time>
+              {scholarships.slice(0, 3).map((item) => (
+                <li key={item.id}>
+                  <Link href={`/scholarships/${item.id}`}>{item.title}</Link>
+                  <time>ปิดรับ {thaiDate(item.closes_at, true)}</time>
                 </li>
               ))}
+              {!scholarships.length && <li>ยังไม่มีประกาศทุนในระบบ</li>}
             </ul>
           </Panel>
           <Panel title="ติดต่อเจ้าหน้าที่">
             <div id="contact">
-              <p>กองพัฒนานักศึกษา มหาวิทยาลัย</p>
-              <p>☎ 02-123-4567 ต่อ 1234</p>
-              <p>✉ scholarship@university.ac.th</p>
-              <p>จันทร์ – ศุกร์ 08.30 – 16.30 น.</p>
-              <small>ข้อมูลติดต่อจากภาพตัวอย่าง</small>
+              <p>{contact.department}</p>
+              {contact.phone && <p>☎ {contact.phone}</p>}
+              {contact.email && <p>✉ <a href={`mailto:${contact.email}`}>{contact.email}</a></p>}
+              <p>{contact.hours}</p>
+              <small>ติดต่อผ่านช่องทางของมหาวิทยาลัยในเวลาทำการ</small>
             </div>
           </Panel>
           <Panel title="คำถามที่พบบ่อย">

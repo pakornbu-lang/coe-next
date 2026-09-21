@@ -3,6 +3,7 @@ import { useActionState,useState } from "react";
 import { updateMember } from "@/app/actions/admin";
 import { roleLabels } from "@/lib/auth/types";
 import type { Member } from "@/lib/admin/types";
+import { numericInputProps } from "@/lib/numeric-input";
 const initial={error:"",success:""};
 function MemberCard({member:m}:{member:Member}){
   const [operation,setOperation]=useState("edit_identity");
@@ -26,7 +27,7 @@ function MemberCard({member:m}:{member:Member}){
           <option value="staff">Officer — เจ้าหน้าที่ทุน</option>
           <option value="committee">Committee — กรรมการ</option>
         </select></label>}
-        {operation==="edit_identity"&&<><label>ชื่อ–นามสกุล<input name="full_name" defaultValue={m.full_name} required maxLength={200}/></label><label>รหัสนักศึกษา / รหัสประจำตัว<input name="student_id" defaultValue={m.student_id} required pattern="[0-9]{8,12}" maxLength={12}/></label></>}
+        {operation==="edit_identity"&&<><label>ชื่อ–นามสกุล<input name="full_name" defaultValue={m.full_name} required maxLength={200}/></label><label>รหัสนักศึกษา / รหัสประจำตัว<input name="student_id" {...numericInputProps()} defaultValue={m.student_id} required pattern="[0-9]{8,12}" maxLength={12}/></label></>}
         {operation==="set_role"&&<p className="admin-note">การบันทึกถือเป็นการอนุมัติ บัญชีนี้จะใช้บทบาทที่เลือกแทนบทบาทเดิมทันทีในการเปิดหน้าหรือทำรายการครั้งถัดไป</p>}
         {operation==="suspend"&&<p className="admin-pending">บัญชีนี้จะไม่สามารถเข้าหน้าสำหรับสมาชิกหรือใช้สิทธิ์เดิมได้ในการร้องขอครั้งถัดไป</p>}
         <label>เหตุผลที่บันทึกในประวัติ<textarea name="reason" required minLength={3} maxLength={500} placeholder="ระบุเหตุผลหรือข้อมูลการตรวจสอบ"/></label>

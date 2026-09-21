@@ -1,29 +1,15 @@
 import { notFound, redirect } from "next/navigation";
 import AuthPage from "@/components/auth/LoginPage";
-import { getViewer, requireRole } from "@/lib/auth/server";
+import { getViewer } from "@/lib/auth/server";
 import { homeForRole } from "@/lib/auth/types";
-import {
-  Applications,
-  Dashboard,
-  DetailPage,
-  SearchPage,
-} from "@/components/portal/StudentPages";
-import { ApplyForm } from "@/components/portal/Forms";
-import {
-  Evaluation,
-  ManageScholarships,
-  Review,
-  StaffDashboard,
-} from "@/components/portal/StaffPages";
-import { scholarships, screens } from "@/lib/ui-data";
 type Props = {
   params: Promise<{ screen: string[] }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<{ reset?: string }>;
 };
 export async function generateMetadata({ params }: Props) {
   const route = "/" + (await params).screen.join("/");
   return {
-    title: screens.find(([url]) => url === route)?.[1] || "ทุนการศึกษา",
+    title: route === "/login" ? "เข้าสู่ระบบ" : route === "/register" ? "สมัครสมาชิก" : "ไม่พบหน้า",
   };
 }
 export default async function Page({ params, searchParams }: Props) {
@@ -32,41 +18,7 @@ export default async function Page({ params, searchParams }: Props) {
     const viewer = await getViewer();
     if (viewer) redirect(homeForRole(viewer.role));
   }
-  const studentPages = ["dashboard", "applications", "apply"];
-  const student = studentPages.includes(path) ? await requireRole(["student"]) : null;
-  const staff = ["staff", "staff/scholarships", "staff/review"].includes(path)
-    ? await requireRole(["staff"]) : null;
-  if (path === "staff/evaluation") await requireRole(["committee"]);
   if (path === "register") return <AuthPage register />;
-  if (path === "login") return <AuthPage />;
-  if (path === "dashboard" && student) return <Dashboard viewer={student} />;
-  if (path === "scholarships") return <SearchPage />;
-  if (path === "applications") return <Applications />;
-  if (path === "staff" && staff) return <StaffDashboard viewer={staff} />;
-  if (path === "staff/scholarships") return <ManageScholarships />;
-  if (path === "staff/evaluation") return <Evaluation />;
-  if (path === "staff/review") {
-    const query = await searchParams;
-    const n = Number(query.applicant || 0);
-    return (
-      <Review applicant={Number.isInteger(n) && n >= 0 && n < 6 ? n : 0} />
-    );
-  }
-  if (path === "apply" && student) {
-    const query = await searchParams;
-    return (
-      <ApplyForm
-        key={student.id}
-        viewer={student}
-        scholarshipId={
-          typeof query.scholarship === "string" ? query.scholarship : "academic"
-        }
-      />
-    );
-  }
-  if (path.startsWith("scholarships/")) {
-    const s = scholarships.find((s) => path === `scholarships/${s.id}`);
-    if (s) return <DetailPage item={s} />;
-  }
+  if (path === "login") return <AuthPage resetComplete={(await searchParams).reset === "success"} />;
   notFound();
 }

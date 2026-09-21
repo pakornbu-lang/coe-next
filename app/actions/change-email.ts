@@ -10,7 +10,7 @@ export async function changeMyEmail(_previous: EmailState, form: FormData): Prom
   const email = String(form.get("new_email") ?? "").trim().toLowerCase();
   const password = String(form.get("current_password") ?? "");
   const fail = (error: string) => ({ error, success: "" });
-  if (email.length > 254 || !/^[^\s@]+@(mail\.)?wu\.ac\.th$/.test(email)) return fail("กรุณาใช้อีเมล @mail.wu.ac.th หรือ @wu.ac.th");
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("กรุณากรอกอีเมลใหม่ให้ถูกต้อง");
   if (email === viewer.email.toLowerCase()) return fail("อีเมลใหม่นี้ตรงกับอีเมลที่ใช้อยู่แล้ว");
   if (password.length < 8 || password.length > 128) return fail("กรุณากรอกรหัสผ่านปัจจุบันให้ถูกต้อง");
   try {

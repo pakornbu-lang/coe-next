@@ -1,0 +1,12 @@
+import Link from "next/link";
+import { requireRole } from "@/lib/auth/server";
+import { listPublishedScholarships, listStudentApplications } from "@/lib/scholarships/server";
+import { ApplicationStatusBadge } from "@/components/workflow/StatusBadge";
+
+export const metadata = { title: "แดชบอร์ดนักศึกษา" };
+export default async function StudentDashboardPage() {
+  const viewer = await requireRole(["student"]);
+  const [applications, scholarships] = await Promise.all([listStudentApplications(), listPublishedScholarships()]);
+  const active = applications.filter((item) => !["approved", "reserve", "rejected"].includes(item.status));
+  return <div className="workflow-stack"><section className="panel workflow-heading"><div><span className="workflow-eyebrow">STUDENT DASHBOARD</span><h1>สวัสดี {viewer.fullName}</h1><p>ติดตามทุนที่สนใจและสถานะใบสมัครของคุณได้จากหน้านี้</p></div></section><div className="workflow-stat-grid"><Link className="panel" href="/scholarships"><strong>{scholarships.filter((item) => item.status === "published").length}</strong><span>ทุนที่เปิดรับ</span></Link><Link className="panel" href="/applications"><strong>{active.length}</strong><span>ใบสมัครที่กำลังดำเนินการ</span></Link><Link className="panel" href="/applications"><strong>{applications.filter((item) => item.status === "approved").length}</strong><span>ได้รับการอนุมัติ</span></Link></div><section className="panel"><div className="workflow-section-title"><h2>ใบสมัครล่าสุด</h2><Link href="/applications">ดูทั้งหมด</Link></div>{applications.length ? <div className="workflow-row-list">{applications.slice(0, 5).map((item) => <Link href={`/applications/${item.id}`} key={item.id}><span><strong>{item.scholarship?.title ?? "ทุนการศึกษา"}</strong><small>ใบสมัคร #{item.application_no}</small></span><ApplicationStatusBadge status={item.status}/></Link>)}</div> : <div className="workflow-empty">คุณยังไม่มีใบสมัคร <Link href="/scholarships">ค้นหาทุนที่เปิดรับ</Link></div>}</section><section className="panel"><div className="workflow-section-title"><h2>ทุนที่กำลังเปิดรับ</h2><Link href="/scholarships">ดูทั้งหมด</Link></div><div className="workflow-row-list">{scholarships.filter((item) => item.status === "published").slice(0, 4).map((item) => <Link key={item.id} href={`/scholarships/${item.id}`}><span><strong>{item.title}</strong><small>ปิดรับ {new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeZone: "Asia/Bangkok" }).format(new Date(item.closes_at))}</small></span><span>สมัคร ›</span></Link>)}</div></section></div>;
+}

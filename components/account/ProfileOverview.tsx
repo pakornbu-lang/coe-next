@@ -14,6 +14,7 @@ export default function ProfileOverview({ viewer, profile }: { viewer: Viewer; p
     {title:"ข้อมูลส่วนตัวและการติดต่อ",items:[["ชื่อ–นามสกุล",viewer.fullName],[student?"รหัสนักศึกษา":"รหัสประจำตัว",viewer.studentId],["อีเมลเข้าสู่ระบบ",viewer.email],["เบอร์โทรศัพท์",profile.phone],["ที่อยู่ติดต่อ",details.address]]},
     student ? {title:"ข้อมูลการศึกษา",items:[["คณะ / สำนักวิชา",profile.department],["สาขาวิชา",details.major],["ระดับการศึกษา",details.education_level],["ชั้นปี",details.study_year],["เกรดเฉลี่ย",details.gpa]]}
       : {title:"ข้อมูลการทำงาน",items:[["หน่วยงาน / คณะ / สำนักวิชา",profile.department],["ตำแหน่งงาน",profile.position],...(viewer.role === "committee" ? [["ความเชี่ยวชาญ",profile.expertise] as [string,string|null]] : [])]},
+    ...(student ? [{title:"ข้อมูลครอบครัว",items:[["สถานะบิดามารดา",details.parent_status === "other" ? details.parent_status_other : details.parent_status]] as [string,string|null|undefined][]}] : []),
   ];
   function edit() { setSaved(false); setEditing(true); }
   return <>

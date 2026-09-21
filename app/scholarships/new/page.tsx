@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
-import PageHeader from "@/components/ui/PageHeader";
-import ScholarshipForm from "@/components/scholarships/ScholarshipForm";
 import { requireRole } from "@/lib/auth/server";
+import { createClient } from "@/lib/supabase/server";
+import ScholarshipEditor from "@/components/workflow/ScholarshipEditor";
 
 export const metadata: Metadata = { title: "สร้างทุนการศึกษา" };
 
 export default async function NewScholarshipPage() {
   await requireRole(["staff"]);
+  const client = await createClient();
+  const { data } = await client.from("portal_reference_data").select("id,name").eq("kind", "scholarship_type").eq("active", true).order("name");
   return (
-    <div className="portal-page-stack">
-      <PageHeader
-        eyebrow="ประกาศทุน"
-        title="สร้างทุนการศึกษา"
-        description="เตรียมรายละเอียดทุนและตรวจสอบตัวอย่างก่อนนำไปประกาศ"
-      />
-      <ScholarshipForm />
-    </div>
+    <ScholarshipEditor types={data ?? []} />
   );
 }

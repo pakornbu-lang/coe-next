@@ -1,15 +1,10 @@
-import Link from "next/link";
 import { requireRole } from "@/lib/auth/server";
+import Link from "next/link";
+import { listCommitteeAssignments } from "@/lib/scholarships/server";
 
 export const metadata = { title: "พื้นที่กรรมการ" };
 export default async function CommitteePage() {
   const viewer = await requireRole(["committee"]);
-  return (
-    <section className="panel">
-      <h1>พื้นที่กรรมการพิจารณาทุน</h1>
-      <p>ยินดีต้อนรับ {viewer.fullName}</p>
-      <p>เข้าสู่ระบบด้วยบทบาทกรรมการเรียบร้อยแล้ว ขณะนี้แบบประเมินยังใช้ข้อมูลตัวอย่าง ผลที่ทดลองกรอกยังไม่ถูกบันทึกลงฐานข้อมูล</p>
-      <Link className="btn" href="/staff/evaluation">เปิดแบบประเมินตัวอย่าง</Link>
-    </section>
-  );
+  const assignments = await listCommitteeAssignments();
+  return <div className="workflow-stack"><section className="panel workflow-heading"><div><span className="workflow-eyebrow">COMMITTEE WORKSPACE</span><h1>สวัสดี {viewer.fullName}</h1><p>ใบสมัครที่มอบหมายให้คุณจะปรากฏด้านล่าง ข้อมูลบัญชีรับเงินถูกซ่อนไว้จากกรรมการ</p></div></section><section className="panel"><h2>งานที่รอประเมิน</h2>{assignments.length ? <div className="workflow-row-list workflow-list-large">{assignments.map((item) => { const application = Array.isArray(item.application) ? item.application[0] : item.application; const scholarship = application?.scholarship && (Array.isArray(application.scholarship) ? application.scholarship[0] : application.scholarship); return <Link key={item.id} href={`/staff/evaluation?assignment=${item.id}`}><span><strong>{application?.student_name ?? "ผู้สมัคร"} · {scholarship?.title ?? "ทุนการศึกษา"}</strong><small>ใบสมัคร #{application?.application_no ?? "—"} · {item.reason}</small></span><span>เริ่มประเมิน ›</span></Link>; })}</div> : <div className="workflow-empty">ไม่มีงานประเมินที่รอคุณอยู่</div>}</section></div>;
 }

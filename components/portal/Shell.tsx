@@ -1,15 +1,43 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Brand, Icon } from "./Shared";
 import LogoutButton from "@/components/auth/LogoutButton";
 import Avatar from "@/components/account/Avatar";
 import { homeForRole, roleLabels, type Viewer } from "@/lib/auth/types";
+import type { Notification } from "@/lib/scholarships/types";
+import NotificationMenu from "./NotificationMenu";
 
-export default function Shell({ children, viewer }: { children: ReactNode; viewer: Viewer | null }) {
+export default function Shell({ children, viewer, notifications = [] }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const profileMenu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const menu = profileMenu.current;
+    if (!menu) return;
+    menu.open = false;
+    function outside(event: PointerEvent) {
+      if (event.target instanceof Node && !menu!.contains(event.target)) menu!.open = false;
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape" && menu!.open) {
+        menu!.open = false;
+        menu!.querySelector("summary")?.focus();
+      }
+    }
+    function focusOutside(event: FocusEvent) {
+      if (event.target instanceof Node && !menu!.contains(event.target)) menu!.open = false;
+    }
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    document.addEventListener("focusin", focusOutside);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+      document.removeEventListener("focusin", focusOutside);
+    };
+  }, [path, viewer?.id]);
   const auth = path === "/login" || path === "/register";
   const landing = path === "/";
   const nav = !viewer
@@ -26,7 +54,8 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
           ["/staff", "แดชบอร์ด", "home"],
           ["/staff/scholarships", "ทุนการศึกษา", "cap"],
           ["/staff/review", "ตรวจเอกสาร", "check"],
-          ["/staff/scholarships#results", "ประกาศผล / จ่ายทุน", "chart"],
+          ["/staff/review?status=approved", "อนุมัติ / จ่ายทุน", "chart"],
+          ["/staff/reports", "รายงาน", "file"],
         ]
       : viewer.role === "committee"
         ? [
@@ -39,7 +68,6 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
             ["/scholarships", "ทุนการศึกษา", "cap"],
             ["/apply", "สมัครทุน", "edit"],
             ["/applications", "ใบสมัครของฉัน", "file"],
-            ["/profile#documents", "เอกสาร", "folder"],
             ["/profile", "โปรไฟล์", "user"],
           ];
   if (auth) return <>{children}</>;
@@ -53,8 +81,8 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
         <nav className={open ? "open" : ""} aria-label="เมนูหลัก">
           {nav.map(([url, label, icon]) => (
             <Link key={url} href={url} onClick={() => setOpen(false)}
-              className={path === url || (url === "/scholarships" && path.startsWith("/scholarships/")) ? "active" : ""}
-              aria-current={path === url ? "page" : undefined}>
+              className={path === url.split(/[?#]/)[0] || (url === "/scholarships" && path.startsWith("/scholarships/")) ? "active" : ""}
+              aria-current={path === url.split(/[?#]/)[0] ? "page" : undefined}>
               <Icon name={icon} size={20} /><span>{label}</span>
             </Link>
           ))}
@@ -66,14 +94,8 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
           </div>
         ) : (
           <div className="account">
-            <details>
-              <summary aria-label="การแจ้งเตือน"><Icon name="bell" /></summary>
-              <div className="popover">
-                <strong>การแจ้งเตือน</strong>
-                <p>ยังไม่มีการแจ้งเตือนจากระบบจริง</p>
-              </div>
-            </details>
-            <details>
+            <NotificationMenu notifications={notifications} />
+            <details ref={profileMenu}>
               <summary aria-label="เมนูบัญชีผู้ใช้">
                 <Avatar version={viewer.avatarVersion} name={viewer.fullName} />
                 <span>
@@ -82,7 +104,11 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
                 </span>
                 <span>⌄</span>
               </summary>
-              <div className="popover">
+              <div className="popover" onClick={event => {
+                if (event.target instanceof Element && event.target.closest("a, button") && profileMenu.current) {
+                  profileMenu.current.open = false;
+                }
+              }}>
                 <Link href="/profile">โปรไฟล์ของฉัน</Link>
                 <Link href={homeForRole(viewer.role)}>หน้าหลักของฉัน</Link>
                 <Link href="/">กลับหน้าแรก</Link>
@@ -93,16 +119,11 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
         )}
       </header>
       <main id="main-content" className={landing ? "landing" : "workspace"}>
-        {viewer && !landing && !path.startsWith("/admin") && path !== "/profile" && path !== "/account" && (
-          <p className="module-preview-notice" role="note">
-            บัญชีและสิทธิ์ใช้งานเชื่อมต่อระบบจริงแล้ว · ข้อมูลทุน ใบสมัคร เอกสาร และผลประเมินยังเป็นตัวอย่าง
-          </p>
-        )}
         {children}
       </main>
       <footer className="site-footer">
         <span>ระบบติดตามทุนการศึกษา · ระบบทุนการศึกษาภายในมหาวิทยาลัย</span>
-        <small>ข้อมูลทุนและกระบวนการสมัครอยู่ระหว่างพัฒนา</small>
+        <small>ข้อมูลส่วนบุคคลและเอกสารได้รับการคุ้มครองตามสิทธิ์ของบัญชี</small>
       </footer>
     </div>
   );
