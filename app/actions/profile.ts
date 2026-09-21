@@ -22,9 +22,7 @@ export async function updateMyProfile(_previous: ProfileState, form: FormData): 
   if (details.parent_status && !["อยู่ด้วยกัน", "แยกกันอยู่", "หย่า", "บิดาเสียชีวิต", "มารดาเสียชีวิต", "เสียชีวิตทั้งคู่", "other"].includes(details.parent_status)) return fail("กรุณาเลือกสถานะบิดามารดาจากรายการที่กำหนด");
   if (details.parent_status === "other" && !details.parent_status_other) return fail("กรุณาระบุสถานะบิดามารดา");
   if (!Number.isSafeInteger(version) || version < 1) return fail("กรุณารีเฟรชหน้าแล้วลองใหม่");
-  if (phone && (!/^\+?[0-9 ()-]{7,25}$/.test(phone) || phone.replace(/\D/g, "").length < 7)) {
-    return fail("กรุณากรอกเบอร์โทรให้ถูกต้อง หรือเว้นว่างไว้");
-  }
+  if (phone && !/^0\d{9}$/.test(phone)) return fail("กรุณากรอกหมายเลขโทรศัพท์เป็นตัวเลข 10 หลัก โดยขึ้นต้นด้วย 0");
   if (department.length > 150 || position.length > 150 || expertise.length > 500) {
     return fail("หน่วยงานและตำแหน่งไม่เกิน 150 ตัวอักษร ความเชี่ยวชาญไม่เกิน 500 ตัวอักษร");
   }

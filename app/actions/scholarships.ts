@@ -17,17 +17,16 @@ export type WorkflowState = {
 const uuid = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 const value = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
-const failure = (code?: string): WorkflowState => ({
-  error:
-    code === "40001"
-      ? "ข้อมูลนี้ถูกเปลี่ยนโดยผู้ใช้อื่น กรุณารีเฟรชหน้าแล้วลองอีกครั้ง"
-      : code === "42501"
-        ? "คุณไม่มีสิทธิ์ทำรายการนี้ หรือบัญชีไม่พร้อมใช้งาน"
-        : code === "23505"
-          ? "มีข้อมูลนี้ในระบบแล้ว กรุณาตรวจสอบและลองใหม่"
-          : "บันทึกไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่",
-  success: "",
-});
+const failure = (code?: string, message?: string): WorkflowState => {
+  if (code === "40001") return { error: "ข้อมูลนี้ถูกเปลี่ยนโดยผู้ใช้อื่น กรุณารีเฟรชหน้าแล้วลองอีกครั้ง", success: "" };
+  if (code === "42501") return { error: "คุณไม่มีสิทธิ์ทำรายการนี้ หรือบัญชีไม่พร้อมใช้งาน", success: "" };
+  if (code === "23505") return { error: "มีข้อมูลนี้ในระบบแล้ว กรุณาตรวจสอบและลองใหม่", success: "" };
+  if (message === "Invalid bank account details") return { error: "กรุณาเลือกธนาคาร กรอกชื่อบัญชี และเลขบัญชีให้ถูกต้อง", success: "" };
+  if (message === "Bank account details are required") return { error: "กรุณากรอกข้อมูลบัญชีรับเงินให้ครบก่อนส่งใบสมัคร", success: "" };
+  if (message === "Complete every required application field before submitting") return { error: "กรุณากรอกข้อมูลที่มีเครื่องหมาย * ให้ครบก่อนส่งใบสมัคร", success: "" };
+  if (message === "Required documents are missing") return { error: "กรุณาอัปโหลดเอกสารที่ระบุว่า “จำเป็น” ให้ครบก่อนส่งใบสมัคร", success: "" };
+  return { error: "บันทึกไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่", success: "" };
+};
 
 function toBangkokTimestamp(raw: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw)) return null;
@@ -40,7 +39,7 @@ function applicationData(form: FormData) {
     faculty: 150,
     major: 150,
     gpa: 4,
-    phone: 25,
+    phone: 10,
     address: 500,
     study_year: 1,
     education_level: 50,
@@ -51,7 +50,7 @@ function applicationData(form: FormData) {
     reason: 5000,
     activities: 5000,
     emergency_name: 200,
-    emergency_phone: 25,
+    emergency_phone: 10,
   };
   const data: Record<string, string> = {};
   for (const [key, limit] of Object.entries(limits)) {
@@ -79,6 +78,14 @@ export async function saveApplication(_previous: WorkflowState, form: FormData):
     const bankName = value(form, "bank_name");
     const accountHolder = value(form, "account_holder");
     const accountNumber = value(form, "account_number");
+    const hasBankDetails = Boolean(bankName || accountHolder || accountNumber);
+    const validBankDetails = Boolean(bankName && accountHolder.length >= 2 && /^\d{10,15}$/.test(accountNumber));
+    if (hasBankDetails && !validBankDetails) {
+      return { error: "กรุณาเลือกธนาคาร กรอกชื่อบัญชี และเลขบัญชีเป็นตัวเลข 10–15 หลักให้ครบ", success: "", applicationId: applicationId || undefined };
+    }
+    if (mode === "submit" && (!/^0\d{9}$/.test(data.phone) || (data.emergency_phone && !/^0\d{9}$/.test(data.emergency_phone)))) {
+      return { error: "กรุณากรอกหมายเลขโทรศัพท์เป็นตัวเลข 10 หลัก โดยขึ้นต้นด้วย 0", success: "", applicationId: applicationId || undefined };
+    }
     if (mode === "submit" && (!bankName || !accountHolder || !accountNumber || !data.faculty || !data.major || !data.education_level || !data.study_year || !data.gpa || !data.phone || !data.address || !data.income || !data.family_members || !data.parent_status || (data.parent_status === "other" && !data.parent_status_other) || !data.reason)) {
       return { error: "กรุณากรอกข้อมูลที่มีเครื่องหมาย * ให้ครบก่อนส่งใบสมัคร", success: "", applicationId: applicationId || undefined };
     }
@@ -93,7 +100,7 @@ export async function saveApplication(_previous: WorkflowState, form: FormData):
       p_account_number: accountNumber || null,
       p_submit: mode === "submit",
     });
-    if (error || !savedId) return failure(error?.code);
+    if (error || !savedId) return failure(error?.code, error?.message);
     revalidatePath("/dashboard");
     revalidatePath("/applications");
     revalidatePath(`/applications/${savedId}`);

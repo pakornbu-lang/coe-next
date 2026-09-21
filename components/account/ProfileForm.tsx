@@ -27,7 +27,7 @@ export default function ProfileForm({ profile, role, onSaved, onCancel }: { prof
       <p id="avatar-help" className="profile-hint">JPG, PNG หรือ WebP ไม่เกิน 2 MB ระบบจะจัดรูปเป็นสี่เหลี่ยมจัตุรัส</p>
       {profile.avatar_path && <label className="profile-checkbox"><input name="remove_avatar" type="checkbox" /> ลบรูปโปรไฟล์ปัจจุบัน</label>}
       <div className="profile-fields">
-        <label>เบอร์โทรศัพท์<input name="phone" type="tel" autoComplete="tel" maxLength={25} value={phone} onChange={e => setPhone(e.target.value)} placeholder="เช่น 0812345678" /></label>
+        <label>เบอร์โทรศัพท์<input name="phone" type="text" inputMode="numeric" autoComplete="tel" pattern="[0-9]{10}" maxLength={10} title="กรุณากรอกหมายเลขโทรศัพท์ 10 หลัก" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="เช่น 0812345678" /></label>
         <label className="profile-wide">ที่อยู่ติดต่อ<textarea name="address" maxLength={500} rows={3} autoComplete="street-address" value={details.address ?? ""} onChange={e => detail("address",e.target.value)} /></label>
       </div>
       <h2 className="profile-section-title">{student ? "ข้อมูลการศึกษา" : "ข้อมูลการทำงาน"}</h2>
@@ -37,7 +37,7 @@ export default function ProfileForm({ profile, role, onSaved, onCancel }: { prof
         {student ? <>
           <label>สาขาวิชา<input name="major" maxLength={150} value={details.major ?? ""} onChange={e => detail("major",e.target.value)} /></label>
           <label>ระดับการศึกษา<select name="education_level" value={details.education_level ?? ""} onChange={e => detail("education_level",e.target.value)}><option value="">ยังไม่ระบุ</option><option>ปริญญาตรี</option><option>ปริญญาโท</option><option>ปริญญาเอก</option><option>อื่น ๆ</option></select></label>
-          <label>ชั้นปี<input name="study_year" type="number" min="1" max="8" step="1" value={details.study_year ?? ""} onChange={e => detail("study_year",e.target.value)} /></label>
+          <label>ชั้นปี<input name="study_year" type="text" inputMode="numeric" pattern="[1-8]" maxLength={1} value={details.study_year ?? ""} onChange={e => detail("study_year",e.target.value.replace(/\D/g, "").slice(0, 1))} /></label>
            <label>เกรดเฉลี่ย (GPA)<input name="gpa" type="number" min="0" max="4" step="0.01" value={details.gpa ?? ""} onChange={e => detail("gpa",e.target.value)} /></label>
            <label>สถานะบิดามารดา<select name="parent_status" value={details.parent_status ?? ""} onChange={e => detail("parent_status",e.target.value)}><option value="">ยังไม่ระบุ</option><option>อยู่ด้วยกัน</option><option>แยกกันอยู่</option><option>หย่า</option><option>บิดาเสียชีวิต</option><option>มารดาเสียชีวิต</option><option>เสียชีวิตทั้งคู่</option><option value="other">อื่น ๆ</option></select></label>
            {details.parent_status === "other" && <label>ระบุสถานะบิดามารดา<input name="parent_status_other" maxLength={150} value={details.parent_status_other ?? ""} onChange={e => detail("parent_status_other",e.target.value)} /></label>}
