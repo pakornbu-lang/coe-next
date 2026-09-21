@@ -7,16 +7,15 @@ import {siteUrl} from "@/lib/auth/site-url";
 export type RegisterState={error:string;success:string};
 export async function registerStudent(_previous:RegisterState,form:FormData):Promise<RegisterState>{
  const prefix=String(form.get("prefix")??"").trim();
- const prefixOther=String(form.get("prefix_other")??"").trim();
  const firstName=String(form.get("first_name")??"").trim();
  const lastName=String(form.get("last_name")??"").trim();
- const allowedPrefixes=["นาย","นาง","นางสาว","ดร.","ผศ.","รศ.","ศ."];
- const actualPrefix=prefix==="other"?prefixOther:prefix;
+ const allowedPrefixes=["นาย","นางสาว","นาง"];
+ const actualPrefix=prefix;
  const fullName=[actualPrefix,firstName,lastName].filter(Boolean).join(" ");
  const studentId=String(form.get("student_id")??"").trim();
  const email=String(form.get("email")??"").trim().toLowerCase();
  const password=String(form.get("password")??"");
- if((!allowedPrefixes.includes(prefix)&&prefix!=="other")||!actualPrefix||actualPrefix.length>30||!firstName||firstName.length>100||!lastName||lastName.length>100||!fullName||fullName.length>200||!/^[0-9]{8,12}$/.test(studentId)||!/^([^\s@]+)@(mail\.)?wu\.ac\.th$/.test(email)||email.length>254)
+ if(!allowedPrefixes.includes(prefix)||!firstName||firstName.length>100||!lastName||lastName.length>100||!fullName||fullName.length>200||!/^[0-9]{8,12}$/.test(studentId)||!/^([^\s@]+)@(mail\.)?wu\.ac\.th$/.test(email)||email.length>254)
    return {error:"กรุณากรอกคำนำหน้า ชื่อ นามสกุล รหัสประจำตัว 8–12 หลัก และอีเมลมหาวิทยาลัยให้ถูกต้อง",success:""};
  if(password.length<8||password.length>128||password!==String(form.get("confirm_password")??""))
    return {error:"รหัสผ่านต้องยาว 8–128 ตัวอักษร และทั้งสองช่องต้องตรงกัน",success:""};
