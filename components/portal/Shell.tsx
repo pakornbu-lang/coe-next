@@ -6,8 +6,9 @@ import { Brand, Icon } from "./Shared";
 import LogoutButton from "@/components/auth/LogoutButton";
 import Avatar from "@/components/account/Avatar";
 import { homeForRole, roleLabels, type Viewer } from "@/lib/auth/types";
+import type { Notification } from "@/lib/scholarships/types";
 
-export default function Shell({ children, viewer }: { children: ReactNode; viewer: Viewer | null }) {
+export default function Shell({ children, viewer, notifications = [] }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const auth = path === "/login" || path === "/register";
@@ -39,7 +40,6 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
             ["/scholarships", "ทุนการศึกษา", "cap"],
             ["/apply", "สมัครทุน", "edit"],
             ["/applications", "ใบสมัครของฉัน", "file"],
-            ["/profile#documents", "เอกสาร", "folder"],
             ["/profile", "โปรไฟล์", "user"],
           ];
   if (auth) return <>{children}</>;
@@ -70,7 +70,7 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
               <summary aria-label="การแจ้งเตือน"><Icon name="bell" /></summary>
               <div className="popover">
                 <strong>การแจ้งเตือน</strong>
-                <p>ยังไม่มีการแจ้งเตือนจากระบบจริง</p>
+                {notifications.length ? notifications.map((notification) => <Link className={notification.read_at ? "" : "notification-unread"} key={notification.id} href={notification.href}><strong>{notification.title}</strong><small>{notification.body}</small></Link>) : <p>ยังไม่มีการแจ้งเตือน</p>}
               </div>
             </details>
             <details>
@@ -93,16 +93,11 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
         )}
       </header>
       <main id="main-content" className={landing ? "landing" : "workspace"}>
-        {viewer && !landing && !path.startsWith("/admin") && path !== "/profile" && path !== "/account" && (
-          <p className="module-preview-notice" role="note">
-            บัญชีและสิทธิ์ใช้งานเชื่อมต่อระบบจริงแล้ว · ข้อมูลทุน ใบสมัคร เอกสาร และผลประเมินยังเป็นตัวอย่าง
-          </p>
-        )}
         {children}
       </main>
       <footer className="site-footer">
         <span>ระบบติดตามทุนการศึกษา · ระบบทุนการศึกษาภายในมหาวิทยาลัย</span>
-        <small>ข้อมูลทุนและกระบวนการสมัครอยู่ระหว่างพัฒนา</small>
+        <small>ข้อมูลส่วนบุคคลและเอกสารได้รับการคุ้มครองตามสิทธิ์ของบัญชี</small>
       </footer>
     </div>
   );

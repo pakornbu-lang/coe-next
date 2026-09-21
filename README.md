@@ -1,6 +1,6 @@
-# ระบบติดตามทุนการศึกษา — UI กลางและระบบบัญชี
+# ระบบติดตามทุนการศึกษา
 
-ใช้ `pakornbu-lang/coe-next` เป็น repository หลัก พัฒนาด้วย Next.js App Router + TypeScript ระบบบัญชีเชื่อม Supabase Auth แล้ว ส่วนทุน ใบสมัคร เอกสาร การประเมิน และจ่ายทุนยังเป็นหน้าตัวอย่าง
+ใช้ Next.js App Router + TypeScript และ Supabase Auth, Postgres และ private Storage สำหรับจัดการทุนหนึ่งรอบต่อหนึ่งประกาศ ตั้งแต่รับสมัคร ตรวจเอกสาร ประเมิน ตัดสินผล จนถึงบันทึกการจ่ายทุน
 
 ## เปิดโปรเจกต์
 
@@ -20,6 +20,20 @@ npm run dev
 
 ดู [คู่มือระบบบัญชีและสิทธิ์](docs/authentication.md) สำหรับการตั้งค่า สร้างบัญชี ขอบเขตระบบ และทดสอบ ห้ามอัปโหลดรหัสผ่าน `.env.local` หรือ Secret/Service role key ขึ้น Git
 
+## ติดตั้ง Supabase ก่อนใช้งานจริง
+
+ล็อกอิน CLI ไปยังบัญชีที่เป็นสมาชิกของ Supabase project เป้าหมาย แล้วเชื่อมและ push migration ตามลำดับนี้:
+
+```bash
+npx supabase login
+npx supabase link --project-ref <project-ref>
+npx supabase db push
+```
+
+`project-ref` คือส่วนหน้าของ URL ใน `.env.local` เช่น `https://abcxyz.supabase.co` มี project ref เป็น `abcxyz` หลัง push ให้สร้างหรือกำหนดบัญชี Admin ตาม [คู่มือระบบบัญชี](docs/authentication.md) ก่อนใช้งานส่วนจัดการสมาชิก การ login ด้วย CLI ไม่ต้องนำ access token มาใส่ใน source code
+
+อ่าน [คู่มือ workflow ทุน](docs/scholarship-workflow.md) เพื่อดูบทบาท สถานะ ขอบเขตข้อมูล และรายการทดสอบก่อนเปิดใช้งาน
+
 ## หน้าเว็บและสิทธิ์
 
 | URL | หน้าที่ / สิทธิ์ |
@@ -27,9 +41,9 @@ npm run dev
 | `/` | หน้าแรกสาธารณะ |
 | `/login` | เข้าสู่ระบบจริงด้วยอีเมลและรหัสผ่าน |
 | `/register` | สมัครนักศึกษาจริง (ต้องตั้ง SMTP สำหรับยืนยันอีเมล) |
-| `/scholarships` | รายการทุนตัวอย่างสาธารณะ |
+| `/scholarships`, `/scholarships/[id]` | รายการและรายละเอียดทุนที่ประกาศแล้ว (สาธารณะ) |
 | `/dashboard`, `/profile`, `/applications`, `/apply` | นักศึกษา |
-| `/staff`, `/staff/scholarships`, `/staff/review`, `/scholarships/new` | เจ้าหน้าที่ทุน |
+| `/staff`, `/staff/scholarships`, `/staff/review`, `/scholarships/new` | เจ้าหน้าที่: จัดการทุน ตรวจเอกสาร มอบหมายกรรมการ ตัดสินผล และบันทึกจ่ายทุน |
 | `/committee`, `/staff/evaluation` | กรรมการ |
 | `/admin`, `/admin/reference`, `/admin/audit` | Admin: สมาชิก ข้อมูลพื้นฐาน และประวัติ |
 | `/account` | ข้อมูลจริงของบัญชีที่เข้าสู่ระบบ |
@@ -39,16 +53,18 @@ npm run dev
 
 ผู้ดูแลกำหนดชื่อ รหัสนักศึกษา บทบาท และสถานะบัญชีใน `portal_profiles` ส่วนรหัสผ่านจัดการโดย Supabase Auth ผู้ใช้ไม่สามารถแก้บทบาทของตัวเองผ่านเว็บหรือ Data API
 
-การกดบันทึกในฟอร์มทุน/โปรไฟล์เพิ่มเติม/ใบสมัคร/ประเมินยังไม่บันทึกลงฐานข้อมูล ตัวเลขและเอกสารตัวอย่างไม่ใช่ประวัติของบัญชีที่ล็อกอิน
+ข้อมูลทุน ใบสมัคร เอกสาร ผลประเมิน และการจ่ายทุนบันทึกด้วย RPC ที่ตรวจสิทธิ์ซ้ำในฐานข้อมูล เอกสารและหลักฐานการโอนอยู่ใน Supabase Storage แบบ private และเปิดผ่าน signed URL ระยะสั้นเท่านั้น
 
 ## โครงสร้างส่วนกลาง
 
 ```text
 app/
   layout.tsx                 # อ่านบัญชีที่ยืนยันแล้วและครอบด้วย Shell
-  [...screen]/page.tsx        # หน้าทุน/นักศึกษา/เจ้าหน้าที่พร้อมตรวจสิทธิ์
+  scholarships/               # รายการทุนสาธารณะและรายละเอียดทุน
+  applications/, apply/       # ใบสมัครนักศึกษาและเอกสารส่วนตัว
+  staff/                       # งานเจ้าหน้าที่และกรรมการ
   admin/                    # สมาชิก ข้อมูลพื้นฐาน ประวัติจริง
-  actions/register.ts       # สมัครนักศึกษาและยืนยันอีเมล
+  actions/scholarships.ts   # การบันทึกทุน ใบสมัคร เอกสาร ผลประเมิน และจ่ายทุน
   actions/admin.ts          # คำสั่ง Admin ผ่าน RPC
   actions/auth.ts            # เข้าสู่ระบบและออกจากระบบฝั่งเซิร์ฟเวอร์
   account/page.tsx           # ข้อมูลบัญชีจริง
@@ -59,14 +75,14 @@ app/
 components/
   auth/                     # ฟอร์มล็อกอินและปุ่มออกจากระบบ
   portal/Shell.tsx           # Header, Navbar ตามบัญชี, main และ footer
-  portal/                   # หน้าจอโมดูลต่าง ๆ
+  workflow/                 # ฟอร์มและสถานะของ workflow ทุน
   ui/                       # ส่วนประกอบ UI ที่ใช้ซ้ำ
 lib/
   auth/                     # Viewer, role และการตรวจสิทธิ์บนเซิร์ฟเวอร์
   supabase/                 # Supabase client ฝั่งเซิร์ฟเวอร์
-  ui-data.ts                # ข้อมูลทุนและใบสมัครตัวอย่าง
+  scholarships/             # Query และ type สำหรับข้อมูลจริง
 proxy.ts                    # ต่ออายุคุกกี้และกำหนด cache header
-supabase/migrations/        # สคีมา portal_profiles และ RLS
+supabase/migrations/        # สคีมา, RPC, RLS และ Storage policies
 scripts/check-auth.mjs     # ตรวจสิทธิ์กับระบบจริง
 ```
 
@@ -101,7 +117,7 @@ npm run lint
 npm run build
 ```
 
-ทดสอบล็อกอินทั้งสี่บทบาท รหัสผ่านผิด รีเฟรช เปิด URL ที่ไม่มีสิทธิ์ และออกจากระบบ คู่มือการรันทดสอบฐานข้อมูลและเส้นทางอยู่ใน [docs/authentication.md](docs/authentication.md)
+ทดสอบล็อกอินทั้งสี่บทบาท รหัสผ่านผิด รีเฟรช เปิด URL ที่ไม่มีสิทธิ์ และออกจากระบบ จากนั้นทดสอบ flow ทุนตาม [docs/scholarship-workflow.md](docs/scholarship-workflow.md)
 
 ## การจัดการ branch
 
