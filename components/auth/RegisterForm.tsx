@@ -5,7 +5,7 @@ import {registerStudent} from "@/app/actions/register";
 export default function RegisterForm(){
  const [state,action,pending]=useActionState(registerStudent,{error:"",success:""});
  const [prefix,setPrefix]=useState("นาย");
- return <form action={action} className="form-validated" onInvalidCapture={event=>event.currentTarget.classList.add("form-validated")}>
+ return <form action={action} onInvalidCapture={event=>event.currentTarget.classList.add("form-validated")}>
  <p>สมัครเพื่อใช้งานในบทบาท <strong>นักศึกษา (Student)</strong> สิทธิ์เจ้าหน้าที่และกรรมการต้องได้รับอนุมัติจากผู้ดูแล</p>
  <label htmlFor="register-prefix">คำนำหน้าชื่อ *</label><select id="register-prefix" name="prefix" required value={prefix} onChange={event=>setPrefix(event.target.value)}><option>นาย</option><option>นาง</option><option>นางสาว</option><option>ดร.</option><option>ผศ.</option><option>รศ.</option><option>ศ.</option><option value="other">อื่น ๆ</option></select>
  {prefix==="other"&&<><label htmlFor="register-prefix-other">ระบุคำนำหน้าชื่อ *</label><input id="register-prefix-other" name="prefix_other" required maxLength={30}/></>}
