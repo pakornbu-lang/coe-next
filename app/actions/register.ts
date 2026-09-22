@@ -1,227 +1,227 @@
 "use server";
 
-import {
-  createClient,
-} from "@/lib/supabase/server";
+import { createHmac } from "node:crypto";
+import { headers } from "next/headers";
 
-import {
-  isAuthConfigured,
-} from "@/lib/supabase/config";
-
-import {
-  siteUrl,
-} from "@/lib/auth/site-url";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isAuthConfigured } from "@/lib/supabase/config";
+import { siteUrl } from "@/lib/auth/site-url";
 
 export type RegisterState = {
   error: string;
   success: string;
 };
 
-/* =========================
-   HELPER
-========================= */
-
-function value(
-  form: FormData,
-  key: string,
-) {
-  return String(
-    form.get(key) ?? "",
-  ).trim();
+function value(form: FormData, key: string) {
+  return String(form.get(key) ?? "").trim();
 }
 
-/* =========================
-   REGISTER STUDENT
-========================= */
+async function reserveRegistrationAttempt(
+  admin: NonNullable<ReturnType<typeof createAdminClient>>,
+  email: string,
+) {
+  const secret = process.env.NOTIFICATION_DISPATCH_SECRET;
+
+  if (!secret) {
+    throw new Error("Registration rate limit is not configured");
+  }
+
+  const hash = (input: string) =>
+    createHmac("sha256", secret).update(input).digest("hex");
+
+  const emailHash = hash(`signup:email:${email}`);
+
+  const requestHeaders = await headers();
+
+  const ip = (
+    requestHeaders.get("x-vercel-forwarded-for") ??
+    requestHeaders.get("x-real-ip") ??
+    ""
+  )
+    .split(",")[0]
+    .trim();
+
+  const ipHash = ip ? hash(`signup:ip:${ip}`) : null;
+
+  const since = new Date(
+    Date.now() - 60 * 60_000,
+  ).toISOString();
+
+  const emailCount = admin
+    .from("registration_rate_limits")
+    .select("id", {
+      count: "exact",
+      head: true,
+    })
+    .eq("email_hash", emailHash)
+    .gte("requested_at", since);
+
+  const ipCount = ipHash
+    ? admin
+        .from("registration_rate_limits")
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
+        .eq("ip_hash", ipHash)
+        .gte("requested_at", since)
+    : Promise.resolve({
+        count: 0,
+        error: null,
+      });
+
+  const totalCount = admin
+    .from("registration_rate_limits")
+    .select("id", {
+      count: "exact",
+      head: true,
+    })
+    .gte("requested_at", since);
+
+  const [byEmail, byIp, total] =
+    await Promise.all([
+      emailCount,
+      ipCount,
+      totalCount,
+    ]);
+
+  if (
+    byEmail.error ||
+    byIp.error ||
+    total.error
+  ) {
+    throw new Error(
+      "Registration rate limit unavailable",
+    );
+  }
+
+  if (
+    (byEmail.count ?? 0) >= 3 ||
+    (byIp.count ?? 0) >= 20 ||
+    (total.count ?? 0) >= 100
+  ) {
+    return false;
+  }
+
+  const { error } = await admin
+    .from("registration_rate_limits")
+    .insert({
+      email_hash: emailHash,
+      ip_hash: ipHash,
+    });
+
+  if (error) {
+    throw new Error(
+      "Registration rate limit unavailable",
+    );
+  }
+
+  return true;
+}
 
 export async function registerStudent(
   _previous: RegisterState,
   form: FormData,
 ): Promise<RegisterState> {
+  const prefix = value(form, "prefix");
+  const firstName = value(form, "first_name");
+  const lastName = value(form, "last_name");
 
-  /* =========================
-     STEP 1
-     PERSONAL
-  ========================= */
+  const fullName = [
+    prefix,
+    firstName,
+    lastName,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  const prefix =
-    value(
-      form,
-      "prefix",
-    );
+  const studentId = value(form, "student_id");
 
-  const firstName =
-    value(
-      form,
-      "first_name",
-    );
+  const phone = value(form, "phone");
+  const address = value(form, "address");
 
-  const lastName =
-    value(
-      form,
-      "last_name",
-    );
+  const email = value(
+    form,
+    "email",
+  ).toLowerCase();
 
-  const fullName =
-    [
-      prefix,
-      firstName,
-      lastName,
-    ]
-      .filter(Boolean)
-      .join(" ");
+  const password = String(
+    form.get("password") ?? "",
+  );
 
-  const studentId =
-    value(
-      form,
-      "student_id",
-    );
+  const confirmPassword = String(
+    form.get("confirm_password") ?? "",
+  );
 
-  /* =========================
-     STEP 2
-     CONTACT + ACCOUNT
-  ========================= */
+  const department = value(
+    form,
+    "department",
+  );
 
-  const phone =
-    value(
-      form,
-      "phone",
-    );
+  const major = value(form, "major");
 
-  const address =
-    value(
-      form,
-      "address",
-    );
+  const educationLevel = value(
+    form,
+    "education_level",
+  );
 
-  const email =
-    value(
-      form,
-      "email",
-    ).toLowerCase();
+  const studyYear = value(
+    form,
+    "study_year",
+  );
 
-  const password =
-    String(
-      form.get(
-        "password",
-      ) ?? "",
-    );
+  const gpa = value(form, "gpa");
 
-  const confirmPassword =
-    String(
-      form.get(
-        "confirm_password",
-      ) ?? "",
-    );
+  const familyIncome = value(
+    form,
+    "family_income",
+  );
 
-  /* =========================
-     STEP 3
-     EDUCATION
-  ========================= */
+  const familyMembers = value(
+    form,
+    "family_members",
+  );
 
-  const department =
-    value(
-      form,
-      "department",
-    );
+  const parentStatus = value(
+    form,
+    "parent_status",
+  );
 
-  const major =
-    value(
-      form,
-      "major",
-    );
+  const parentStatusOther = value(
+    form,
+    "parent_status_other",
+  );
 
-  const educationLevel =
-    value(
-      form,
-      "education_level",
-    );
+  const emergencyName = value(
+    form,
+    "emergency_name",
+  );
 
-  const studyYear =
-    value(
-      form,
-      "study_year",
-    );
+  const emergencyPhone = value(
+    form,
+    "emergency_phone",
+  );
 
-  const gpa =
-    value(
-      form,
-      "gpa",
-    );
+  const activities = value(
+    form,
+    "activities",
+  );
 
-  /* =========================
-     STEP 4
-     FAMILY
-  ========================= */
+  const bankName = value(
+    form,
+    "bank_name",
+  );
 
-  const familyIncome =
-    value(
-      form,
-      "family_income",
-    );
+  const accountHolder = value(
+    form,
+    "account_holder",
+  );
 
-  const familyMembers =
-    value(
-      form,
-      "family_members",
-    );
-
-  const parentStatus =
-    value(
-      form,
-      "parent_status",
-    );
-
-  const parentStatusOther =
-    value(
-      form,
-      "parent_status_other",
-    );
-
-  const emergencyName =
-    value(
-      form,
-      "emergency_name",
-    );
-
-  const emergencyPhone =
-    value(
-      form,
-      "emergency_phone",
-    );
-
-  const activities =
-    value(
-      form,
-      "activities",
-    );
-
-  /* =========================
-     STEP 5
-     BANK
-  ========================= */
-
-  const bankName =
-    value(
-      form,
-      "bank_name",
-    );
-
-  const accountHolder =
-    value(
-      form,
-      "account_holder",
-    );
-
-  const accountNumber =
-    value(
-      form,
-      "account_number",
-    );
-
-  /* =========================
-     VALIDATE NAME
-  ========================= */
+  const accountNumber = value(
+    form,
+    "account_number",
+  );
 
   const allowedPrefixes = [
     "นาย",
@@ -230,9 +230,7 @@ export async function registerStudent(
   ];
 
   if (
-    !allowedPrefixes.includes(
-      prefix,
-    ) ||
+    !allowedPrefixes.includes(prefix) ||
     !firstName ||
     firstName.length > 100 ||
     !lastName ||
@@ -247,15 +245,7 @@ export async function registerStudent(
     };
   }
 
-  /* =========================
-     STUDENT ID
-  ========================= */
-
-  if (
-    !/^[0-9]{8,12}$/.test(
-      studentId,
-    )
-  ) {
+  if (!/^[0-9]{8,12}$/.test(studentId)) {
     return {
       error:
         "รหัสนักศึกษาต้องเป็นตัวเลข 8–12 หลัก",
@@ -263,25 +253,13 @@ export async function registerStudent(
     };
   }
 
-  /* =========================
-     PHONE
-  ========================= */
-
-  if (
-    !/^0[0-9]{9}$/.test(
-      phone,
-    )
-  ) {
+  if (!/^0[0-9]{9}$/.test(phone)) {
     return {
       error:
         "กรุณากรอกเบอร์โทรศัพท์ 10 หลัก โดยขึ้นต้นด้วย 0",
       success: "",
     };
   }
-
-  /* =========================
-     ADDRESS
-  ========================= */
 
   if (
     address.length < 5 ||
@@ -293,10 +271,6 @@ export async function registerStudent(
       success: "",
     };
   }
-
-  /* =========================
-     EMAIL
-  ========================= */
 
   if (
     !/^[^\s@]+@mail\.wu\.ac\.th$/.test(
@@ -311,10 +285,6 @@ export async function registerStudent(
     };
   }
 
-  /* =========================
-     PASSWORD
-  ========================= */
-
   if (
     password.length < 8 ||
     password.length > 128
@@ -326,20 +296,13 @@ export async function registerStudent(
     };
   }
 
-  if (
-    password !==
-    confirmPassword
-  ) {
+  if (password !== confirmPassword) {
     return {
       error:
         "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน",
       success: "",
     };
   }
-
-  /* =========================
-     EDUCATION
-  ========================= */
 
   if (
     !department ||
@@ -352,13 +315,9 @@ export async function registerStudent(
     };
   }
 
-  if (
-    !major ||
-    major.length > 150
-  ) {
+  if (!major || major.length > 150) {
     return {
-      error:
-        "กรุณากรอกสาขาวิชา",
+      error: "กรุณากรอกสาขาวิชา",
       success: "",
     };
   }
@@ -376,17 +335,12 @@ export async function registerStudent(
     )
   ) {
     return {
-      error:
-        "กรุณาเลือกระดับการศึกษา",
+      error: "กรุณาเลือกระดับการศึกษา",
       success: "",
     };
   }
 
-  if (
-    !/^[1-8]$/.test(
-      studyYear,
-    )
-  ) {
+  if (!/^[1-8]$/.test(studyYear)) {
     return {
       error:
         "ชั้นปีต้องอยู่ระหว่าง 1–8",
@@ -407,20 +361,12 @@ export async function registerStudent(
     };
   }
 
-  /* =========================
-     FAMILY
-  ========================= */
-
   if (
     !/^\d+(\.\d{1,2})?$/.test(
       familyIncome,
     ) ||
-    Number(
-      familyIncome,
-    ) < 0 ||
-    Number(
-      familyIncome,
-    ) > 100000000
+    Number(familyIncome) < 0 ||
+    Number(familyIncome) > 100000000
   ) {
     return {
       error:
@@ -429,11 +375,7 @@ export async function registerStudent(
     };
   }
 
-  if (
-    !/^[1-9]\d?$/.test(
-      familyMembers,
-    )
-  ) {
+  if (!/^[1-9]\d?$/.test(familyMembers)) {
     return {
       error:
         "จำนวนสมาชิกในครอบครัวต้องอยู่ระหว่าง 1–99 คน",
@@ -464,8 +406,7 @@ export async function registerStudent(
   }
 
   if (
-    parentStatus ===
-      "other" &&
+    parentStatus === "other" &&
     !parentStatusOther
   ) {
     return {
@@ -475,13 +416,7 @@ export async function registerStudent(
     };
   }
 
-  /* =========================
-     EMERGENCY CONTACT
-  ========================= */
-
-  if (
-    emergencyName.length > 200
-  ) {
+  if (emergencyName.length > 200) {
     return {
       error:
         "ชื่อผู้ติดต่อฉุกเฉินยาวเกินกำหนด",
@@ -491,9 +426,7 @@ export async function registerStudent(
 
   if (
     emergencyPhone &&
-    !/^0[0-9]{9}$/.test(
-      emergencyPhone,
-    )
+    !/^0[0-9]{9}$/.test(emergencyPhone)
   ) {
     return {
       error:
@@ -502,19 +435,13 @@ export async function registerStudent(
     };
   }
 
-  if (
-    activities.length > 5000
-  ) {
+  if (activities.length > 5000) {
     return {
       error:
         "ข้อมูลกิจกรรมและผลงานยาวเกินกำหนด",
       success: "",
     };
   }
-
-  /* =========================
-     BANK
-  ========================= */
 
   if (
     bankName.length < 2 ||
@@ -550,18 +477,7 @@ export async function registerStudent(
     };
   }
 
-  /* =========================
-     CHECK SUPABASE
-  ========================= */
-
-  if (
-    !isAuthConfigured()
-  ) {
-    console.error(
-      "REGISTER_CONFIG_ERROR:",
-      "Supabase auth is not configured",
-    );
-
+  if (!isAuthConfigured()) {
     return {
       error:
         "ระบบสมัครสมาชิกยังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล",
@@ -570,127 +486,106 @@ export async function registerStudent(
   }
 
   try {
-    const client =
-      await createClient();
+    /*
+     * ของ main:
+     * จำกัดจำนวนการสมัครต่ออีเมล/IP
+     */
+    const admin = createAdminClient();
 
-    /* =========================
-       SIGN UP
+    if (!admin) {
+      return {
+        error:
+          "ระบบสมัครสมาชิกยังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล",
+        success: "",
+      };
+    }
 
-       ไม่ใช้ email_confirm: true
-       ให้ Supabase ส่ง Email
-       ยืนยันสมาชิกเอง
-    ========================= */
+    if (
+      !(await reserveRegistrationAttempt(
+        admin,
+        email,
+      ))
+    ) {
+      return {
+        error:
+          "มีการสมัครสมาชิกหลายครั้งเกินไป กรุณารอหนึ่งชั่วโมงแล้วลองใหม่",
+        success: "",
+      };
+    }
 
-    const {
-      data,
-      error,
-    } =
-      await client.auth.signUp(
-        {
-          email,
-          password,
+    /*
+     * ของ M01:
+     * สมัครผ่าน Supabase Auth และรอผู้ใช้ยืนยันอีเมล
+     */
+    const client = await createClient();
 
-          options: {
-            emailRedirectTo:
-              `${siteUrl()}/auth/callback`,
+    const { data, error } =
+      await client.auth.signUp({
+        email,
+        password,
 
-            data: {
-              full_name:
-                fullName,
+        options: {
+          emailRedirectTo:
+            `${siteUrl()}/auth/callback`,
 
-              student_id:
-                studentId,
+          data: {
+            full_name: fullName,
+            student_id: studentId,
+            prefix,
+            first_name: firstName,
+            last_name: lastName,
+            phone,
+            department,
 
-              prefix,
-
-              first_name:
-                firstName,
-
-              last_name:
-                lastName,
-
-              phone,
-
-              department,
-
-              profile_details: {
-                address,
-
-                major,
-
-                education_level:
-                  educationLevel,
-
-                study_year:
-                  studyYear,
-
-                gpa,
-
-                family_income:
-                  familyIncome,
-
-                family_members:
-                  familyMembers,
-
-                parent_status:
-                  parentStatus,
-
-                parent_status_other:
-                  parentStatus ===
-                  "other"
-                    ? parentStatusOther
-                    : "",
-
-                emergency_name:
-                  emergencyName,
-
-                emergency_phone:
-                  emergencyPhone,
-
-                activities,
-
-                bank_name:
-                  bankName,
-
-                account_holder:
-                  accountHolder,
-
-                account_number:
-                  accountNumber,
-              },
+            profile_details: {
+              address,
+              major,
+              education_level:
+                educationLevel,
+              study_year: studyYear,
+              gpa,
+              family_income:
+                familyIncome,
+              family_members:
+                familyMembers,
+              parent_status:
+                parentStatus,
+              parent_status_other:
+                parentStatus === "other"
+                  ? parentStatusOther
+                  : "",
+              emergency_name:
+                emergencyName,
+              emergency_phone:
+                emergencyPhone,
+              activities,
+              bank_name: bankName,
+              account_holder:
+                accountHolder,
+              account_number:
+                accountNumber,
             },
           },
         },
-      );
-
-    /* =========================
-       SIGN UP ERROR
-       แสดง Error จริงใน Terminal
-    ========================= */
+      });
 
     if (error) {
       console.error(
         "REGISTER_SIGNUP_ERROR",
         {
-          message:
-            error.message,
-          code:
-            error.code,
-          status:
-            error.status,
-          name:
-            error.name,
+          message: error.message,
+          code: error.code,
+          status: error.status,
+          name: error.name,
         },
       );
 
       let message =
         "สมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
 
-      if (
-        error.status === 429
-      ) {
+      if (error.status === 429) {
         message =
-          "ระบบส่งอีเมลถึงขีดจำกัดชั่วคราว กรุณารอสักครู่แล้วลองใหม่";
+          "มีการสมัครสมาชิกหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่";
       } else if (
         error.code ===
         "email_address_not_authorized"
@@ -698,57 +593,33 @@ export async function registerStudent(
         message =
           "ระบบส่งอีเมลของ Supabase ไม่อนุญาตให้อีเมลนี้รับอีเมลยืนยัน";
       } else if (
-        error.code ===
-        "weak_password"
+        error.code === "weak_password"
       ) {
         message =
           "รหัสผ่านไม่ผ่านข้อกำหนดความปลอดภัย กรุณาใช้รหัสผ่านที่เดายากขึ้น";
       } else if (
         error.code ===
-        "user_already_exists"
+          "user_already_exists" ||
+        error.code === "email_exists"
       ) {
         message =
           "อีเมลนี้มีบัญชีอยู่ในระบบแล้ว กรุณาเข้าสู่ระบบ";
       } else if (
+        process.env.NODE_ENV ===
+          "development" &&
         error.message
       ) {
-        /*
-         * ตอนพัฒนาในเครื่อง
-         * แสดงข้อความจริงจาก Supabase
-         * เพื่อให้รู้ว่าเสียตรงไหน
-         */
-        if (
-          process.env.NODE_ENV ===
-          "development"
-        ) {
-          message =
-            `สมัครสมาชิกไม่สำเร็จ: ${error.message}`;
-        }
+        message =
+          `สมัครสมาชิกไม่สำเร็จ: ${error.message}`;
       }
 
       return {
-        error:
-          message,
+        error: message,
         success: "",
       };
     }
 
-    /* =========================
-       CHECK USER CREATED
-    ========================= */
-
-    if (
-      !data.user
-    ) {
-      console.error(
-        "REGISTER_SIGNUP_ERROR",
-        {
-          message:
-            "Supabase returned no user",
-          email,
-        },
-      );
-
+    if (!data.user) {
       return {
         error:
           "Supabase ไม่ได้สร้างบัญชีผู้ใช้ กรุณาตรวจสอบการตั้งค่า Authentication",
@@ -756,39 +627,14 @@ export async function registerStudent(
       };
     }
 
-    console.log(
-      "REGISTER_SIGNUP_SUCCESS",
-      {
-        userId:
-          data.user.id,
-        email:
-          data.user.email,
-        hasSession:
-          Boolean(
-            data.session,
-          ),
-        emailConfirmedAt:
-          data.user
-            .email_confirmed_at,
-      },
-    );
-
-    /* =========================
-       ถ้ามี session กลับมา
-
-       แปลว่า Confirm email
-       ไม่ได้บังคับใช้อยู่
-    ========================= */
-
-    if (
-      data.session
-    ) {
-      await client.auth.signOut(
-        {
-          scope:
-            "local",
-        },
-      );
+    /*
+     * ถ้ามี session ทันที แปลว่า Confirm email
+     * ถูกปิดอยู่ ซึ่งไม่ตรงกับ flow ของ M01 นี้
+     */
+    if (data.session) {
+      await client.auth.signOut({
+        scope: "local",
+      });
 
       return {
         error:
@@ -797,17 +643,8 @@ export async function registerStudent(
       };
     }
 
-    /* =========================
-       SUCCESS
-
-       ยังไม่ Login
-       ยังไม่ Dashboard
-       รอผู้ใช้กดยืนยัน Email
-    ========================= */
-
     return {
       error: "",
-
       success:
         `สมัครสมาชิกสำเร็จ ระบบได้สร้างบัญชี ${email} แล้ว กรุณาตรวจอีเมลและกดปุ่ม “ยืนยันอีเมล” ก่อนเข้าสู่ระบบ`,
     };
