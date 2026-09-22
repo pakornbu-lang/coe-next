@@ -55,11 +55,11 @@ export default function Shell({ children, viewer, notifications = [] }: { childr
           ["/staff/scholarships", "ทุนการศึกษา", "cap"],
           ["/staff/review", "ตรวจเอกสาร", "check"],
           ["/staff/review?status=approved", "อนุมัติ / จ่ายทุน", "chart"],
-          ["/staff/reports", "รายงาน", "file"],
+          ["/staff/assignments", "งานกรรมการ", "people"], ["/staff/interviews", "สัมภาษณ์", "file"], ["/staff/evaluations", "สรุปคะแนน", "chart"], ["/staff/reports", "รายงาน", "file"],
         ]
       : viewer.role === "committee"
         ? [
-            ["/committee", "พื้นที่กรรมการ", "home"],
+            ["/committee", "พื้นที่กรรมการ", "home"], ["/committee/interviews", "นัดสัมภาษณ์", "file"],
             ["/staff/evaluation", "พิจารณาทุน", "people"],
             ["/scholarships", "ทุนการศึกษา", "cap"],
           ]

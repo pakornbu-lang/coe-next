@@ -251,7 +251,7 @@ export async function listCommitteeAssignments() {
   const client = await createClient();
   const { data, error } = await client
     .from("review_assignments")
-    .select("id,application_id,status,reason,assigned_at,application:applications(id,application_no,student_name,student_code,status,scholarship:scholarships(title))")
+    .select("id,application_id,status,reason,assigned_at,due_at,application:applications(id,application_no,student_name,student_code,status,scholarship:scholarships(title))")
     .eq("status", "assigned")
     .order("assigned_at", { ascending: false });
   if (error) fail("ไม่สามารถโหลดรายการประเมินได้");
