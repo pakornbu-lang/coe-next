@@ -25,9 +25,13 @@ try {
   assert(!insertError, insertError?.message);
   const redirectTo = `${new URL(process.env.NEXT_PUBLIC_SITE_URL).origin}/auth/callback?next=%2Freset-password`;
   const { data, error } = await admin.auth.admin.generateLink({ type: "recovery", email: recipient, options: { redirectTo } });
-  assert(!error && data?.properties?.action_link, error?.message ?? "Recovery link was not generated");
+  assert(!error && data?.properties?.hashed_token, error?.message ?? "Recovery link was not generated");
 
-  const actionUrl = data.properties.action_link;
+  const recoveryUrl = new URL("/auth/callback", process.env.NEXT_PUBLIC_SITE_URL);
+  recoveryUrl.searchParams.set("token_hash", data.properties.hashed_token);
+  recoveryUrl.searchParams.set("type", "recovery");
+  recoveryUrl.searchParams.set("next", "/reset-password");
+  const actionUrl = recoveryUrl.toString();
   const response = await fetch(process.env.NOTIFICATION_APPS_SCRIPT_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

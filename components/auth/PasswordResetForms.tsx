@@ -8,12 +8,12 @@ import { Brand, Panel } from "@/components/portal/Shared";
 const empty: PasswordResetState = { error: "", success: "" };
 
 function AuthFrame({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="auth-page"><aside className="auth-art"><Brand/><div className="auth-story"><h1>ดูแลบัญชีของคุณ<br/>เพื่อเข้าถึงโอกาสทางการศึกษา</h1><p>ระบบจะตรวจสอบลิงก์และบัญชีผ่าน Supabase Auth โดยไม่เปิดเผยข้อมูลผู้ใช้</p><span className="short-line"/></div></aside><div className="auth-right"><Panel><h1>{title}</h1><h2>ระบบติดตามทุนการศึกษา</h2>{children}</Panel><Link href="/login">← กลับหน้าเข้าสู่ระบบ</Link></div></div>;
+  return <div className="auth-page"><aside className="auth-art"><Brand/><div className="auth-story"><h1>ดูแลบัญชีของคุณ<br/>เพื่อเข้าถึงโอกาสทางการศึกษา</h1><p>ใช้อีเมลที่ลงทะเบียนเพื่อรับลิงก์และตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ</p><span className="short-line"/></div></aside><div className="auth-right"><Panel><h1>{title}</h1><h2>ระบบติดตามทุนการศึกษา</h2>{children}</Panel><Link href="/login">← กลับหน้าเข้าสู่ระบบ</Link></div></div>;
 }
 
-export function ForgotPasswordForm() {
-  const [state, action, pending] = useActionState(requestPasswordReset, empty);
-  return <AuthFrame title="ลืมรหัสผ่าน"><form action={action} onInvalidCapture={(event) => event.currentTarget.classList.add("form-validated")}><p>กรอกอีเมลที่ใช้เข้าสู่ระบบ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้</p><label htmlFor="recovery-email">อีเมล *</label><input id="recovery-email" name="email" type="email" required maxLength={254} autoComplete="email" placeholder="name@mail.wu.ac.th"/><button className="btn" disabled={pending} onClick={(event) => event.currentTarget.form?.classList.add("form-validated")}>{pending ? "กำลังส่ง…" : "ส่งลิงก์ตั้งรหัสผ่านใหม่"}</button>{state.error && <p className="soft-box" role="alert">{state.error}</p>}{state.success && <p className="soft-box" role="status">{state.success}</p>}</form></AuthFrame>;
+export function ForgotPasswordForm({ initialError = "" }: { initialError?: string }) {
+  const [state, action, pending] = useActionState(requestPasswordReset, { error: initialError, success: "" });
+  return <AuthFrame title="ลืมรหัสผ่าน"><form action={action} onInvalidCapture={(event) => event.currentTarget.classList.add("form-validated")}><p>กรอกอีเมลเดียวกับที่ใช้ลงทะเบียนบัญชีระบบทุนการศึกษา หากเคยเปลี่ยนอีเมล ให้ใช้อีเมลล่าสุดของบัญชี</p><label htmlFor="recovery-email">อีเมลที่ลงทะเบียน *</label><input id="recovery-email" name="email" type="email" required maxLength={254} autoComplete="email" placeholder="อีเมลที่ใช้สมัครบัญชี"/><button className="btn" disabled={pending} onClick={(event) => event.currentTarget.form?.classList.add("form-validated")}>{pending ? "กำลังส่ง…" : "ส่งลิงก์ตั้งรหัสผ่านใหม่"}</button>{state.error && <p className="soft-box" role="alert">{state.error}</p>}{state.success && <div className="soft-box" role="status" aria-live="polite"><strong>ตรวจสอบอีเมลของคุณ</strong><p>{state.success}</p><p>เปิดอีเมลหัวข้อ “ตั้งรหัสผ่านใหม่” แล้วกดลิงก์ล่าสุด หากทดสอบเว็บ localhost ให้เปิดลิงก์บนเครื่องที่รันเว็บอยู่</p></div>}</form></AuthFrame>;
 }
 
 export function NewPasswordForm() {
