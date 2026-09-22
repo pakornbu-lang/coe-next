@@ -6,16 +6,16 @@ import DigitsInput from "@/components/forms/DigitsInput";
 export default function RegisterForm(){
  const [state,action,pending]=useActionState(registerStudent,{error:"",success:""});
  return <form action={action} onInvalidCapture={event=>event.currentTarget.classList.add("form-validated")}>
- <p>สมัครเพื่อใช้งานในบทบาท <strong>นักศึกษา (Student)</strong> สิทธิ์เจ้าหน้าที่และกรรมการต้องได้รับอนุมัติจากผู้ดูแล</p>
+ <p>สมัครเพื่อใช้งานในบทบาท <strong>นักศึกษา (Student)</strong> ด้วยอีเมล <strong>@mail.wu.ac.th</strong> แล้วเข้าใช้ได้ทันที สิทธิ์เจ้าหน้าที่และกรรมการต้องได้รับอนุมัติจากผู้ดูแล</p>
  <label htmlFor="register-prefix">คำนำหน้าชื่อ *</label><select id="register-prefix" name="prefix" required defaultValue="นาย"><option>นาย</option><option>นางสาว</option><option>นาง</option></select>
  <label htmlFor="register-first-name">ชื่อ *</label><input id="register-first-name" name="first_name" autoComplete="given-name" required maxLength={100}/>
  <label htmlFor="register-last-name">นามสกุล *</label><input id="register-last-name" name="last_name" autoComplete="family-name" required maxLength={100}/>
  <label htmlFor="register-id">รหัสนักศึกษา *</label><DigitsInput id="register-id" name="student_id" minLength={8} maxLength={12} required/>
- <label htmlFor="register-email">อีเมลมหาวิทยาลัย *</label><input id="register-email" name="email" type="email" autoComplete="email" placeholder="name@mail.wu.ac.th" required maxLength={254}/>
+ <label htmlFor="register-email">อีเมลนักศึกษา @mail.wu.ac.th *</label><input id="register-email" name="email" type="email" autoComplete="email" placeholder="name@mail.wu.ac.th" required maxLength={254}/>
  <label htmlFor="register-password">รหัสผ่าน *</label><input id="register-password" name="password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required/>
  <label htmlFor="register-confirm">ยืนยันรหัสผ่าน *</label><input id="register-confirm" name="confirm_password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required/>
  <p>ใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร และตรวจสอบอีเมลให้ถูกต้องก่อนสมัคร</p>
- <button className="btn" disabled={pending} onClick={event=>event.currentTarget.form?.classList.add("form-validated")}>{pending?"กำลังสมัครสมาชิก…":"สมัครสมาชิกนักศึกษา"}</button>
+ <button className="btn" type="submit" disabled={pending} onClick={event=>event.currentTarget.form?.classList.add("form-validated")}>{pending?"กำลังสมัครสมาชิก…":"สมัครสมาชิกนักศึกษา"}</button>
  {state.error&&<p className="soft-box" role="alert">{state.error}</p>}
  {state.success&&<p className="soft-box" role="status">{state.success}</p>}
  <p className="auth-switch">มีบัญชีแล้ว? <Link href="/login">เข้าสู่ระบบ</Link></p>

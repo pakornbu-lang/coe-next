@@ -43,7 +43,7 @@ erDiagram
   portal_notifications ||--o| notification_email_outbox : "ส่งอีเมล"
 ```
 
-`auth_users` หมายถึง `auth.users` ของ Supabase Auth ซึ่งเก็บข้อมูลเข้าระบบและรหัสผ่าน ส่วน `portal_profiles` เก็บบทบาทของเว็บ `portal_audit_log` บันทึกการเปลี่ยนแปลงแบบตรวจสอบย้อนหลัง และ `password_reset_rate_limits` เป็นข้อมูลภายในสำหรับจำกัดการขอกู้รหัสผ่าน ไม่มีเส้น FK ไปยังข้อมูลนักศึกษาเพื่อไม่เก็บอีเมลต้นฉบับ
+`auth_users` หมายถึง `auth.users` ของ Supabase Auth ซึ่งเก็บข้อมูลเข้าระบบและรหัสผ่าน ส่วน `portal_profiles` เก็บบทบาทของเว็บ `portal_audit_log` บันทึกการเปลี่ยนแปลงแบบตรวจสอบย้อนหลัง `password_reset_rate_limits` และ `registration_rate_limits` เป็นข้อมูลภายในสำหรับจำกัดคำขอกู้รหัสผ่านและสมัครสมาชิก ไม่มีเส้น FK ไปยังข้อมูลนักศึกษาเพราะเก็บเฉพาะแฮชของอีเมล/IP
 
 ## เหตุผลที่ยังไม่รวมตารางหนึ่งต่อหนึ่ง
 

@@ -10,7 +10,7 @@
 npm ci
 ```
 
-คัดลอก `.env.example` เป็น `.env.local` แล้วใส่ Project URL และ Publishable key ของ Supabase โปรเจกต์เดียวกับทีม (เครื่องที่ตั้งค่าแล้วไม่ต้องคัดลอกทับ) จากนั้น:
+คัดลอก `.env.example` เป็น `.env.local` แล้วใส่ Project URL และ Publishable key ของ Supabase โปรเจกต์เดียวกับทีม สำหรับการสมัครนักศึกษาจาก `/register` ให้ตั้ง `SUPABASE_SECRET_KEY` และ `NOTIFICATION_DISPATCH_SECRET` ฝั่งเซิร์ฟเวอร์ด้วย (เครื่องที่ตั้งค่าแล้วไม่ต้องคัดลอกทับ) จากนั้น:
 
 ```bash
 npm run dev
@@ -42,7 +42,7 @@ npx supabase db push
 | --- | --- |
 | `/` | หน้าแรกสาธารณะ |
 | `/login` | เข้าสู่ระบบจริงด้วยอีเมลและรหัสผ่าน |
-| `/register` | สมัครนักศึกษาจริง (ต้องตั้ง SMTP สำหรับยืนยันอีเมล) |
+| `/register` | สมัครนักศึกษาด้วยอีเมล `@mail.wu.ac.th` แล้วเข้าใช้งานได้ทันที |
 | `/scholarships`, `/scholarships/[id]` | รายการและรายละเอียดทุนที่ประกาศแล้ว (สาธารณะ) |
 | `/dashboard`, `/profile`, `/applications`, `/apply` | นักศึกษา |
 | `/staff`, `/staff/scholarships`, `/staff/review`, `/scholarships/new` | เจ้าหน้าที่: จัดการทุน ตรวจเอกสาร มอบหมายกรรมการ ตัดสินผล และบันทึกจ่ายทุน |
