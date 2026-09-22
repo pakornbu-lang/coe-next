@@ -19,6 +19,17 @@ const fail = (message: string): never => {
   throw new Error(message);
 };
 
+type DatabaseError = {
+  code?: string;
+  message?: string;
+};
+
+function isMissingSchemaObject(error: DatabaseError | null, objectName: string) {
+  if (!error) return false;
+  const missingObjectCodes = new Set(["42703", "42P01", "PGRST204", "PGRST205"]);
+  return missingObjectCodes.has(error.code ?? "") && (error.message ?? "").includes(objectName);
+}
+
 function first<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
@@ -84,12 +95,25 @@ export async function getStudentApplicationForScholarship(scholarshipId: string)
 
 export async function getApplicationDocuments(applicationId: string): Promise<ApplicationDocument[]> {
   const client = await createClient();
-  const { data, error } = await client
+  const currentResult = await client
     .from("application_documents")
     .select("id,application_id,requirement_id,file_name,file_size,mime_type,status,feedback,version,revision_no,uploaded_at,requirement:scholarship_document_requirements(id,label,details,required,sort_order)")
     .eq("application_id", applicationId)
     .order("uploaded_at");
-  if (error) fail("ไม่สามารถโหลดเอกสารได้");
+
+  let data = currentResult.data;
+  if (currentResult.error) {
+    if (!isMissingSchemaObject(currentResult.error, "revision_no")) fail("ไม่สามารถโหลดเอกสารได้");
+
+    const legacyResult = await client
+      .from("application_documents")
+      .select("id,application_id,requirement_id,file_name,file_size,mime_type,status,feedback,version,uploaded_at,requirement:scholarship_document_requirements(id,label,details,required,sort_order)")
+      .eq("application_id", applicationId)
+      .order("uploaded_at");
+    if (legacyResult.error) fail("ไม่สามารถโหลดเอกสารได้");
+    data = (legacyResult.data ?? []).map((document) => ({ ...document, revision_no: 1 }));
+  }
+
   return ((data ?? []) as unknown as Record<string, unknown>[]).map((row) => ({
     ...(row as unknown as ApplicationDocument),
     requirement: first(row.requirement as Requirement | Requirement[] | null),
@@ -104,7 +128,10 @@ export async function getApplicationDocumentVersions(documents: ApplicationDocum
     .in("document_id", documents.map((document) => document.id))
     .order("revision_no", { ascending: false })
     .limit(1000);
-  if (error) fail("ไม่สามารถโหลดประวัติเวอร์ชันเอกสารได้");
+  if (error) {
+    if (isMissingSchemaObject(error, "application_document_versions")) return [];
+    fail("ไม่สามารถโหลดประวัติเวอร์ชันเอกสารได้");
+  }
   return (data ?? []) as ApplicationDocumentVersion[];
 }
 
