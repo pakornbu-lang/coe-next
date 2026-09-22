@@ -64,7 +64,26 @@ try {
   assert(cookies, "Registration must set a session cookie");
   const dashboard = await fetch(`${base}/dashboard`, { headers: { Cookie: cookies }, redirect: "manual" });
   assert.equal(dashboard.status, 200, "New student session cannot open dashboard");
-  console.log("PASS: other domains rejected; /register creates a Student account and immediately opens the dashboard");
+  const dashboardHtml = await dashboard.text();
+  assert.match(dashboardHtml, /เติมโปรไฟล์เพื่อสมัครทุนได้เร็วขึ้น/);
+  assert.match(dashboardHtml, /\/profile\?edit=1#profile-editor/);
+  const editPage = await fetch(`${base}/profile?edit=1`, { headers: { Cookie: cookies } });
+  assert.equal(editPage.status, 200);
+  assert.match(await editPage.text(), /id="profile-editor"/);
+
+  const { error: updateError } = await admin.from("portal_profiles").update({
+    phone: "0812345678",
+    department: "สำนักวิชาทดสอบ",
+    profile_details: {
+      major: "สาขาทดสอบ", education_level: "ปริญญาตรี", study_year: "2", gpa: "3.50",
+      address: "123 ถนนทดสอบ", parent_status: "อยู่ด้วยกัน",
+    },
+  }).eq("id", userId);
+  assert.ifError(updateError);
+  const completedDashboard = await fetch(`${base}/dashboard`, { headers: { Cookie: cookies } });
+  assert.equal(completedDashboard.status, 200);
+  assert.doesNotMatch(await completedDashboard.text(), /เติมโปรไฟล์เพื่อสมัครทุนได้เร็วขึ้น/);
+  console.log("PASS: registration signs in; profile prompt links to editor and disappears after completion");
 } finally {
   if (!userId) {
     const { data } = await admin.from("portal_profiles").select("id").eq("email", email).maybeSingle();
