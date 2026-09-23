@@ -2,7 +2,6 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ApplicationDocument,
-  ApplicationDocumentVersion,
   ApplicationAppeal,
   ApplicationInterview,
   ApplicationSummary,
@@ -120,27 +119,11 @@ export async function getApplicationDocuments(applicationId: string): Promise<Ap
   }));
 }
 
-export async function getApplicationDocumentVersions(documents: ApplicationDocument[]): Promise<ApplicationDocumentVersion[]> {
-  if (!documents.length) return [];
-  const client = await createClient();
-  const { data, error } = await client.from("application_document_versions")
-    .select("id,document_id,revision_no,file_name,file_size,mime_type,status,feedback,uploaded_at,checked_at")
-    .in("document_id", documents.map((document) => document.id))
-    .order("revision_no", { ascending: false })
-    .limit(1000);
-  if (error) {
-    if (isMissingSchemaObject(error, "application_document_versions")) return [];
-    fail("ไม่สามารถโหลดประวัติเวอร์ชันเอกสารได้");
-  }
-  return (data ?? []) as ApplicationDocumentVersion[];
-}
-
 export async function getStudentApplicationDetail(id: string): Promise<{
   application: ApplicationSummary;
   scholarship: ScholarshipSummary & { requirements: Requirement[]; criteria: Criterion[] };
   requirements: Requirement[];
   documents: ApplicationDocument[];
-  documentVersions: ApplicationDocumentVersion[];
   paymentAccount: PaymentAccount | null;
   disbursement: Disbursement | null;
   interview: ApplicationInterview | null;
@@ -166,13 +149,11 @@ export async function getStudentApplicationDetail(id: string): Promise<{
   ]);
   if (!scholarship) throw new Error("ไม่พบทุนการศึกษานี้");
   if (accountResult.error || disbursementResult.error || historyResult.error) fail("ไม่สามารถโหลดข้อมูลใบสมัครได้");
-  const documentVersions = await getApplicationDocumentVersions(documents);
   return {
     application: application as ApplicationSummary,
     scholarship,
     requirements: scholarship.requirements,
     documents,
-    documentVersions,
     paymentAccount: accountResult.data as PaymentAccount | null,
     disbursement: disbursementResult.data as Disbursement | null,
     interview: interviewResult.error ? null : interviewResult.data as ApplicationInterview | null,

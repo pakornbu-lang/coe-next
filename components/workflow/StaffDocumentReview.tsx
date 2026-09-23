@@ -4,16 +4,15 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { reviewApplicationDocuments, type WorkflowState } from "@/app/actions/scholarships";
-import type { ApplicationDocument, ApplicationDocumentVersion, ApplicationSummary } from "@/lib/scholarships/types";
+import type { ApplicationDocument, ApplicationSummary } from "@/lib/scholarships/types";
 import DocumentVersionHistory from "./DocumentVersionHistory";
 
 const empty: WorkflowState = { error: "", success: "" };
 type ReviewRow = { id: string; version: number; status: ApplicationDocument["status"]; feedback: string };
 
-export default function StaffDocumentReview({ application, documents, versions }: {
+export default function StaffDocumentReview({ application, documents }: {
   application: ApplicationSummary;
   documents: ApplicationDocument[];
-  versions: ApplicationDocumentVersion[];
 }) {
   const router = useRouter();
   const [rows, setRows] = useState<ReviewRow[]>(() => documents.map((item) => ({
@@ -37,7 +36,7 @@ export default function StaffDocumentReview({ application, documents, versions }
           <div>
             <strong>{item.requirement?.label ?? "เอกสาร"}</strong>
             <p><Link href={`/documents/${item.id}`}>{item.file_name}</Link> · เวอร์ชัน {item.revision_no}</p>
-            <DocumentVersionHistory document={item} versions={versions.filter((version) => version.document_id === item.id)}/>
+            <DocumentVersionHistory document={item}/>
           </div>
           <div className="workflow-document-review">
             <select aria-label={`ผลตรวจ ${item.requirement?.label ?? item.file_name}`} value={rows[index]?.status ?? "pending"} disabled={!canReview}
