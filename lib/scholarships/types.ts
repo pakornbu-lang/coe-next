@@ -39,6 +39,7 @@ export type ScholarshipSummary = {
   amount: number;
   quota: number;
   minimum_gpa: number | null;
+  eligible_faculties?: string[];
   opens_at: string;
   closes_at: string;
   status: ScholarshipStatus;
@@ -75,8 +76,22 @@ export type ApplicationDocument = {
   status: "pending" | "verified" | "revision_required";
   feedback: string | null;
   version: number;
+  revision_no: number;
   uploaded_at: string;
   requirement?: Requirement | null;
+};
+
+export type ApplicationDocumentVersion = {
+  id: string;
+  document_id: string;
+  revision_no: number;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  status: ApplicationDocument["status"];
+  feedback: string | null;
+  uploaded_at: string;
+  checked_at: string | null;
 };
 
 export type ApplicationSummary = {
