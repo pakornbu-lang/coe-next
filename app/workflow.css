@@ -22,3 +22,8 @@
 .workflow-document-history li{line-height:1.5;overflow-wrap:anywhere}
 .workflow-document-history li p{margin:3px 0 0;white-space:pre-wrap}
 @media(max-width:640px){.workflow-row-list>div>a{align-items:flex-start;flex-direction:column}}
+.workflow-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-radius:10px;background:#fbfdfc;border:1px solid #dce7e0;margin-top:12px;flex-wrap:wrap}
+.workflow-pagination-info{font-size:14px;color:#5b6c7e}
+.workflow-pagination-controls{display:flex;gap:8px;align-items:center}
+.workflow-pagination .btn.disabled{opacity:.45;pointer-events:none;cursor:not-allowed}
+@media(max-width:600px){.workflow-pagination{flex-direction:column;align-items:stretch;text-align:center}.workflow-pagination-controls{justify-content:center}}
