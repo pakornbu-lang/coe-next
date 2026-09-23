@@ -20,6 +20,7 @@ erDiagram
 ```mermaid
 erDiagram
   applications ||--o{ application_documents : "หลักฐาน"
+  application_documents ||--o{ application_document_versions : "ไฟล์แต่ละฉบับ"
   scholarship_document_requirements ||--o{ application_documents : "รายการที่ต้องส่ง"
   applications ||--o| application_payment_accounts : "บัญชีรับเงิน"
   applications ||--o{ application_status_history : "สถานะย้อนหลัง"
@@ -30,7 +31,7 @@ erDiagram
   applications ||--o| disbursements : "จ่ายทุน"
 ```
 
-`applications` เก็บสถานะปัจจุบัน ส่วน `application_status_history` เก็บลำดับเหตุการณ์ย้อนหลัง จึงไม่ควรยุบเข้าด้วยกัน ข้อมูลบัญชีและการจ่ายเงินแยกจากใบสมัครเพื่อจำกัดสิทธิ์การอ่าน การนัดสัมภาษณ์และอุทธรณ์เกิดคนละช่วงของงาน และผลประเมินแยกจากการมอบหมายเพื่อรองรับฉบับร่างกับสถานะกรรมการ
+`applications` เก็บสถานะปัจจุบัน ส่วน `application_status_history` เก็บลำดับเหตุการณ์ย้อนหลัง จึงไม่ควรยุบเข้าด้วยกัน `application_documents` ชี้ไฟล์ฉบับปัจจุบัน ส่วน `application_document_versions` เก็บไฟล์และผลตรวจของแต่ละฉบับ โดยไม่ใช่ตารางประวัติสถานะใบสมัคร ข้อมูลบัญชีและการจ่ายเงินแยกจากใบสมัครเพื่อจำกัดสิทธิ์การอ่าน การนัดสัมภาษณ์และอุทธรณ์เกิดคนละช่วงของงาน และผลประเมินแยกจากการมอบหมายเพื่อรองรับฉบับร่างกับสถานะกรรมการ
 
 ## 3. บัญชีและระบบสนับสนุน
 

@@ -19,7 +19,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const viewer = await getViewer();
   const notifications = viewer ? await getNotifications() : [];
   return (
-    <html lang="th">
+    <html lang="th" data-scroll-behavior="smooth">
       <body>
         <AppLayout key={viewer?.id ?? "guest"} viewer={viewer} notifications={notifications}>{children}</AppLayout>
       </body>

@@ -29,24 +29,20 @@ NEXT_PUBLIC_SITE_URL=https://โดเมนจริงของระบบ
 
 หลังแก้ environment variables ต้อง deploy ใหม่เสมอ ระบบจะเลือก Google Apps Script เป็นผู้ส่งอีเมลทันทีเมื่อพบ URL และ secret ครบ
 
-## 3. ตั้ง scheduler สำหรับส่งซ้ำ
+## 3. การประมวลผลคิวอีเมล (Decoupled Outbox Queue & Scheduler)
 
-ระบบพยายามส่งทันทีหลัง workflow สำเร็จอยู่แล้ว Scheduler ใช้ส่งซ้ำเฉพาะรายการที่ล้มเหลว
+ระบบแยกการส่งอีเมลออกจากคำขอหน้าเว็บ โดยเมื่อนักศึกษากดส่งใบสมัคร ข้อมูลจะถูกบันทึกลงฐานข้อมูลและสร้างรายการคิวใน `notification_email_outbox` ด้วยสถานะ `pending` ทันทีโดยไม่ต้องรอส่งเมล ทำให้หน้าเว็บทำงานรวดเร็วและไม่สะดุด
 
-- Scheduler ทั่วไป: เรียก `POST /api/notifications/dispatch` ทุก 5 นาที พร้อม header `Authorization: Bearer <NOTIFICATION_DISPATCH_SECRET>`
-- หาก deploy บน Vercel ไฟล์ `vercel.json` ตั้งเวลาเรียกทุก 5 นาทีไว้แล้ว ให้กำหนด `CRON_SECRET` ใน Project Environment Variables; Vercel จะส่งค่าใน Authorization header อัตโนมัติ
-- ตั้ง `NEXT_PUBLIC_SITE_URL` เป็น HTTPS origin จริงก่อนเปิดระบบ เพื่อให้ปุ่มในอีเมลเปิดเว็บจริงแทน localhost
-- Vercel: กำหนด `CRON_SECRET` แล้วสร้าง `vercel.json` ที่ root ของโปรเจกต์:
-
-```json
-{
-  "crons": [
-    { "path": "/api/notifications/dispatch", "schedule": "*/5 * * * *" }
-  ]
-}
-```
-
-Vercel Hobby เรียก Cron ได้สูงสุดวันละครั้ง หากต้องการทุก 5 นาทีให้ใช้แพลนที่รองรับหรือ scheduler ภายนอก
+- **สถานะของคิว:**
+  - `pending`: รอส่งอีเมลในรอบถัดไป
+  - `processing`: กำลังประมวลผลการส่ง (Atomic claim เพื่อป้องกันส่งซ้ำ)
+  - `sent`: ส่งสำเร็จเรียบร้อย
+  - `failed`: ส่งไม่สำเร็จ โดยระบบจะลองส่งซ้ำ (Retry) อัตโนมัติสูงสุด 5 ครั้ง พร้อม Exponential Backoff
+- **จำกัดปริมาณ:** ประมวลผลรอบละไม่เกิน 20 รายการ เพื่อไม่ให้เกินโควตาและลดความหน่วง
+- **การทริกเกอร์:**
+  - Scheduler ทั่วไป: เรียก `POST /api/notifications/dispatch` ทุก 5 นาที พร้อม header `Authorization: Bearer <NOTIFICATION_DISPATCH_SECRET>`
+  - Vercel Cron: ไฟล์ `vercel.json` ตั้งเวลาเรียกทุก 5 นาทีไว้แล้ว
+  - Supabase Edge Function: สามารถใช้งานผ่าน `supabase/functions/dispatch-notifications` ร่วมกับ pg_cron หรือ external scheduler ได้
 
 ## 4. ทดสอบและตรวจผล
 

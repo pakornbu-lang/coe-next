@@ -31,12 +31,20 @@ approved → disbursement: pending | paid | failed
 ## Supabase ที่ migration สร้าง
 
 - ตาราง `scholarships`, `scholarship_document_requirements`, `scholarship_review_criteria`
-- ตาราง `applications`, `application_documents`, `review_assignments`, `evaluations`, `application_status_history`
+- ตาราง `applications`, `application_documents`, `application_document_versions`, `review_assignments`, `evaluations`, `application_status_history`
 - ตาราง `application_payment_accounts`, `disbursements`, `portal_notifications`
 - buckets private: `scholarship-documents` และ `scholarship-payment-proofs`
 - RPC ที่ตรวจ JWT/บทบาท/สถานะ/optimistic version และเขียน `portal_audit_log`
 
-ห้าม grant สิทธิ์เขียนตารางเหล่านี้ให้ client โดยตรง และห้ามใช้ service-role key ใน Next.js client การอัปโหลดทำผ่าน Server Action แล้ว Storage policy ตรวจเจ้าของใบสมัครหรือ Staff ซ้ำ
+ห้าม grant สิทธิ์เขียนตารางเหล่านี้ให้ client โดยตรง และห้ามใช้ service-role key ใน Next.js client การอัปโหลดเอกสารทำผ่าน Server Action ที่ตรวจบทบาท ขนาด ชนิด และเนื้อหาไฟล์ก่อนใช้ server-only secret key เขียนลง Storage จากนั้น RPC ตรวจเจ้าของใบสมัครและบันทึกเวอร์ชันใน transaction เดียวกัน
+
+## เวอร์ชันเอกสารและการเก็บรักษา
+
+- `application_documents` เก็บไฟล์และผลตรวจล่าสุด ส่วน `application_document_versions` เก็บทุกไฟล์ที่เคยอัปโหลดพร้อมผลตรวจของฉบับนั้น เลข `revision_no` เพิ่มเฉพาะเมื่ออัปโหลดใหม่ ต่างจาก `version` ที่ใช้กันข้อมูลแก้ไขพร้อมกัน
+- นักศึกษาเจ้าของใบสมัครและเจ้าหน้าที่ดูไฟล์ทุกเวอร์ชันได้ กรรมการที่ได้รับมอบหมายดูได้เฉพาะไฟล์ปัจจุบันผ่าน `application_documents` ไฟล์ยังอยู่ใน private bucket และลิงก์ดาวน์โหลดมีอายุ 60 วินาที
+- migration ย้อนหลังสร้างรายการเวอร์ชันเฉพาะไฟล์ปัจจุบัน ไฟล์เก่าที่ระบบเดิมลบไปแล้วกู้จากตารางนี้ไม่ได้
+- `retain_until` ยังเป็น `NULL` และ **ยังไม่มีการลบอัตโนมัติ** ต้องให้หน่วยงานอนุมัตินโยบายระยะเวลาเก็บ จุดเริ่มนับ และข้อยกเว้นกรณีอุทธรณ์ก่อน จึงค่อยเพิ่มงานลบไฟล์ผ่าน Storage API ห้ามลบแถวใน `storage.objects` ด้วย SQL
+- เมื่อ deploy ให้ประสาน migration กับเวอร์ชันแอป เพราะ migration ปิดนโยบายอัปโหลดโดยตรงของนักศึกษา ส่วนแอปใหม่ต้องใช้ `SUPABASE_SECRET_KEY` หรือ `SUPABASE_SERVICE_ROLE_KEY` เฉพาะบนเซิร์ฟเวอร์
 
 ## รายการทดสอบก่อนเปิดใช้งาน
 
@@ -49,3 +57,5 @@ approved → disbursement: pending | paid | failed
 7. Committee ส่งคะแนน; Staff ตัดสินผล และลองอนุมัติเกิน quota เพื่อยืนยันว่าระบบปฏิเสธ
 8. Staff บันทึกการโอนและเปิดหลักฐานด้วยทั้งบัญชีนักศึกษาเจ้าของใบสมัครและ Staff
 9. Admin ตรวจ `portal_audit_log` ว่ามีเหตุผลและผู้ทำรายการของการเปลี่ยนสถานะสำคัญ
+10. อัปโหลดไฟล์ฉบับที่สองและตรวจว่านักศึกษา/เจ้าหน้าที่ดาวน์โหลดทั้งสองฉบับได้ แต่กรรมการและนักศึกษาคนอื่นเปิดฉบับเก่าไม่ได้
+11. เจ้าหน้าที่ต้องเลือกผลตรวจทุกเอกสาร ระบุเหตุผลรายเอกสารที่ขอแก้ไข และการส่งผลตรวจจากข้อมูลเวอร์ชันเก่าต้องถูกปฏิเสธ

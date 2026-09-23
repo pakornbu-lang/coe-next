@@ -81,14 +81,66 @@ export async function getStudentApplicationForScholarship(scholarshipId: string)
   return data as ApplicationSummary | null;
 }
 
+export type StudentApplicationEditorData = {
+  application: ApplicationSummary | null;
+  documents: ApplicationDocument[];
+  paymentAccount: PaymentAccount | null;
+};
+export type ApplicationEditorData = StudentApplicationEditorData;
+
+export async function getStudentApplicationEditorData(
+  scholarshipId: string,
+  applicationId?: string
+): Promise<StudentApplicationEditorData> {
+  const client = await createClient();
+  let applicationQuery = client
+    .from("applications")
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at");
+
+  if (applicationId) {
+    applicationQuery = applicationQuery.eq("id", applicationId);
+  } else {
+    applicationQuery = applicationQuery.eq("scholarship_id", scholarshipId);
+  }
+
+  const { data: applicationData, error: appError } = await applicationQuery.maybeSingle();
+  if (appError) fail("ไม่สามารถโหลดใบสมัครได้");
+
+  const application = (applicationData as ApplicationSummary | null) ?? null;
+  if (!application) {
+    return { application: null, documents: [], paymentAccount: null };
+  }
+
+  const [documents, accountResult] = await Promise.all([
+    getApplicationDocuments(application.id),
+    client
+      .from("application_payment_accounts")
+      .select("bank_name,account_holder,account_number")
+      .eq("application_id", application.id)
+      .maybeSingle(),
+  ]);
+
+  if (accountResult.error) fail("ไม่สามารถโหลดข้อมูลบัญชีได้");
+
+  return {
+    application,
+    documents,
+    paymentAccount: (accountResult.data as PaymentAccount | null) ?? null,
+  };
+}
+
+export const getApplicationEditorData = getStudentApplicationEditorData;
+
 export async function getApplicationDocuments(applicationId: string): Promise<ApplicationDocument[]> {
   const client = await createClient();
   const { data, error } = await client
     .from("application_documents")
-    .select("id,application_id,requirement_id,file_name,file_size,mime_type,status,feedback,version,uploaded_at,requirement:scholarship_document_requirements(id,label,details,required,sort_order)")
+    .select("id,application_id,requirement_id,file_name,file_size,mime_type,status,feedback,version,revision_no,uploaded_at,requirement:scholarship_document_requirements(id,label,details,required,sort_order)")
     .eq("application_id", applicationId)
     .order("uploaded_at");
+
   if (error) fail("ไม่สามารถโหลดเอกสารได้");
+
   return ((data ?? []) as unknown as Record<string, unknown>[]).map((row) => ({
     ...(row as unknown as ApplicationDocument),
     requirement: first(row.requirement as Requirement | Requirement[] | null),
@@ -138,14 +190,49 @@ export async function getStudentApplicationDetail(id: string): Promise<{
   };
 }
 
-export async function listStudentApplications(): Promise<ApplicationSummary[]> {
+export type PaginatedStudentApplications = {
+  applications: ApplicationSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+export async function listStudentApplicationsPaginated({
+  page = 1,
+  pageSize = 10,
+}: {
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<PaginatedStudentApplications> {
   const client = await createClient();
-  const { data: applications, error } = await client
+  const validPage = Math.max(1, page);
+  const from = (validPage - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data: applications, count, error } = await client
     .from("applications")
-    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at)")
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at)", { count: "exact" })
+    .range(from, to)
     .order("updated_at", { ascending: false });
+
   if (error) fail("ไม่สามารถโหลดใบสมัครของคุณได้");
-  return ((applications ?? []) as unknown as Record<string, unknown>[]).map(normalizeApplication);
+  const total = count ?? 0;
+  const items = ((applications ?? []) as unknown as Record<string, unknown>[]).map(normalizeApplication);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  return {
+    applications: items,
+    total,
+    page: validPage,
+    pageSize,
+    totalPages,
+  };
+}
+
+export async function listStudentApplications(): Promise<ApplicationSummary[]> {
+  const { applications } = await listStudentApplicationsPaginated({ page: 1, pageSize: 100 });
+  return applications;
 }
 
 export async function getStudentProfileHints() {
@@ -184,14 +271,41 @@ export async function listStaffApplications(status?: string, search?: string): P
 
 export async function getStaffApplicationDetail(id: string) {
   const client = await createClient();
-  const detail = await getStudentApplicationDetail(id);
-  if (!detail) return null;
-  const [assignmentsResult, committeesResult, conflictResult] = await Promise.all([
+  const { data: application, error: appError } = await client
+    .from("applications")
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (appError) fail("ไม่สามารถโหลดใบสมัครได้");
+  if (!application) return null;
+
+  const [
+    scholarship,
+    documents,
+    accountResult,
+    disbursementResult,
+    interviewResult,
+    appealResult,
+    assignmentsResult,
+    committeesResult,
+    conflictResult,
+  ] = await Promise.all([
+    getScholarship(application.scholarship_id),
+    getApplicationDocuments(id),
+    client.from("application_payment_accounts").select("bank_name,account_holder,account_number").eq("application_id", id).maybeSingle(),
+    client.from("disbursements").select("id,amount,status,transfer_date,transfer_reference,proof_path,version,updated_at").eq("application_id", id).maybeSingle(),
+    client.from("application_interviews").select("id,scheduled_at,location,meeting_url,note,status,version").eq("application_id", id).maybeSingle(),
+    client.from("application_appeals").select("id,reason,status,response,submitted_at,resolved_at,version").eq("application_id", id).maybeSingle(),
     client.from("review_assignments").select("id,reviewer_id,assigned_by,status,reason,assigned_at,completed_at,reviewer:portal_profiles!review_assignments_reviewer_id_fkey(full_name,student_id),evaluation:evaluations(id,total_score,recommendation,comment,submitted_at,version)").eq("application_id", id).order("assigned_at"),
     client.from("portal_profiles").select("id,full_name,student_id,department,expertise").eq("role", "committee").eq("active", true).order("full_name").limit(100),
     client.from("review_assignments").select("id,conflict_status,conflict_note,conflict_declared_at").eq("application_id", id),
   ]);
-  if (assignmentsResult.error || committeesResult.error) fail("ไม่สามารถโหลดข้อมูลการพิจารณาได้");
+
+  if (!scholarship) throw new Error("ไม่พบทุนการศึกษานี้");
+  if (accountResult.error || disbursementResult.error || assignmentsResult.error || committeesResult.error) {
+    fail("ไม่สามารถโหลดข้อมูลการพิจารณาได้");
+  }
+
   const conflicts = new Map((conflictResult.error ? [] : conflictResult.data ?? []).map((row) => [row.id, row]));
   const assignments = ((assignmentsResult.data ?? []) as unknown as Record<string, unknown>[]).map((row) => {
     const base = row as unknown as { id: string; reviewer_id: string; assigned_by: string; status: string; reason: string; assigned_at: string; completed_at: string | null };
@@ -209,20 +323,30 @@ export async function getStaffApplicationDetail(id: string) {
       evaluation: first(row.evaluation as { id: string; total_score: number; recommendation: string; comment: string; submitted_at: string | null; version: number } | { id: string; total_score: number; recommendation: string; comment: string; submitted_at: string | null; version: number }[] | null),
     };
   });
-  return { ...detail, assignments, committees: committeesResult.data ?? [] };
+
+  return {
+    application: application as ApplicationSummary,
+    scholarship,
+    requirements: scholarship.requirements,
+    documents,
+    paymentAccount: (accountResult.data as PaymentAccount | null) ?? null,
+    disbursement: (disbursementResult.data as Disbursement | null) ?? null,
+    interview: interviewResult.error ? null : (interviewResult.data as ApplicationInterview | null) ?? null,
+    appeal: appealResult.error ? null : (appealResult.data as ApplicationAppeal | null) ?? null,
+    assignments,
+    committees: committeesResult.data ?? [],
+  };
 }
 
-export async function listStaffScholarships(): Promise<(ScholarshipSummary & { requirements: Requirement[]; criteria: Criterion[] })[]> {
+export async function listStaffScholarships(): Promise<ScholarshipSummary[]> {
   const client = await createClient();
   const { data, error } = await client
     .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at")
+    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline")
     .order("updated_at", { ascending: false })
     .limit(200);
   if (error) fail("ไม่สามารถโหลดทุนได้");
-  const scholarships = (data ?? []) as ScholarshipSummary[];
-  const details = await Promise.all(scholarships.map((item) => getScholarship(item.id)));
-  return details.filter((item): item is NonNullable<typeof item> => Boolean(item));
+  return (data ?? []) as ScholarshipSummary[];
 }
 
 export async function getCommitteeAssignment(id: string) {
@@ -234,17 +358,42 @@ export async function getCommitteeAssignment(id: string) {
     .maybeSingle();
   if (error) fail("ไม่สามารถโหลดงานประเมินได้");
   if (!assignment) return null;
-  const conflictResult = await client.from("review_assignments").select("conflict_status,conflict_note").eq("id", id).maybeSingle();
+
+  const [conflictResult, appResult, evaluationResult] = await Promise.all([
+    client.from("review_assignments").select("conflict_status,conflict_note").eq("id", id).maybeSingle(),
+    client
+      .from("applications")
+      .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at")
+      .eq("id", assignment.application_id)
+      .maybeSingle(),
+    client
+      .from("evaluations")
+      .select("id,scores,total_score,recommendation,comment,submitted_at,version")
+      .eq("assignment_id", id)
+      .maybeSingle(),
+  ]);
+
+  if (appResult.error || !appResult.data) fail("ไม่สามารถโหลดใบสมัครได้");
+  if (evaluationResult.error) fail("ไม่สามารถโหลดผลประเมินได้");
+
+  const application = appResult.data as ApplicationSummary;
   const assignmentWithConflict = conflictResult.error ? assignment : { ...assignment, ...(conflictResult.data ?? {}) };
-  const detail = await getStudentApplicationDetail(assignment.application_id);
-  if (!detail) return null;
-  const { data: evaluation, error: evaluationError } = await client
-    .from("evaluations")
-    .select("id,scores,total_score,recommendation,comment,submitted_at,version")
-    .eq("assignment_id", id)
-    .maybeSingle();
-  if (evaluationError) fail("ไม่สามารถโหลดผลประเมินได้");
-  return { assignment: assignmentWithConflict, application: detail.application, scholarship: detail.scholarship, requirements: detail.requirements, documents: detail.documents, evaluation };
+
+  const [scholarship, documents] = await Promise.all([
+    getScholarship(application.scholarship_id),
+    getApplicationDocuments(application.id),
+  ]);
+
+  if (!scholarship) throw new Error("ไม่พบทุนการศึกษานี้");
+
+  return {
+    assignment: assignmentWithConflict,
+    application,
+    scholarship,
+    requirements: scholarship.requirements,
+    documents,
+    evaluation: evaluationResult.data ?? null,
+  };
 }
 
 export async function listCommitteeAssignments() {
