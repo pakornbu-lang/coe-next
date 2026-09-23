@@ -332,8 +332,6 @@ export async function saveApplication(
       `/applications/${savedId}`,
     );
 
-    await dispatchNotificationEmails();
-
     return {
       error: "",
       success:
