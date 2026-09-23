@@ -1,5 +1,7 @@
 "use client";
+
 import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { saveReference } from "@/app/actions/admin";
 import { referenceLabels, type ReferenceItem } from "@/lib/admin/types";
 
@@ -12,19 +14,38 @@ export default function ReferenceForm({
   onCancel?: () => void;
   onPendingChange?: (pending: boolean) => void;
 }) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(saveReference, {
     error: "",
     success: "",
   });
+
+  const isStale =
+    state.error.includes("ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น") ||
+    state.error.includes("STALE_VERSION");
+
   useEffect(() => {
     onPendingChange?.(pending);
   }, [pending, onPendingChange]);
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+    }
+  }, [state.success, router]);
+
   return (
-    <form action={action} className="admin-edit-form">
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (isStale) e.preventDefault();
+      }}
+      className="admin-edit-form"
+    >
       <input type="hidden" name="id" value={item?.id ?? ""} />
       <input type="hidden" name="version" value={item?.version ?? ""} />
       <fieldset
-        disabled={pending || Boolean(state.success)}
+        disabled={pending || Boolean(state.success) || isStale}
         className="reference-fields"
       >
         {item ? (
@@ -69,9 +90,22 @@ export default function ReferenceForm({
         </label>
       </fieldset>
       {state.error && (
-        <p role="alert" className="admin-error">
-          {state.error}
-        </p>
+        <div role="alert" className="admin-error">
+          <p>{state.error}</p>
+          {isStale && (
+            <button
+              type="button"
+              className="btn secondary"
+              style={{ marginTop: "8px" }}
+              onClick={() => {
+                router.refresh();
+                onCancel?.();
+              }}
+            >
+              🔄 รีเฟรชข้อมูลล่าสุด
+            </button>
+          )}
+        </div>
       )}
       {state.success && (
         <p role="status" className="admin-success">
@@ -90,7 +124,7 @@ export default function ReferenceForm({
           </button>
         )}
         {!state.success && (
-          <button className="btn" disabled={pending}>
+          <button className="btn" disabled={pending || isStale}>
             {pending ? "กำลังบันทึก…" : item ? "บันทึกการแก้ไข" : "เพิ่มข้อมูล"}
           </button>
         )}

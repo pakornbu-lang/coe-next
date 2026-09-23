@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ApplicationDocument,
@@ -37,7 +38,21 @@ async function getScholarshipProcess(client: Awaited<ReturnType<typeof createCli
   return data as Pick<ScholarshipSummary, "id" | "required_reviewer_count" | "results_published_at" | "appeal_deadline"> | null;
 }
 
+type CachedScholarships = {
+  data: ScholarshipSummary[];
+  expiresAt: number;
+};
+let publishedScholarshipsCache: CachedScholarships | null = null;
+
+export function invalidatePublishedScholarshipsCache() {
+  publishedScholarshipsCache = null;
+}
+
 export async function listPublishedScholarships(): Promise<ScholarshipSummary[]> {
+  const now = Date.now();
+  if (publishedScholarshipsCache && publishedScholarshipsCache.expiresAt > now) {
+    return publishedScholarshipsCache.data;
+  }
   const client = await createClient();
   const { data, error } = await client
     .from("scholarships")
@@ -46,7 +61,9 @@ export async function listPublishedScholarships(): Promise<ScholarshipSummary[]>
     .order("closes_at", { ascending: true })
     .limit(100);
   if (error) fail("ไม่สามารถโหลดรายการทุนได้");
-  return (data ?? []) as ScholarshipSummary[];
+  const list = (data ?? []) as ScholarshipSummary[];
+  publishedScholarshipsCache = { data: list, expiresAt: now + 60_000 };
+  return list;
 }
 
 export async function getScholarship(id: string): Promise<(ScholarshipSummary & {
@@ -407,7 +424,29 @@ export async function listCommitteeAssignments() {
   return data ?? [];
 }
 
-export async function getNotifications(): Promise<Notification[]> {
+type CachedNotifications = {
+  data: Notification[];
+  expiresAt: number;
+};
+const notificationsCache = new Map<string, CachedNotifications>();
+
+export function invalidateNotificationsCache(userId?: string) {
+  if (userId) {
+    notificationsCache.delete(userId);
+  } else {
+    notificationsCache.clear();
+  }
+}
+
+export const getNotifications = cache(async (userId?: string): Promise<Notification[]> => {
+  const now = Date.now();
+  if (userId) {
+    const cached = notificationsCache.get(userId);
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+  }
+
   const client = await createClient();
   const { data, error } = await client
     .from("portal_notifications")
@@ -415,5 +454,9 @@ export async function getNotifications(): Promise<Notification[]> {
     .order("created_at", { ascending: false })
     .limit(8);
   if (error) return [];
-  return (data ?? []) as Notification[];
-}
+  const list = (data ?? []) as Notification[];
+  if (userId) {
+    notificationsCache.set(userId, { data: list, expiresAt: now + 30_000 });
+  }
+  return list;
+});
