@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth/server";
-import { getScholarship, getStudentApplicationDetail, getStudentApplicationForScholarship, getStudentProfileHints } from "@/lib/scholarships/server";
+import { getScholarship, getApplicationEditorData, getStudentProfileHints } from "@/lib/scholarships/server";
 import StudentApplicationEditor from "@/components/workflow/StudentApplicationEditor";
 
 export const metadata = { title: "สมัครทุน" };
-export default async function ApplyPage({ searchParams }: { searchParams: Promise<{ scholarship?: string }> }) {
+
+export default async function ApplyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ scholarship?: string; application?: string }>;
+}) {
   await requireRole(["student"]);
-  const { scholarship: scholarshipId } = await searchParams;
+  const { scholarship: scholarshipId, application: applicationId } = await searchParams;
+
   if (!scholarshipId) {
     return (
       <section className="panel workflow-empty">
@@ -18,9 +24,35 @@ export default async function ApplyPage({ searchParams }: { searchParams: Promis
       </section>
     );
   }
-  const [scholarship, application, profile] = await Promise.all([getScholarship(scholarshipId), getStudentApplicationForScholarship(scholarshipId), getStudentProfileHints()]);
-  if (!scholarship || scholarship.status !== "published") return <section className="panel workflow-empty"><h1>ไม่พบทุนที่เปิดรับสมัคร</h1><Link className="btn" href="/scholarships">กลับรายการทุน</Link></section>;
-  const detail = application ? await getStudentApplicationDetail(application.id) : null;
-  const documents = detail?.documents ?? [];
-  return <StudentApplicationEditor scholarship={scholarship} application={application} requirements={scholarship.requirements} documents={documents} paymentAccount={detail?.paymentAccount ?? null} profile={profile}/>;
+
+  // Load scholarship, application editor data, and student profile in parallel
+  const [scholarship, editorData, profile] = await Promise.all([
+    getScholarship(scholarshipId),
+    getApplicationEditorData(scholarshipId, applicationId),
+    getStudentProfileHints(),
+  ]);
+
+  if (!scholarship || scholarship.status !== "published") {
+    return (
+      <section className="panel workflow-empty">
+        <h1>ไม่พบทุนที่เปิดรับสมัคร</h1>
+        <Link className="btn" href="/scholarships">
+          กลับรายการทุน
+        </Link>
+      </section>
+    );
+  }
+
+  const { application, documents, paymentAccount } = editorData;
+
+  return (
+    <StudentApplicationEditor
+      scholarship={scholarship}
+      application={application}
+      requirements={scholarship.requirements}
+      documents={documents}
+      paymentAccount={paymentAccount}
+      profile={profile}
+    />
+  );
 }

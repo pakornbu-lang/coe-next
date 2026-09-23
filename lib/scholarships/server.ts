@@ -92,6 +92,53 @@ export async function getStudentApplicationForScholarship(scholarshipId: string)
   return data as ApplicationSummary | null;
 }
 
+export type ApplicationEditorData = {
+  application: ApplicationSummary | null;
+  documents: ApplicationDocument[];
+  paymentAccount: PaymentAccount | null;
+};
+
+export async function getApplicationEditorData(
+  scholarshipId: string,
+  applicationId?: string
+): Promise<ApplicationEditorData> {
+  const client = await createClient();
+  let applicationQuery = client
+    .from("applications")
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at");
+
+  if (applicationId) {
+    applicationQuery = applicationQuery.eq("id", applicationId);
+  } else {
+    applicationQuery = applicationQuery.eq("scholarship_id", scholarshipId);
+  }
+
+  const { data: applicationData, error: appError } = await applicationQuery.maybeSingle();
+  if (appError) fail("ไม่สามารถโหลดใบสมัครได้");
+
+  const application = (applicationData as ApplicationSummary | null) ?? null;
+  if (!application) {
+    return { application: null, documents: [], paymentAccount: null };
+  }
+
+  const [documents, accountResult] = await Promise.all([
+    getApplicationDocuments(application.id),
+    client
+      .from("application_payment_accounts")
+      .select("bank_name,account_holder,account_number")
+      .eq("application_id", application.id)
+      .maybeSingle(),
+  ]);
+
+  if (accountResult.error) fail("ไม่สามารถโหลดข้อมูลบัญชีได้");
+
+  return {
+    application,
+    documents,
+    paymentAccount: (accountResult.data as PaymentAccount | null) ?? null,
+  };
+}
+
 export async function getApplicationDocuments(applicationId: string): Promise<ApplicationDocument[]> {
   const client = await createClient();
   const currentResult = await client
