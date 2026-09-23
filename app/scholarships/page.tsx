@@ -45,6 +45,145 @@ export default async function ScholarshipsPage({
       )
     : items;
 
+  const now = Date.now();
+
+  const openItems = filtered.filter(
+    (item) =>
+      new Date(item.closes_at).getTime() > now,
+  );
+
+  const closedItems = filtered.filter(
+    (item) =>
+      new Date(item.closes_at).getTime() <= now,
+  );
+
+  const renderScholarshipCard = (
+    item: (typeof filtered)[number],
+    isExpired: boolean,
+  ) => (
+    <article
+      className={`panel workflow-scholarship-card student-scholarship-card ${
+        isExpired ? "scholarship-expired" : ""
+      }`}
+      key={item.id}
+      data-scholarship-card
+      data-closes-at={item.closes_at}
+    >
+      {scholarshipCoverUrl(item.cover_path) && (
+        <div
+          className="workflow-scholarship-cover"
+          role="img"
+          aria-label={`ภาพประกอบ ${item.title}`}
+          style={{
+            backgroundImage: `url("${scholarshipCoverUrl(
+              item.cover_path,
+            )}")`,
+          }}
+        />
+      )}
+
+      <div className="workflow-card-head">
+        <span
+          className="scholarship-open-status"
+          hidden={isExpired}
+        >
+          <ScholarshipStatusBadge
+            status={item.status}
+          />
+        </span>
+
+        <span
+          className="scholarship-expired-status"
+          hidden={!isExpired}
+        >
+          ปิดรับสมัคร
+        </span>
+
+        {item.minimum_gpa !== null && (
+          <span>
+            GPA ขั้นต่ำ{" "}
+            {item.minimum_gpa.toFixed(2)}
+          </span>
+        )}
+      </div>
+
+      <h2>{item.title}</h2>
+
+      <p>
+        {item.description ||
+          "ดูรายละเอียดคุณสมบัติและขั้นตอนสมัคร"}
+      </p>
+
+      <dl>
+        <div>
+          <dt>ประเภททุน</dt>
+          <dd>
+            {programLabels[
+              item.program_kind
+            ] ?? "ทั่วไป"}
+          </dd>
+        </div>
+
+        <div>
+          <dt>จำนวนทุน</dt>
+          <dd>{item.quota} คน</dd>
+        </div>
+
+        <div>
+          <dt>มูลค่าต่อทุน</dt>
+          <dd>
+            {money(item.amount)} บาท
+          </dd>
+        </div>
+
+        <div>
+          <dt>เปิดรับสมัคร</dt>
+          <dd>
+            {thaiDate(
+              item.opens_at,
+              true,
+            )}
+          </dd>
+        </div>
+
+        <div>
+          <dt>ปิดรับสมัคร</dt>
+          <dd>
+            {thaiDate(
+              item.closes_at,
+              true,
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      <div className="workflow-actions">
+        <Link
+          className="btn secondary"
+          href={`/scholarships/${item.id}`}
+        >
+          ดูรายละเอียด
+        </Link>
+
+        <Link
+          className="btn scholarship-apply-button"
+          href={`/apply?scholarship=${item.id}`}
+          hidden={isExpired}
+        >
+          สมัครทุน
+        </Link>
+
+        <span
+          className="btn scholarship-closed-button"
+          hidden={!isExpired}
+          aria-disabled="true"
+        >
+          ปิดรับสมัคร
+        </span>
+      </div>
+    </article>
+  );
+
   return (
     <div className="workflow-stack">
       <style>{`
@@ -81,18 +220,8 @@ export default async function ScholarshipsPage({
           color: #6b7280;
         }
 
-        .student-scholarship-card.scholarship-expired
         .scholarship-expired-status {
           display: inline-flex;
-        }
-
-        .student-scholarship-card.scholarship-expired
-        .scholarship-open-status {
-          display: none;
-        }
-
-        .scholarship-expired-status {
-          display: none;
           align-items: center;
           justify-content: center;
           border-radius: 999px;
@@ -113,6 +242,15 @@ export default async function ScholarshipsPage({
           border-color: #d1d5db;
           color: #6b7280;
           pointer-events: none;
+        }
+
+        .scholarship-section-title {
+          margin: 12px 0 0;
+          color: #14215e;
+        }
+
+        .closed-scholarship-section {
+          margin-top: 28px;
         }
       `}</style>
 
@@ -154,138 +292,52 @@ export default async function ScholarshipsPage({
         พบ {filtered.length} ทุน
       </p>
 
-      <div className="workflow-card-grid">
-        {filtered.map((item) => {
-          const isExpired =
-            new Date(item.closes_at).getTime() <= Date.now();
+      {/* =========================
+          ทุนที่เปิดรับสมัคร
+          ========================= */}
 
-          return (
-            <article
-              className={`panel workflow-scholarship-card student-scholarship-card ${
-                isExpired ? "scholarship-expired" : ""
-              }`}
-              key={item.id}
-              data-scholarship-card
-              data-closes-at={item.closes_at}
-            >
-              {scholarshipCoverUrl(
-                item.cover_path,
-              ) && (
-                <div
-                  className="workflow-scholarship-cover"
-                  role="img"
-                  aria-label={`ภาพประกอบ ${item.title}`}
-                  style={{
-                    backgroundImage: `url("${scholarshipCoverUrl(
-                      item.cover_path,
-                    )}")`,
-                  }}
-                />
-              )}
+      <h2 className="scholarship-section-title">
+        ทุนที่เปิดรับสมัคร
+      </h2>
 
-              <div className="workflow-card-head">
-                <span
-                  className="scholarship-open-status"
-                  hidden={isExpired}
-                >
-                  <ScholarshipStatusBadge
-                    status={item.status}
-                  />
-                </span>
-
-                <span
-                  className="scholarship-expired-status"
-                  hidden={!isExpired}
-                >
-                  หมดเวลารับสมัคร
-                </span>
-
-                {item.minimum_gpa !== null && (
-                  <span>
-                    GPA ขั้นต่ำ{" "}
-                    {item.minimum_gpa.toFixed(2)}
-                  </span>
-                )}
-              </div>
-
-              <h2>{item.title}</h2>
-
-              <p>
-                {item.description ||
-                  "ดูรายละเอียดคุณสมบัติและขั้นตอนสมัคร"}
-              </p>
-
-              <dl>
-                <div>
-                  <dt>ประเภททุน</dt>
-                  <dd>
-                    {programLabels[
-                      item.program_kind
-                    ] ?? "ทั่วไป"}
-                  </dd>
-                </div>
-
-                <div>
-                  <dt>จำนวนทุน</dt>
-                  <dd>{item.quota} คน</dd>
-                </div>
-
-                <div>
-                  <dt>มูลค่าต่อทุน</dt>
-                  <dd>
-                    {money(item.amount)} บาท
-                  </dd>
-                </div>
-
-                <div>
-                  <dt>เปิดรับสมัคร</dt>
-                  <dd>
-                    {thaiDate(
-                      item.opens_at,
-                      true,
-                    )}
-                  </dd>
-                </div>
-
-                <div>
-                  <dt>ปิดรับสมัคร</dt>
-                  <dd>
-                    {thaiDate(
-                      item.closes_at,
-                      true,
-                    )}
-                  </dd>
-                </div>
-              </dl>
-
-              <div className="workflow-actions">
-                <Link
-                  className="btn secondary"
-                  href={`/scholarships/${item.id}`}
-                >
-                  ดูรายละเอียด
-                </Link>
-
-                <Link
-                  className="btn scholarship-apply-button"
-                  href={`/apply?scholarship=${item.id}`}
-                  hidden={isExpired}
-                >
-                  สมัครทุน
-                </Link>
-
-                <span
-                  className="btn scholarship-closed-button"
-                  hidden={!isExpired}
-                  aria-disabled="true"
-                >
-                  ปิดรับสมัคร
-                </span>
-              </div>
-            </article>
-          );
-        })}
+      <div
+        className="workflow-card-grid"
+        id="open-scholarships-grid"
+      >
+        {openItems.map((item) =>
+          renderScholarshipCard(
+            item,
+            false,
+          ),
+        )}
       </div>
+
+      {/* =========================
+          ทุนที่ปิดรับสมัคร
+          อยู่ล่างสุด
+          ========================= */}
+
+      <section
+        id="closed-scholarships-section"
+        className="closed-scholarship-section"
+        hidden={!closedItems.length}
+      >
+        <h2 className="scholarship-section-title">
+          ปิดรับสมัคร
+        </h2>
+
+        <div
+          className="workflow-card-grid"
+          id="closed-scholarships-grid"
+        >
+          {closedItems.map((item) =>
+            renderScholarshipCard(
+              item,
+              true,
+            ),
+          )}
+        </div>
+      </section>
 
       {!filtered.length && (
         <section className="panel workflow-empty">
@@ -301,64 +353,104 @@ export default async function ScholarshipsPage({
           function updateScholarshipExpiry() {
             const now = Date.now();
 
+            const openGrid =
+              document.getElementById(
+                "open-scholarships-grid"
+              );
+
+            const closedGrid =
+              document.getElementById(
+                "closed-scholarships-grid"
+              );
+
+            const closedSection =
+              document.getElementById(
+                "closed-scholarships-section"
+              );
+
             document
-              .querySelectorAll("[data-scholarship-card]")
+              .querySelectorAll(
+                "[data-scholarship-card]"
+              )
               .forEach((card) => {
-                const closesAt = card.getAttribute("data-closes-at");
+                const closesAt =
+                  card.getAttribute(
+                    "data-closes-at"
+                  );
+
                 if (!closesAt) return;
 
-                const closeTime = new Date(closesAt).getTime();
-                const expired = Number.isFinite(closeTime)
-                  && now >= closeTime;
+                const closeTime =
+                  new Date(
+                    closesAt
+                  ).getTime();
+
+                const expired =
+                  Number.isFinite(
+                    closeTime
+                  ) &&
+                  now >= closeTime;
+
+                if (!expired) {
+                  return;
+                }
+
+                card.classList.add(
+                  "scholarship-expired"
+                );
 
                 const openStatus =
-                  card.querySelector(".scholarship-open-status");
+                  card.querySelector(
+                    ".scholarship-open-status"
+                  );
 
                 const expiredStatus =
-                  card.querySelector(".scholarship-expired-status");
+                  card.querySelector(
+                    ".scholarship-expired-status"
+                  );
 
                 const applyButton =
-                  card.querySelector(".scholarship-apply-button");
+                  card.querySelector(
+                    ".scholarship-apply-button"
+                  );
 
                 const closedButton =
-                  card.querySelector(".scholarship-closed-button");
+                  card.querySelector(
+                    ".scholarship-closed-button"
+                  );
 
-                if (expired) {
-                  card.classList.add("scholarship-expired");
+                if (openStatus) {
+                  openStatus.hidden = true;
+                }
 
-                  if (openStatus) {
-                    openStatus.hidden = true;
-                  }
+                if (expiredStatus) {
+                  expiredStatus.hidden =
+                    false;
+                }
 
-                  if (expiredStatus) {
-                    expiredStatus.hidden = false;
-                  }
+                if (applyButton) {
+                  applyButton.hidden =
+                    true;
+                }
 
-                  if (applyButton) {
-                    applyButton.hidden = true;
-                  }
+                if (closedButton) {
+                  closedButton.hidden =
+                    false;
+                }
 
-                  if (closedButton) {
-                    closedButton.hidden = false;
-                  }
-                } else {
-                  card.classList.remove("scholarship-expired");
+                if (
+                  closedGrid &&
+                  card.parentElement !==
+                    closedGrid
+                ) {
+                  closedGrid.appendChild(
+                    card
+                  );
+                }
 
-                  if (openStatus) {
-                    openStatus.hidden = false;
-                  }
-
-                  if (expiredStatus) {
-                    expiredStatus.hidden = true;
-                  }
-
-                  if (applyButton) {
-                    applyButton.hidden = false;
-                  }
-
-                  if (closedButton) {
-                    closedButton.hidden = true;
-                  }
+                if (closedSection) {
+                  closedSection.hidden =
+                    false;
                 }
               });
           }
