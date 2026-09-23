@@ -7,17 +7,164 @@ import { ScholarshipStatusBadge } from "@/components/workflow/StatusBadge";
 import { money, thaiDate } from "@/lib/scholarships/types";
 import { ScholarshipProcessForm } from "@/components/workflow/WorkflowExtensions";
 
-const programLabels: Record<string, string> = { academic: "ผลการเรียนดี", financial_need: "ขาดแคลนทุนทรัพย์", activity: "กิจกรรม", talent: "ความสามารถพิเศษ", research: "วิจัย", emergency: "ฉุกเฉิน", general: "ทั่วไป" };
+const programLabels: Record<string, string> = {
+  academic: "ผลการเรียนดี",
+  financial_need: "ขาดแคลนทุนทรัพย์",
+  activity: "กิจกรรม",
+  talent: "ความสามารถพิเศษ",
+  research: "วิจัย",
+  emergency: "ฉุกเฉิน",
+  general: "ทั่วไป",
+};
 
-export const metadata = { title: "จัดการทุนการศึกษา" };
-export default async function StaffScholarshipsPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
+export const metadata = {
+  title: "จัดการทุนการศึกษา",
+};
+
+export default async function StaffScholarshipsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ edit?: string }>;
+}) {
   await requireRole(["staff"]);
+
   const { edit } = await searchParams;
+
   const client = await createClient();
+
   const [scholarships, typesResult, selected] = await Promise.all([
     listStaffScholarships(),
-    client.from("portal_reference_data").select("id,name").eq("kind", "scholarship_type").eq("active", true).order("name"),
+
+    client
+      .from("portal_reference_data")
+      .select("id,name")
+      .eq("kind", "scholarship_type")
+      .eq("active", true)
+      .order("name"),
+
     edit ? getScholarship(edit) : Promise.resolve(null),
   ]);
-  return <div className="workflow-stack"><section className="panel workflow-heading"><div><span className="workflow-eyebrow">SCHOLARSHIP MANAGEMENT</span><h1>จัดการทุนการศึกษา</h1><p>สร้างทุนจากแม่แบบ กำหนดเงื่อนไข อัปโหลดภาพปก และติดตามรอบรับสมัครได้ในที่เดียว</p></div><Link className="btn" href="/scholarships/new">สร้างทุนใหม่</Link></section>{edit && selected ? <ScholarshipEditor scholarship={selected} types={typesResult.data ?? []}/> : <><section className="panel"><h2>รายการทุน</h2>{scholarships.length ? <div className="workflow-scholarship-admin-list">{scholarships.map((item) => <article className="workflow-scholarship-admin" key={item.id}><div className="workflow-row-summary"><span><strong>{item.title}</strong><small>{programLabels[item.program_kind] ?? "ทั่วไป"} · {money(item.amount)} บาท · {item.quota} คน · ปิดรับ {thaiDate(item.closes_at, true)}</small></span><span className="workflow-actions"><ScholarshipStatusBadge status={item.status}/><Link className="btn secondary" href={`/staff/scholarships?edit=${item.id}`}>แก้ไข</Link></span></div><ScholarshipProcessForm scholarship={item}/></article>)}</div> : <div className="workflow-empty">ยังไม่มีทุน <Link href="/scholarships/new">สร้างทุนแรก</Link></div>}</section></>}</div>;
+
+  return (
+    <div className="workflow-stack">
+      <section className="panel workflow-heading">
+        <div>
+          <span className="workflow-eyebrow">
+            SCHOLARSHIP MANAGEMENT
+          </span>
+
+          <h1>จัดการทุนการศึกษา</h1>
+
+          <p>
+            สร้างทุนจากแม่แบบ กำหนดเงื่อนไข อัปโหลดภาพปก
+            และติดตามรอบรับสมัครได้ในที่เดียว
+          </p>
+        </div>
+
+        <Link className="btn" href="/scholarships/new">
+          สร้างทุนใหม่
+        </Link>
+      </section>
+
+      {edit && selected ? (
+        <ScholarshipEditor
+          scholarship={selected}
+          types={typesResult.data ?? []}
+        />
+      ) : (
+        <>
+          <section className="panel">
+            <h2>รายการทุน</h2>
+
+            {scholarships.length ? (
+              <div className="workflow-scholarship-admin-list">
+                {scholarships.map((item) => (
+                  <article
+                    className="workflow-scholarship-admin"
+                    key={item.id}
+                  >
+                    <div className="workflow-row-summary">
+                      <span>
+                        <strong>{item.title}</strong>
+                        <span
+                          style={{
+                            display: "block",
+                            marginTop: "6px",
+                            lineHeight: "1.7",
+                          }}
+                        >
+                          <small style={{ display: "block" }}>
+                            ประเภททุน: {programLabels[item.program_kind] ?? "ทั่วไป"}
+                          </small>
+
+                          <small style={{ display: "block" }}>
+                            จำนวนเงินต่อคน: {money(item.amount)} บาท
+                          </small>
+
+                          <small style={{ display: "block" }}>
+                            จำนวนทุน: {item.quota} คน
+                          </small>
+
+                          <small style={{ display: "block" }}>
+                            GPA ขั้นต่ำ: {item.minimum_gpa ?? "ไม่กำหนด"}
+                          </small>
+
+                          <small style={{ display: "block" }}>
+                            เปิดรับสมัคร: {thaiDate(item.opens_at, true)}
+                          </small>
+
+                          <small style={{ display: "block" }}>
+                            ปิดรับสมัคร: {thaiDate(item.closes_at, true)}
+                          </small>
+                        </span>
+                      </span>
+
+                      <span className="workflow-actions">
+                        <ScholarshipStatusBadge status={item.status} />
+
+                        <span
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px",
+                          }}
+                        >
+                          <Link
+                            className="btn secondary"
+                            href={`/staff/scholarships?edit=${item.id}`}
+                          >
+                            แก้ไข
+                          </Link>
+
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            style={{
+                              color: "#dc2626",
+                              borderColor: "#dc2626",
+                            }}
+                          >
+                            ลบ
+                          </button>
+                        </span>
+                      </span>
+                    </div>
+
+                    <ScholarshipProcessForm scholarship={item} />
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="workflow-empty">
+                ยังไม่มีทุน{" "}
+                <Link href="/scholarships/new">
+                  สร้างทุนแรก
+                </Link>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  );
 }
