@@ -8,6 +8,7 @@ import Avatar from "@/components/account/Avatar";
 import { homeForRole, roleLabels, type Viewer } from "@/lib/auth/types";
 import type { Notification } from "@/lib/scholarships/types";
 import NotificationMenu from "./NotificationMenu";
+import StudentNotificationMenu from "./StudentNotificationMenu";
 
 export default function Shell({ children, viewer, notifications = [] }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
   const path = usePathname();
@@ -68,6 +69,7 @@ export default function Shell({ children, viewer, notifications = [] }: { childr
             ["/scholarships", "ทุนการศึกษา", "cap"],
             ["/apply", "สมัครทุน", "edit"],
             ["/applications", "ใบสมัครของฉัน", "file"],
+            ["/notifications", "การแจ้งเตือน", "bell"],
             ["/profile", "โปรไฟล์", "user"],
           ];
   if (auth) return <>{children}</>;
@@ -94,7 +96,7 @@ export default function Shell({ children, viewer, notifications = [] }: { childr
           </div>
         ) : (
           <div className="account">
-            <NotificationMenu notifications={notifications} />
+            {viewer.role === "student" ? <StudentNotificationMenu key={path} /> : <NotificationMenu notifications={notifications} />}
             <details ref={profileMenu}>
               <summary aria-label="เมนูบัญชีผู้ใช้">
                 <Avatar version={viewer.avatarVersion} name={viewer.fullName} />
