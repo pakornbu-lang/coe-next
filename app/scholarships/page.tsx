@@ -22,7 +22,7 @@ export const metadata = {
   title: "ทุนการศึกษา",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function ScholarshipsPage({
   searchParams,
@@ -44,6 +44,7 @@ export default async function ScholarshipsPage({
     .trim()
     .toLocaleLowerCase("th-TH");
 
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
 
   /*

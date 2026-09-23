@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth/server";
-import { getScholarship, getApplicationEditorData, getStudentProfileHints } from "@/lib/scholarships/server";
+import { getScholarship, getStudentApplicationEditorData, getStudentProfileHints } from "@/lib/scholarships/server";
 import StudentApplicationEditor from "@/components/workflow/StudentApplicationEditor";
 
 export const metadata = { title: "สมัครทุน" };
@@ -28,7 +28,7 @@ export default async function ApplyPage({
   // Load scholarship, application editor data, and student profile in parallel
   const [scholarship, editorData, profile] = await Promise.all([
     getScholarship(scholarshipId),
-    getApplicationEditorData(scholarshipId, applicationId),
+    getStudentApplicationEditorData(scholarshipId, applicationId),
     getStudentProfileHints(),
   ]);
 
