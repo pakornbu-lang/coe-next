@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import ReferenceManager from "@/components/admin/ReferenceManager";
 import type { ReferenceItem } from "@/lib/admin/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function ReferencePage() {
   await requireRole(["admin"]);
   const client = await createClient();

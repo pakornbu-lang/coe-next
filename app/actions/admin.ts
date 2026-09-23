@@ -6,7 +6,7 @@ import type { MutationState } from "@/lib/admin/types";
 
 const text = (form:FormData,key:string) => String(form.get(key)??"").trim();
 function failure(code:string):MutationState {
-  return { success:"",error:code==="40001" ? "ข้อมูลถูกแก้ไขแล้ว กรุณารีเฟรชหน้าก่อนลองใหม่" :
+  return { success:"",error:code==="40001" ? "ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น กรุณารีเฟรชหน้าแล้วลองใหม่" :
     code==="23505" ? "รหัสนักศึกษาหรือชื่อข้อมูลนี้มีอยู่แล้ว" :
     code==="42501" ? "ไม่มีสิทธิ์ทำรายการนี้ หรือบัญชีถูกระงับ" :
     "บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลและลองอีกครั้ง" };

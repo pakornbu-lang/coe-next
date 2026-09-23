@@ -11,6 +11,7 @@ import {
 } from "@/lib/scholarships/cover.mjs";
 import { validApplicationDocument } from "@/lib/scholarships/document-validation";
 import { dispatchNotificationEmails } from "@/lib/notifications/email";
+import { invalidatePublishedScholarshipsCache } from "@/lib/scholarships/server";
 
 export type WorkflowState = {
   error: string;
@@ -823,6 +824,7 @@ export async function saveScholarship(
         existingCoverPath,
       ]);
 
+  invalidatePublishedScholarshipsCache();
   revalidatePath("/scholarships");
   revalidatePath("/staff");
 
@@ -937,6 +939,7 @@ export async function deleteScholarship(
       ]);
   }
 
+  invalidatePublishedScholarshipsCache();
   revalidatePath("/scholarships");
   revalidatePath("/staff");
 
