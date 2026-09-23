@@ -83,106 +83,139 @@ export default async function ScholarshipsPage({
       </p>
 
       <div className="workflow-card-grid">
-        {filtered.map((item) => (
-          <article
-            className="panel workflow-scholarship-card"
-            key={item.id}
-          >
-            {scholarshipCoverUrl(
-              item.cover_path,
-            ) && (
-              <div
-                className="workflow-scholarship-cover"
-                role="img"
-                aria-label={`ภาพประกอบ ${item.title}`}
-                style={{
-                  backgroundImage: `url("${scholarshipCoverUrl(
-                    item.cover_path,
-                  )}")`,
-                }}
-              />
-            )}
+        {filtered.map((item) => {
+          const isExpired =
+            new Date(item.closes_at).getTime() <= Date.now();
 
-            <div className="workflow-card-head">
-              <ScholarshipStatusBadge
-                status={item.status}
-              />
-
-              {item.minimum_gpa !== null && (
-                <span>
-                  GPA ขั้นต่ำ{" "}
-                  {item.minimum_gpa.toFixed(2)}
-                </span>
+          return (
+            <article
+              className="panel workflow-scholarship-card"
+              key={item.id}
+              style={
+                isExpired
+                  ? {
+                      background: "#f3f4f6",
+                      borderColor: "#d1d5db",
+                    }
+                  : undefined
+              }
+            >
+              {scholarshipCoverUrl(
+                item.cover_path,
+              ) && (
+                <div
+                  className="workflow-scholarship-cover"
+                  role="img"
+                  aria-label={`ภาพประกอบ ${item.title}`}
+                  style={{
+                    backgroundImage: `url("${scholarshipCoverUrl(
+                      item.cover_path,
+                    )}")`,
+                    ...(isExpired
+                      ? {
+                          filter: "grayscale(100%)",
+                          opacity: 0.65,
+                        }
+                      : {}),
+                  }}
+                />
               )}
-            </div>
 
-            <h2>{item.title}</h2>
+              <div className="workflow-card-head">
+                {isExpired ? (
+                  <span
+                    className="workflow-status"
+                    style={{
+                      background: "#e5e7eb",
+                      color: "#6b7280",
+                    }}
+                  >
+                    หมดเวลารับสมัคร
+                  </span>
+                ) : (
+                  <ScholarshipStatusBadge
+                    status={item.status}
+                  />
+                )}
 
-            <p>
-              {item.description ||
-                "ดูรายละเอียดคุณสมบัติและขั้นตอนสมัคร"}
-            </p>
-
-            <dl>
-              <div>
-                <dt>ประเภททุน</dt>
-                <dd>
-                  {programLabels[
-                    item.program_kind
-                  ] ?? "ทั่วไป"}
-                </dd>
+                {item.minimum_gpa !== null && (
+                  <span>
+                    GPA ขั้นต่ำ{" "}
+                    {item.minimum_gpa.toFixed(2)}
+                  </span>
+                )}
               </div>
 
-              <div>
-                <dt>จำนวนทุน</dt>
-                <dd>{item.quota} คน</dd>
+              <h2>{item.title}</h2>
+
+              <p>
+                {item.description ||
+                  "ดูรายละเอียดคุณสมบัติและขั้นตอนสมัคร"}
+              </p>
+
+              <dl>
+                <div>
+                  <dt>ประเภททุน</dt>
+                  <dd>
+                    {programLabels[
+                      item.program_kind
+                    ] ?? "ทั่วไป"}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>จำนวนทุน</dt>
+                  <dd>{item.quota} คน</dd>
+                </div>
+
+                <div>
+                  <dt>มูลค่าต่อทุน</dt>
+                  <dd>
+                    {money(item.amount)} บาท
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>เปิดรับสมัคร</dt>
+                  <dd>
+                    {thaiDate(
+                      item.opens_at,
+                      true,
+                    )}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>ปิดรับสมัคร</dt>
+                  <dd>
+                    {thaiDate(
+                      item.closes_at,
+                      true,
+                    )}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="workflow-actions">
+                <Link
+                  className="btn secondary"
+                  href={`/scholarships/${item.id}`}
+                >
+                  ดูรายละเอียด
+                </Link>
+
+                {!isExpired && (
+                  <Link
+                    className="btn"
+                    href={`/apply?scholarship=${item.id}`}
+                  >
+                    สมัครทุน
+                  </Link>
+                )}
               </div>
-
-              <div>
-                <dt>มูลค่าต่อทุน</dt>
-                <dd>
-                  {money(item.amount)} บาท
-                </dd>
-              </div>
-
-              <div>
-                <dt>เปิดรับสมัคร</dt>
-                <dd>
-                  {thaiDate(
-                    item.opens_at,
-                    true,
-                  )}
-                </dd>
-              </div>
-
-              <div>
-                <dt>ปิดรับสมัคร</dt>
-                <dd>
-                  {thaiDate(
-                    item.closes_at,
-                    true,
-                  )}
-                </dd>
-              </div>
-            </dl>
-
-            <div className="workflow-actions">
-              <Link
-                className="btn secondary"
-                href={`/scholarships/${item.id}`}
-              >
-                ดูรายละเอียด
-              </Link>
-
-              <Link
-                className="btn"
-                href={`/apply?scholarship=${item.id}`}
-              >
-                สมัครทุน
-              </Link>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
 
       {!filtered.length && (
