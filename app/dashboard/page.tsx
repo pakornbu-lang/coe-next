@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth/server";
 import {
-  listPublishedScholarships,
+  listOpenScholarships,
   listStudentApplications,
 } from "@/lib/scholarships/server";
 import { createClient } from "@/lib/supabase/server";
@@ -18,11 +18,11 @@ export default async function StudentDashboardPage() {
 
   const [
     applications,
-    scholarships,
+    openScholarships,
     { data: profile, error: profileError },
   ] = await Promise.all([
     listStudentApplications(),
-    listPublishedScholarships(),
+    listOpenScholarships(),
     client
       .from("portal_profiles")
       .select("phone,department,profile_details")
@@ -41,21 +41,6 @@ export default async function StudentDashboardPage() {
       !["approved", "reserve", "rejected"].includes(
         item.status,
       ),
-  );
-
-  /*
-   * แสดงเฉพาะทุนที่กำลังเปิดรับจริง
-   * - สถานะต้องเป็น published
-   * - ต้องถึงเวลาเปิดรับแล้ว
-   * - ต้องยังไม่หมดเวลาปิดรับสมัคร
-   */
-  const now = Date.now();
-
-  const openScholarships = scholarships.filter(
-    (item) =>
-      item.status === "published" &&
-      new Date(item.opens_at).getTime() <= now &&
-      now < new Date(item.closes_at).getTime(),
   );
 
   return (

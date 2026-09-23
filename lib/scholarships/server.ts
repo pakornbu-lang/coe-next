@@ -66,6 +66,18 @@ export async function listPublishedScholarships(): Promise<ScholarshipSummary[]>
   return list;
 }
 
+export async function listOpenScholarships(): Promise<ScholarshipSummary[]> {
+  const scholarships = await listPublishedScholarships();
+  const now = Date.now();
+
+  return scholarships.filter(
+    (item) =>
+      item.status === "published" &&
+      new Date(item.opens_at).getTime() <= now &&
+      now < new Date(item.closes_at).getTime(),
+  );
+}
+
 export async function getScholarship(id: string): Promise<(ScholarshipSummary & {
   requirements: Requirement[];
   criteria: Criterion[];
