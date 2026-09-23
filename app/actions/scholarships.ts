@@ -106,7 +106,6 @@ export async function saveApplication(_previous: WorkflowState, form: FormData):
     revalidatePath("/dashboard");
     revalidatePath("/applications");
     revalidatePath(`/applications/${savedId}`);
-    await dispatchNotificationEmails();
     return {
       error: "",
       success: mode === "submit" ? "ส่งใบสมัครแล้ว เจ้าหน้าที่จะตรวจสอบเอกสารตามลำดับ" : "บันทึกร่างแล้ว ตอนนี้คุณสามารถอัปโหลดเอกสารประกอบได้",
