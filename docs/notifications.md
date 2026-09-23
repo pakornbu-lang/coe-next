@@ -63,4 +63,4 @@ limit 20;
 
 สถานะ `sent` หมายถึง Apps Script ยืนยันการส่งแล้ว ถ้าเป็น `failed` ให้ดู `last_error` และ Apps Script → **Executions**
 
-อีเมลสมัครสมาชิกและเปลี่ยนอีเมลของ Supabase เป็นคนละระบบกับแจ้งเตือน workflow และยังต้องตั้ง Custom SMTP ใน Supabase Authentication หากต้องการส่งถึงทุกคนจริง
+การสมัครจาก `/register` เข้าใช้งานได้ทันทีโดยไม่ส่งอีเมลยืนยัน ส่วนการเปลี่ยนอีเมลยังต้องตั้ง Custom SMTP หรือ Auth Hook ใน Supabase หากต้องการส่งถึงผู้ใช้ทั่วไป

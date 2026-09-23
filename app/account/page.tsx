@@ -7,8 +7,9 @@ import type { PersonalProfile } from "@/lib/account/types";
 import "./account.css";
 
 export const metadata = { title: "บัญชีของฉัน" };
-export default async function AccountPage() {
+export default async function AccountPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   const viewer = await requireViewer();
+  const { edit } = await searchParams;
   const client = await createClient();
   const { data, error } = await client.from("portal_profiles").select("phone,department,position,expertise,avatar_path,version,profile_details").eq("id", viewer.id).single();
   if (error || !data) throw new Error("โหลดโปรไฟล์ไม่สำเร็จ");
@@ -17,7 +18,7 @@ export default async function AccountPage() {
   return (
     <div className="account-page">
       <header className="profile-heading"><div><span className="profile-eyebrow">MY PROFILE</span><h1>โปรไฟล์ของฉัน</h1><p>จัดการข้อมูลส่วนตัวและข้อมูลติดต่อของคุณ</p></div></header>
-      <ProfileOverview key={viewer.id} viewer={viewer} profile={data as PersonalProfile} />
+      <ProfileOverview key={viewer.id} viewer={viewer} profile={data as PersonalProfile} initialEditing={viewer.role === "student" && edit === "1"} />
       <EmailChangeForm key={viewer.email} email={viewer.email} pendingEmail={auth.user?.new_email} />
     {viewer.role === "student" && <section id="documents" className="panel profile-security"><h2>เอกสารประกอบการสมัครทุน</h2><p>อัปโหลดและติดตามผลตรวจเอกสารได้จากใบสมัครของแต่ละทุน เพื่อให้เอกสารผูกกับรอบสมัครอย่างถูกต้อง</p><Link className="btn secondary" href="/applications">ดูใบสมัครของฉัน</Link></section>}
     </div>

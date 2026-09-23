@@ -10,9 +10,10 @@ export default function Navbar() {
   return (
     <nav className="portal-navigation" aria-label="เมนูหลัก">
       {navigation.map((item) => {
-        const active = item.href === "/"
-          ? pathname === "/"
-          : pathname === item.href || pathname.startsWith(item.href + "/");
+        const active =
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(item.href + "/");
         return (
           <Link
             key={item.href}

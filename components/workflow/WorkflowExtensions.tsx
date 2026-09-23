@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { declareReviewConflict, resolveAppeal, scheduleInterview, setScholarshipProcess, submitAppeal } from "@/app/actions/extended-workflow";
+import { declareReviewConflict, resolveAppeal, setScholarshipProcess, submitAppeal } from "@/app/actions/extended-workflow";
 import type { WorkflowState } from "@/app/actions/scholarships";
 
 const empty: WorkflowState = { error: "", success: "" };
@@ -26,11 +26,9 @@ export function ScholarshipProcessForm({ scholarship }: { scholarship: { id: str
   return <details className="workflow-process"><summary>ตั้งค่ากระบวนการ / ประกาศผล</summary><form action={action} className="workflow-form"><input type="hidden" name="scholarship_id" value={scholarship.id}/><div className="workflow-grid"><label>จำนวนกรรมการขั้นต่ำ *<input name="required_reviewers" type="number" required min="1" max="10" step="1" defaultValue={scholarship.required_reviewer_count ?? 1}/></label><label className="structure-check"><input name="publish_results" type="checkbox" defaultChecked={Boolean(scholarship.results_published_at)}/> เผยแพร่ผลให้ผู้สมัครตรวจสอบ</label><label>ปิดรับอุทธรณ์<input name="appeal_deadline" type="datetime-local" defaultValue={localDateTime(scholarship.appeal_deadline)}/></label><label className="workflow-wide">เหตุผลการเปลี่ยนแปลง *<textarea name="reason" required minLength={3} maxLength={500} rows={2}/></label></div><button className="btn" disabled={pending}>{pending ? "กำลังบันทึก…" : "บันทึกกระบวนการ"}</button><Result state={state}/></form></details>;
 }
 
-export function InterviewForm({ applicationId, interview }: { applicationId: string; interview?: { scheduled_at: string; location: string; meeting_url: string | null; note: string; status: string } | null }) {
-  const [state, action, pending] = useActionState(scheduleInterview, empty);
-  return <form action={action} className="workflow-form" onInvalidCapture={(event) => event.currentTarget.classList.add("form-validated")}><input type="hidden" name="application_id" value={applicationId}/><div className="workflow-grid"><label>วันและเวลาสัมภาษณ์ *<input name="scheduled_at" type="datetime-local" required defaultValue={localDateTime(interview?.scheduled_at)}/></label><label>สถานะ *<select name="status" defaultValue={interview?.status ?? "scheduled"}><option value="scheduled">นัดหมายแล้ว</option><option value="completed">สัมภาษณ์แล้ว</option><option value="cancelled">ยกเลิก</option><option value="no_show">ไม่มาตามนัด</option></select></label><label>สถานที่ / ช่องทาง *<input name="location" required minLength={2} maxLength={300} defaultValue={interview?.location ?? ""}/></label><label>ลิงก์ประชุมออนไลน์<input name="meeting_url" type="url" maxLength={1000} defaultValue={interview?.meeting_url ?? ""}/></label><label className="workflow-wide">รายละเอียดเพิ่มเติม<textarea name="note" maxLength={2000} rows={3} defaultValue={interview?.note ?? ""}/></label></div><button className="btn" disabled={pending} onClick={(event) => event.currentTarget.form?.classList.add("form-validated")}>{pending ? "กำลังบันทึก…" : "บันทึกและแจ้งนักศึกษา"}</button><Result state={state}/></form>;
+export function InterviewForm({ applicationId }: { applicationId: string; interview?: unknown }) {
+  return <p>จัดการเวลา กรรมการ และผลสัมภาษณ์ได้ที่ <a className="btn secondary" href={"/staff/interviews?application="+applicationId}>ตารางสัมภาษณ์</a></p>;
 }
-
 export function StudentAppealForm({ applicationId }: { applicationId: string }) {
   const [state, action, pending] = useActionState(submitAppeal, empty);
   return <form action={action} className="workflow-form"><input type="hidden" name="application_id" value={applicationId}/><label>เหตุผลอุทธรณ์ *<textarea name="reason" required minLength={20} maxLength={5000} rows={5} placeholder="ระบุข้อเท็จจริงหรือข้อมูลที่ต้องการให้ทบทวน"/></label><button className="btn" disabled={pending}>{pending ? "กำลังส่ง…" : "ส่งคำอุทธรณ์"}</button><Result state={state}/></form>;
