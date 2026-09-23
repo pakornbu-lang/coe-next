@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+const recipient=process.argv[2];
+assert(recipient && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient),"Provide test recipient email");
+const url=process.env.NOTIFICATION_APPS_SCRIPT_URL;
+const secret=process.env.NOTIFICATION_APPS_SCRIPT_SECRET;
+assert(url&&secret,"Configure NOTIFICATION_APPS_SCRIPT_URL and NOTIFICATION_APPS_SCRIPT_SECRET in .env.local first");
+const parsed=new URL(url);
+assert(parsed.protocol==="https:"&&parsed.hostname==="script.google.com"&&parsed.pathname.endsWith("/exec"),"Use the deployed Google Apps Script /exec URL");
+const response=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({secret,message:{to:recipient,subject:"[ระบบทุนการศึกษา] ทดสอบการส่งอีเมล",text:"อีเมลทดสอบระบบแจ้งเตือนทุนการศึกษา ไม่ต้องดำเนินการใด ๆ",html:"<p>อีเมลทดสอบระบบแจ้งเตือนทุนการศึกษา ไม่ต้องดำเนินการใด ๆ</p>"}}),signal:AbortSignal.timeout(30000)});
+const result=await response.json();
+assert(response.ok&&result.ok,result.error||"Email provider did not accept message");
+console.log("PASS: Apps Script accepted the test email. Check recipient Inbox and Spam.");

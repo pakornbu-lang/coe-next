@@ -5,8 +5,8 @@ import ProfileForm from "./ProfileForm";
 import type { PersonalProfile } from "@/lib/account/types";
 import { roleLabels, type Viewer } from "@/lib/auth/types";
 
-export default function ProfileOverview({ viewer, profile }: { viewer: Viewer; profile: PersonalProfile }) {
-  const [editing, setEditing] = useState(false);
+export default function ProfileOverview({ viewer, profile, initialEditing = false }: { viewer: Viewer; profile: PersonalProfile; initialEditing?: boolean }) {
+  const [editing, setEditing] = useState(initialEditing);
   const [saved, setSaved] = useState(false);
   const details = profile.profile_details;
   const student = viewer.role === "student";
