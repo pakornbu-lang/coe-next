@@ -9,7 +9,16 @@
 .workflow-process{margin-top:12px;width:100%}.workflow-process summary{cursor:pointer;font-weight:700;color:#1f6047}.workflow-process form{margin-top:12px;padding-top:12px;border-top:1px solid #dce7e0}
 .workflow-scholarship-admin-list{display:grid;gap:1rem}.workflow-scholarship-admin{border:1px solid #dce7e0;border-radius:16px;padding:1rem}.workflow-row-summary{display:flex;justify-content:space-between;align-items:center;gap:1rem}.workflow-row-summary>span:first-child{display:grid;gap:.3rem}.workflow-row-summary small{color:#64748b}@media(max-width:640px){.workflow-row-summary{align-items:flex-start;flex-direction:column}}
 .workflow-profile-prompt{display:flex;align-items:center;justify-content:space-between;gap:24px;background:#f4fbf6;border-color:#bcdcca}.workflow-profile-prompt h2{margin:6px 0;color:#173150}.workflow-profile-prompt p{margin:8px 0 0;color:#344d5e;line-height:1.6}.workflow-profile-prompt .workflow-profile-missing{margin-top:12px}.workflow-profile-prompt .btn{flex-shrink:0;text-align:center}@media(max-width:640px){.workflow-profile-prompt{align-items:stretch;flex-direction:column}}
-
 .review-score-table{width:100%;border-collapse:collapse;min-width:600px}
 .review-score-table th,.review-score-table td{padding:12px;text-align:left;border-bottom:1px solid #dfe7ef;vertical-align:top}
 .review-score-table th,.review-score-table tfoot{background:#f1f5fa}
+.workflow-row-list>div{border:1px solid #dfe7ef;border-radius:10px;background:#fff}
+.workflow-row-list>div>a{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;color:inherit;text-decoration:none}
+.workflow-row-list>div>a:hover{background:#f5fbf7}
+.workflow-document-history{margin-top:8px;color:#42546c;font-size:13px}
+.workflow-row-list .workflow-document-history{padding:0 16px 14px}
+.workflow-document-history summary{cursor:pointer;font-weight:700;color:#24694e}
+.workflow-document-history ol{display:grid;gap:8px;margin:9px 0 0;padding-left:20px}
+.workflow-document-history li{line-height:1.5;overflow-wrap:anywhere}
+.workflow-document-history li p{margin:3px 0 0;white-space:pre-wrap}
+@media(max-width:640px){.workflow-row-list>div>a{align-items:flex-start;flex-direction:column}}

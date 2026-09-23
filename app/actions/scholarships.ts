@@ -4,7 +4,9 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { prepareScholarshipCover, MAX_SCHOLARSHIP_COVER_BYTES } from "@/lib/scholarships/cover.mjs";
+import { validApplicationDocument } from "@/lib/scholarships/document-validation";
 import { dispatchNotificationEmails } from "@/lib/notifications/email";
 
 export type WorkflowState = {
@@ -135,11 +137,17 @@ export async function uploadApplicationDocument(_previous: WorkflowState, form: 
   if (!type || file.size > 10 * 1024 * 1024 || file.name.length > 255) {
     return { error: "รองรับ PDF, JPG, PNG, DOC และ DOCX ขนาดไม่เกิน 10 MB", success: "", applicationId };
   }
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (!(await validApplicationDocument(bytes, type.mime))) {
+    return { error: "ไฟล์ไม่ตรงกับชนิดที่เลือกหรือไฟล์เสียหาย กรุณาเลือกไฟล์ใหม่", success: "", applicationId };
+  }
   const path = `${viewer.id}/${applicationId}/${randomUUID()}.${type.extension}`;
   const client = await createClient();
-  const { error: uploadError } = await client.storage.from("scholarship-documents").upload(path, file, { contentType: type.mime, upsert: false });
+  const admin = createAdminClient();
+  if (!admin) return { error: "ระบบอัปโหลดเอกสารยังไม่พร้อม กรุณาติดต่อผู้ดูแลระบบ", success: "", applicationId };
+  const { error: uploadError } = await admin.storage.from("scholarship-documents").upload(path, bytes, { contentType: type.mime, upsert: false });
   if (uploadError) return { error: "อัปโหลดไฟล์ไม่สำเร็จ กรุณาลองใหม่", success: "", applicationId };
-  const { data: previousPath, error } = await client.rpc("student_replace_application_document", {
+  const { error } = await client.rpc("student_replace_application_document", {
     p_application_id: applicationId,
     p_requirement_id: requirementId,
     p_file_path: path,
@@ -148,10 +156,9 @@ export async function uploadApplicationDocument(_previous: WorkflowState, form: 
     p_file_size: file.size,
   });
   if (error) {
-    await client.storage.from("scholarship-documents").remove([path]);
+    await admin.storage.from("scholarship-documents").remove([path]);
     return failure(error.code);
   }
-  if (previousPath) await client.storage.from("scholarship-documents").remove([previousPath]);
   revalidatePath(`/applications/${applicationId}`);
   revalidatePath("/apply");
   return { error: "", success: `อัปโหลด ${file.name} แล้ว`, applicationId };
