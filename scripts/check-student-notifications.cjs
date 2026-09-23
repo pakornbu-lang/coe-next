@@ -90,5 +90,28 @@ function load(file, imports) {
   assert.equal(empty.items.length, 0);
   assert.equal(empty.unread, 1);
   assert.equal(queries.length, 3);
-  console.log("PASS: authentication, roles, paging, cache isolation, RPC failures, read-all identity, own-user queries.");
+  let member = null, memberCalls = 0;
+  const memberApi = load("app/api/member/notifications/route.ts", {
+    "@/lib/auth/server": { getViewer: async () => member },
+    "@/lib/notifications/student": { getStudentNotifications: async (userId) => {
+      assert.equal(userId, member.id); memberCalls++;
+      return { items: [], total: 0, unread: 0, page: 1 };
+    } },
+  });
+  const memberGet = () => memberApi.GET(new Request("http://localhost/api/member/notifications?user_id=someone-else"));
+  assert.equal((await memberGet()).status, 401);
+  member = { id: "student", role: "student" };
+  assert.equal((await memberGet()).status, 403);
+  for (const role of ["staff", "committee", "admin"]) {
+    member = { id: role, role };
+    const result = await memberGet();
+    assert.equal(result.status, 200);
+    assert.match(result.headers.get("cache-control"), /no-store/);
+  }
+  assert.equal(memberCalls, 3);
+  const templates = load("lib/notifications/template.ts", { "server-only": {} });
+  for (const [path, label] of [["/staff/evaluation?assignment=test", "คณะกรรมการ"], ["/admin/notifications", "ผู้ดูแลระบบ"], ["/staff/review/test", "เจ้าหน้าที่ทุน"]]) {
+    assert.ok(templates.notificationEmailText({ subject: "ทดสอบ", body: "ข้อความ", actionUrl: "https://example.test" + path }).includes("เรียน " + label));
+  }
+  console.log("PASS: student/member authentication, all four roles, paging, cache isolation, RPC failures, read-all identity, own-user queries and email role labels.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

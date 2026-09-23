@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import StudentNotifications from "./StudentNotifications";
 import { Icon } from "./Shared";
-export default function StudentNotificationMenu() {
+export default function StudentNotificationMenu({ audience = "student" }: { audience?: "student" | "member" }) {
   const menu = useRef<HTMLDetailsElement>(null);
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -19,9 +19,9 @@ export default function StudentNotificationMenu() {
     return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
   }, []);
   return <details ref={menu} className="notification-menu" onToggle={e => setOpen(e.currentTarget.open)}>
-    <summary aria-label="การแจ้งเตือนนักศึกษา"><Icon name="bell" /></summary>
+    <summary aria-label="การแจ้งเตือน"><Icon name="bell" /></summary>
     <div className="popover notification-popover" style={{ maxHeight: "70vh", overflowY: "auto", width: "min(420px, 90vw)" }}>
-      {open && <StudentNotifications compact />}
+      {open && <StudentNotifications compact audience={audience} />}
     </div>
   </details>;
 }

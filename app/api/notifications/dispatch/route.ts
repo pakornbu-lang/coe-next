@@ -19,7 +19,7 @@ async function dispatch(request: Request) {
   const { error } = await admin.rpc("enqueue_workflow_reminders");
   if (error) return Response.json({ error: "Unable to queue workflow reminders" }, { status: 503 });
   const result = await dispatchNotificationEmails();
-  return Response.json(result, { status: result.configured ? 200 : 503 });
+  return Response.json(result, { status: result.configured && !("error" in result) ? 200 : 503 });
 }
 
 export async function POST(request: Request) {

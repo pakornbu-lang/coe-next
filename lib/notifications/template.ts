@@ -15,12 +15,16 @@ function heading(subject: string) {
 }
 
 function recipient(href: string) {
+  if (href.startsWith("/admin")) return "ผู้ดูแลระบบ";
+  if (href === "/staff/evaluation") return "คณะกรรมการ";
   if (href.startsWith("/staff/")) return "เจ้าหน้าที่ทุน";
   if (href.startsWith("/committee")) return "คณะกรรมการ";
   return "นักศึกษา";
 }
 
 function actionLabel(href: string, value: string) {
+  if (href.startsWith("/admin")) return "เปิดรายการเพื่อตรวจสอบ";
+  if (href === "/staff/evaluation") return "เปิดรายการเพื่อประเมิน";
   if (/แก้ไขเอกสาร/.test(value)) return "เข้าสู่ระบบเพื่อแก้ไขเอกสาร";
   if (href.startsWith("/staff/review")) return "เปิดรายการเพื่อตรวจสอบ";
   if (href.startsWith("/committee")) return "เปิดรายการเพื่อประเมิน";

@@ -3,11 +3,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { readStudentNotification } from "@/app/actions/student-notifications";
+import { readMemberNotification } from "@/app/actions/member-notifications";
 import type { Notification } from "@/lib/scholarships/types";
 import styles from "./StudentNotifications.module.css";
 
 type Result = { items: Notification[]; unread: number; total: number; page: number };
-export default function StudentNotifications({ compact = false }: { compact?: boolean }) {
+export default function StudentNotifications({ compact = false, audience = "student" }: { compact?: boolean; audience?: "student" | "member" }) {
   const router = useRouter();
   const [data, setData] = useState<Result | null>(null);
   const [page, setPage] = useState(1);
@@ -23,7 +24,7 @@ export default function StudentNotifications({ compact = false }: { compact?: bo
     request.current = controller;
     setLoading(true);
     try {
-      const response = await fetch(`/api/student/notifications?page=${page}&unread=${unreadOnly}`, {
+      const response = await fetch(`/api/${audience}/notifications?page=${page}&unread=${unreadOnly}`, {
         cache: "no-store", signal: controller.signal,
       });
       const result = await response.json();
@@ -34,7 +35,7 @@ export default function StudentNotifications({ compact = false }: { compact?: bo
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [page, unreadOnly]);
+  }, [page, unreadOnly, audience]);
   useEffect(() => {
     const initialLoad = window.setTimeout(() => { void load(); }, 0);
     // Manual refresh avoids adding background database load.
@@ -50,7 +51,7 @@ export default function StudentNotifications({ compact = false }: { compact?: bo
     if (busy) return;
     setBusy(true); setNotice("");
     try {
-      const result = await readStudentNotification(id);
+      const result = await (audience === "student" ? readStudentNotification(id) : readMemberNotification(id));
       if (result.error) { setError(result.error); return; }
       setNotice(id ? "เปลี่ยนเป็นอ่านแล้ว" : "อ่านการแจ้งเตือนทั้งหมดแล้ว");
       window.dispatchEvent(new Event("student-notifications-changed"));
