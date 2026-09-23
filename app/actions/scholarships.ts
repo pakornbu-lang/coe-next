@@ -32,7 +32,10 @@ const failure = (
   code?: string,
   message?: string,
 ): WorkflowState => {
-  if (code === "40001")
+  if (
+    code === "40001" ||
+    (code === "P0001" && message === "STALE_VERSION")
+  )
     return {
       error:
         "ข้อมูลนี้ถูกเปลี่ยนโดยผู้ใช้อื่น กรุณารีเฟรชหน้าแล้วลองอีกครั้ง",
@@ -518,7 +521,7 @@ export async function uploadApplicationDocument(
       .from("scholarship-documents")
       .remove([path]);
 
-    return failure(error.code);
+    return failure(error.code, error.message);
   }
 
   revalidatePath(
@@ -1010,7 +1013,7 @@ export async function reviewApplicationDocuments(
     );
 
   if (error)
-    return failure(error.code);
+    return failure(error.code, error.message);
 
   revalidatePath(
     `/staff/review/${applicationId}`,
@@ -1072,7 +1075,7 @@ export async function assignReviewer(
     );
 
   if (error)
-    return failure(error.code);
+    return failure(error.code, error.message);
 
   revalidatePath(
     `/staff/review/${applicationId}`,
@@ -1158,7 +1161,7 @@ export async function saveEvaluation(
     );
 
   if (error)
-    return failure(error.code);
+    return failure(error.code, error.message);
 
   revalidatePath("/committee");
 
@@ -1226,7 +1229,7 @@ export async function decideApplication(
     );
 
   if (error)
-    return failure(error.code);
+    return failure(error.code, error.message);
 
   revalidatePath(
     `/staff/review/${applicationId}`,
@@ -1386,7 +1389,7 @@ export async function recordDisbursement(
         )
         .remove([path]);
 
-    return failure(error.code);
+    return failure(error.code, error.message);
   }
 
   if (
