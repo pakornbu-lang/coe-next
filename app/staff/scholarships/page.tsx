@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { deleteScholarship } from "@/app/actions/scholarships";
 import { requireRole } from "@/lib/auth/server";
 import { getScholarship, listStaffScholarships } from "@/lib/scholarships/server";
 import { createClient } from "@/lib/supabase/server";
@@ -86,6 +87,7 @@ export default async function StaffScholarshipsPage({
                     <div className="workflow-row-summary">
                       <span>
                         <strong>{item.title}</strong>
+
                         <span
                           style={{
                             display: "block",
@@ -94,7 +96,8 @@ export default async function StaffScholarshipsPage({
                           }}
                         >
                           <small style={{ display: "block" }}>
-                            ประเภททุน: {programLabels[item.program_kind] ?? "ทั่วไป"}
+                            ประเภททุน:{" "}
+                            {programLabels[item.program_kind] ?? "ทั่วไป"}
                           </small>
 
                           <small style={{ display: "block" }}>
@@ -106,34 +109,39 @@ export default async function StaffScholarshipsPage({
                           </small>
 
                           <small style={{ display: "block" }}>
-                            GPA ขั้นต่ำ: {item.minimum_gpa ?? "ไม่กำหนด"}
+                            GPA ขั้นต่ำ:{" "}
+                            {item.minimum_gpa ?? "ไม่กำหนด"}
                           </small>
 
                           <small style={{ display: "block" }}>
                             สำนักวิชาที่เปิดรับ:{" "}
                             {item.eligible_faculties?.length
                               ? item.eligible_faculties
-                                .map((faculty) =>
-                                  faculty
-                                    .replace("สำนักวิชา", "")
-                                    .replace("วิทยาลัย", ""),
-                                )
-                                .join(", ")
+                                  .map((faculty) =>
+                                    faculty
+                                      .replace("สำนักวิชา", "")
+                                      .replace("วิทยาลัย", ""),
+                                  )
+                                  .join(", ")
                               : "ทุกสำนักวิชา / ทุกสาขาวิชา"}
                           </small>
 
                           <small style={{ display: "block" }}>
-                            เปิดรับสมัคร: {thaiDate(item.opens_at, true)}
+                            เปิดรับสมัคร:{" "}
+                            {thaiDate(item.opens_at, true)}
                           </small>
 
                           <small style={{ display: "block" }}>
-                            ปิดรับสมัคร: {thaiDate(item.closes_at, true)}
+                            ปิดรับสมัคร:{" "}
+                            {thaiDate(item.closes_at, true)}
                           </small>
                         </span>
                       </span>
 
                       <span className="workflow-actions">
-                        <ScholarshipStatusBadge status={item.status} />
+                        <ScholarshipStatusBadge
+                          status={item.status}
+                        />
 
                         <span
                           style={{
@@ -149,21 +157,31 @@ export default async function StaffScholarshipsPage({
                             แก้ไข
                           </Link>
 
-                          <button
-                            type="button"
-                            className="btn secondary"
-                            style={{
-                              color: "#dc2626",
-                              borderColor: "#dc2626",
-                            }}
-                          >
-                            ลบ
-                          </button>
+                          <form action={deleteScholarship}>
+                            <input
+                              type="hidden"
+                              name="scholarship_id"
+                              value={item.id}
+                            />
+
+                            <button
+                              type="submit"
+                              className="btn secondary"
+                              style={{
+                                color: "#dc2626",
+                                borderColor: "#dc2626",
+                              }}
+                            >
+                              ลบ
+                            </button>
+                          </form>
                         </span>
                       </span>
                     </div>
 
-                    <ScholarshipProcessForm scholarship={item} />
+                    <ScholarshipProcessForm
+                      scholarship={item}
+                    />
                   </article>
                 ))}
               </div>
