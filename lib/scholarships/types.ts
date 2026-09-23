@@ -39,6 +39,7 @@ export type ScholarshipSummary = {
   amount: number;
   quota: number;
   minimum_gpa: number | null;
+  eligible_faculties?: string[];
   opens_at: string;
   closes_at: string;
   status: ScholarshipStatus;

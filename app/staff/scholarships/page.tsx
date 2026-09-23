@@ -110,6 +110,19 @@ export default async function StaffScholarshipsPage({
                           </small>
 
                           <small style={{ display: "block" }}>
+                            สำนักวิชาที่เปิดรับ:{" "}
+                            {item.eligible_faculties?.length
+                              ? item.eligible_faculties
+                                .map((faculty) =>
+                                  faculty
+                                    .replace("สำนักวิชา", "")
+                                    .replace("วิทยาลัย", ""),
+                                )
+                                .join(", ")
+                              : "ทุกสำนักวิชา / ทุกสาขาวิชา"}
+                          </small>
+
+                          <small style={{ display: "block" }}>
                             เปิดรับสมัคร: {thaiDate(item.opens_at, true)}
                           </small>
 

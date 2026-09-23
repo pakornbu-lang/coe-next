@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { numericInputProps } from "@/lib/numeric-input";
 import {
   saveScholarship,
   type WorkflowState,
@@ -377,8 +378,8 @@ export default function ScholarshipEditor({
               type="button"
               key={template.value}
               className={`btn secondary ${programKind === template.value
-                  ? "selected"
-                  : ""
+                ? "selected"
+                : ""
                 }`}
               onClick={() =>
                 applyTemplate(template)
@@ -518,6 +519,7 @@ export default function ScholarshipEditor({
               required
               min="1"
               step="1"
+              {...numericInputProps("integer")}
               defaultValue={
                 scholarship?.quota ?? ""
               }
@@ -534,6 +536,7 @@ export default function ScholarshipEditor({
               min="0"
               max="4"
               step="0.01"
+              {...numericInputProps("decimal")}
               defaultValue={
                 scholarship?.minimum_gpa ?? ""
               }
@@ -573,212 +576,212 @@ export default function ScholarshipEditor({
     คณะ / สำนักวิชาที่เปิดรับสมัคร
     ================================================= */}
 
-<div
-  className="workflow-wide"
-  style={{
-    width: "100%",
-    textAlign: "left",
-  }}
->
-  <div
-    style={{
-      width: "100%",
-      marginBottom: "12px",
-      fontWeight: 600,
-      textAlign: "left",
-    }}
-  >
-    คณะ / สำนักวิชาที่เปิดรับสมัคร *
-  </div>
-
-  {/* ทุกสำนักวิชา */}
-  <label
-    style={{
-      width: "100%",
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "flex-start",
-      gap: "10px",
-      marginBottom: "10px",
-      cursor: "pointer",
-      textAlign: "left",
-    }}
-  >
-    <input
-      type="radio"
-      name="faculty_scope"
-      value="all"
-      checked={facultyScope === "all"}
-      onChange={() => setFacultyScope("all")}
-      style={{
-        width: "auto",
-        minWidth: "auto",
-        margin: 0,
-        padding: 0,
-        flex: "0 0 auto",
-      }}
-    />
-
-    <span
-      style={{
-        width: "auto",
-        whiteSpace: "nowrap",
-        textAlign: "left",
-      }}
-    >
-      ทุกสำนักวิชา / ทุกสาขาวิชา
-    </span>
-  </label>
-
-  {/* เฉพาะสำนักวิชาที่เลือก */}
-  <label
-    style={{
-      width: "100%",
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "flex-start",
-      gap: "10px",
-      marginBottom: "14px",
-      cursor: "pointer",
-      textAlign: "left",
-    }}
-  >
-    <input
-      type="radio"
-      name="faculty_scope"
-      value="selected"
-      checked={facultyScope === "selected"}
-      onChange={() => setFacultyScope("selected")}
-      style={{
-        width: "auto",
-        minWidth: "auto",
-        margin: 0,
-        padding: 0,
-        flex: "0 0 auto",
-      }}
-    />
-
-    <span
-      style={{
-        width: "auto",
-        whiteSpace: "nowrap",
-        textAlign: "left",
-      }}
-    >
-      เฉพาะสำนักวิชาที่เลือก
-    </span>
-  </label>
-
-  {/* ถ้าเลือกเฉพาะสำนักวิชา */}
-  {facultyScope === "selected" && (
-    <div
-      style={{
-        width: "100%",
-        boxSizing: "border-box",
-        border: "1px solid #d9e2dd",
-        borderRadius: "12px",
-        padding: "16px",
-        textAlign: "left",
-      }}
-    >
-      <p
-        className="workflow-muted"
-        style={{
-          marginTop: 0,
-          marginBottom: "14px",
-          textAlign: "left",
-        }}
-      >
-        เลือกได้มากกว่า 1 สำนักวิชา
-      </p>
-
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-          gap: "10px",
-        }}
-      >
-        {walailakAcademicUnits.map((faculty) => (
-          <label
-            key={faculty}
+          <div
+            className="workflow-wide"
             style={{
               width: "100%",
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "flex-start",
-              gap: "10px",
-              padding: "3px 0",
-              margin: 0,
-              cursor: "pointer",
               textAlign: "left",
             }}
           >
-            <input
-              type="checkbox"
-              name="eligible_faculties"
-              value={faculty}
-              checked={selectedFaculties.includes(faculty)}
-              required={
-                facultyScope === "selected" &&
-                selectedFaculties.length === 0
-              }
-              onChange={() => toggleFaculty(faculty)}
+            <div
               style={{
-                width: "auto",
-                minWidth: "auto",
-                margin: 0,
-                padding: 0,
-                flex: "0 0 auto",
-              }}
-            />
-
-            <span
-              style={{
-                width: "auto",
+                width: "100%",
+                marginBottom: "12px",
+                fontWeight: 600,
                 textAlign: "left",
               }}
             >
-              {faculty
-                .replace("สำนักวิชา", "")
-                .replace("วิทยาลัย", "")}
-            </span>
-          </label>
-        ))}
-      </div>
+              คณะ / สำนักวิชาที่เปิดรับสมัคร *
+            </div>
 
-      <small
-        className="workflow-muted"
-        style={{
-          display: "block",
-          marginTop: "14px",
-          textAlign: "left",
-        }}
-      >
-        เลือกแล้ว {selectedFaculties.length} สำนักวิชา / วิทยาลัย
-      </small>
-    </div>
-  )}
+            {/* ทุกสำนักวิชา */}
+            <label
+              style={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                gap: "10px",
+                marginBottom: "10px",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <input
+                type="radio"
+                name="faculty_scope"
+                value="all"
+                checked={facultyScope === "all"}
+                onChange={() => setFacultyScope("all")}
+                style={{
+                  width: "auto",
+                  minWidth: "auto",
+                  margin: 0,
+                  padding: 0,
+                  flex: "0 0 auto",
+                }}
+              />
 
-  {/* ถ้าเลือกทุกสำนักวิชา */}
-  {facultyScope === "all" && (
-    <small
-      className="workflow-muted"
-      style={{
-        display: "block",
-        marginTop: "6px",
-        textAlign: "left",
-      }}
-    >
-      นักศึกษาจากทุกสำนักวิชาและทุกสาขาวิชาสามารถสมัครทุนนี้ได้
-    </small>
-  )}
-</div>
+              <span
+                style={{
+                  width: "auto",
+                  whiteSpace: "nowrap",
+                  textAlign: "left",
+                }}
+              >
+                ทุกสำนักวิชา / ทุกสาขาวิชา
+              </span>
+            </label>
+
+            {/* เฉพาะสำนักวิชาที่เลือก */}
+            <label
+              style={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                gap: "10px",
+                marginBottom: "14px",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <input
+                type="radio"
+                name="faculty_scope"
+                value="selected"
+                checked={facultyScope === "selected"}
+                onChange={() => setFacultyScope("selected")}
+                style={{
+                  width: "auto",
+                  minWidth: "auto",
+                  margin: 0,
+                  padding: 0,
+                  flex: "0 0 auto",
+                }}
+              />
+
+              <span
+                style={{
+                  width: "auto",
+                  whiteSpace: "nowrap",
+                  textAlign: "left",
+                }}
+              >
+                เฉพาะสำนักวิชาที่เลือก
+              </span>
+            </label>
+
+            {/* ถ้าเลือกเฉพาะสำนักวิชา */}
+            {facultyScope === "selected" && (
+              <div
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  border: "1px solid #d9e2dd",
+                  borderRadius: "12px",
+                  padding: "16px",
+                  textAlign: "left",
+                }}
+              >
+                <p
+                  className="workflow-muted"
+                  style={{
+                    marginTop: 0,
+                    marginBottom: "14px",
+                    textAlign: "left",
+                  }}
+                >
+                  เลือกได้มากกว่า 1 สำนักวิชา
+                </p>
+
+                <div
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                  }}
+                >
+                  {walailakAcademicUnits.map((faculty) => (
+                    <label
+                      key={faculty}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "flex-start",
+                        gap: "10px",
+                        padding: "3px 0",
+                        margin: 0,
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        name="eligible_faculties"
+                        value={faculty}
+                        checked={selectedFaculties.includes(faculty)}
+                        required={
+                          facultyScope === "selected" &&
+                          selectedFaculties.length === 0
+                        }
+                        onChange={() => toggleFaculty(faculty)}
+                        style={{
+                          width: "auto",
+                          minWidth: "auto",
+                          margin: 0,
+                          padding: 0,
+                          flex: "0 0 auto",
+                        }}
+                      />
+
+                      <span
+                        style={{
+                          width: "auto",
+                          textAlign: "left",
+                        }}
+                      >
+                        {faculty
+                          .replace("สำนักวิชา", "")
+                          .replace("วิทยาลัย", "")}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                <small
+                  className="workflow-muted"
+                  style={{
+                    display: "block",
+                    marginTop: "14px",
+                    textAlign: "left",
+                  }}
+                >
+                  เลือกแล้ว {selectedFaculties.length} สำนักวิชา / วิทยาลัย
+                </small>
+              </div>
+            )}
+
+            {/* ถ้าเลือกทุกสำนักวิชา */}
+            {facultyScope === "all" && (
+              <small
+                className="workflow-muted"
+                style={{
+                  display: "block",
+                  marginTop: "6px",
+                  textAlign: "left",
+                }}
+              >
+                นักศึกษาจากทุกสำนักวิชาและทุกสาขาวิชาสามารถสมัครทุนนี้ได้
+              </small>
+            )}
+          </div>
 
           {/* ภาพปก */}
 
