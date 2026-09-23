@@ -236,17 +236,15 @@ export async function getStaffApplicationDetail(id: string) {
   return { ...detail, assignments, committees: committeesResult.data ?? [] };
 }
 
-export async function listStaffScholarships(): Promise<(ScholarshipSummary & { requirements: Requirement[]; criteria: Criterion[] })[]> {
+export async function listStaffScholarships(): Promise<ScholarshipSummary[]> {
   const client = await createClient();
   const { data, error } = await client
     .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at")
+    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline")
     .order("updated_at", { ascending: false })
     .limit(200);
   if (error) fail("ไม่สามารถโหลดทุนได้");
-  const scholarships = (data ?? []) as ScholarshipSummary[];
-  const details = await Promise.all(scholarships.map((item) => getScholarship(item.id)));
-  return details.filter((item): item is NonNullable<typeof item> => Boolean(item));
+  return (data ?? []) as ScholarshipSummary[];
 }
 
 export async function getCommitteeAssignment(id: string) {
