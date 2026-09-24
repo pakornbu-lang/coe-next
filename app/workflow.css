@@ -1041,6 +1041,20 @@
   padding: 1rem;
 }
 
+/* เพิ่มเฉพาะส่วนนี้:
+   ทุนที่หมดเวลา / ปิดรับสมัครในหน้าของเจ้าหน้าที่ */
+.workflow-scholarship-admin-closed {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.workflow-scholarship-admin-closed
+  .workflow-row-summary > span:first-child strong,
+.workflow-scholarship-admin-closed
+  .workflow-row-summary > span:first-child small {
+  color: #6b7280;
+}
+
 .workflow-row-summary {
   display: flex;
   justify-content: space-between;
@@ -1063,6 +1077,7 @@
     flex-direction: column;
   }
 }
+
 .workflow-profile-prompt {
   display: flex;
   align-items: center;

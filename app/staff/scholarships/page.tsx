@@ -94,19 +94,13 @@ export default async function StaffScholarshipsPage({
                           }}
                         >
                           <small style={{ display: "block" }}>
-                            ประเภททุน: {programLabels[item.program_kind] ?? "ทั่วไป"}
+                            ประเภททุน:{" "}
+                            {programLabels[item.program_kind] ?? "ทั่วไป"}
                           </small>
 
                           <small style={{ display: "block" }}>
-                            จำนวนเงินต่อคน: {money(item.amount)} บาท
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            จำนวนทุน: {item.quota} คน
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            GPA ขั้นต่ำ: {item.minimum_gpa ?? "ไม่กำหนด"}
+                            GPA ขั้นต่ำ:{" "}
+                            {item.minimum_gpa ?? "ไม่กำหนด"}
                           </small>
 
                           <small style={{ display: "block" }}>
@@ -120,14 +114,6 @@ export default async function StaffScholarshipsPage({
                                 )
                                 .join(", ")
                               : "ทุกสำนักวิชา / ทุกสาขาวิชา"}
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            เปิดรับสมัคร: {thaiDate(item.opens_at, true)}
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            ปิดรับสมัคร: {thaiDate(item.closes_at, true)}
                           </small>
                         </span>
                       </span>
