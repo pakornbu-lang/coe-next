@@ -489,6 +489,28 @@ export async function uploadApplicationDocument(
   const client =
     await createClient();
 
+  const { data: appData, error: appCheckError } = await client
+    .from("applications")
+    .select("id,status,student_id")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (appCheckError || !appData || appData.student_id !== viewer.id) {
+    return {
+      error: "ไม่มีสิทธิ์แก้ไขหรืออัปโหลดเอกสารสำหรับใบสมัครนี้",
+      success: "",
+      applicationId,
+    };
+  }
+
+  if (!["draft", "revision_requested"].includes(appData.status)) {
+    return {
+      error: "ใบสมัครนี้อยู่ในสถานะที่ไม่สามารถแก้ไขเอกสารได้",
+      success: "",
+      applicationId,
+    };
+  }
+
   const admin =
     createAdminClient();
 

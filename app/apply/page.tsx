@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth/server";
-import { getScholarship, getStudentApplicationEditorData, getStudentProfileHints } from "@/lib/scholarships/server";
+import {
+  getScholarshipForApplication,
+  getStudentApplicationEditorData,
+  getStudentProfileHints,
+} from "@/lib/scholarships/server";
+import { isScholarshipOpen } from "@/lib/scholarships/types";
 import StudentApplicationEditor from "@/components/workflow/StudentApplicationEditor";
 
 export const metadata = { title: "สมัครทุน" };
@@ -8,10 +13,17 @@ export const metadata = { title: "สมัครทุน" };
 export default async function ApplyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ scholarship?: string; application?: string }>;
+  searchParams: Promise<{
+    scholarship?: string;
+    scholarshipId?: string;
+    application?: string;
+    applicationId?: string;
+  }>;
 }) {
   await requireRole(["student"]);
-  const { scholarship: scholarshipId, application: applicationId } = await searchParams;
+  const params = await searchParams;
+  const scholarshipId = params.scholarshipId || params.scholarship;
+  const applicationId = params.applicationId || params.application;
 
   if (!scholarshipId) {
     return (
@@ -25,17 +37,28 @@ export default async function ApplyPage({
     );
   }
 
-  // Load scholarship, application editor data, and student profile in parallel
-  const [scholarship, editorData, profile] = await Promise.all([
-    getScholarship(scholarshipId),
+  // Load lightweight scholarship and application editor data in parallel
+  const [scholarship, editorData] = await Promise.all([
+    getScholarshipForApplication(scholarshipId),
     getStudentApplicationEditorData(scholarshipId, applicationId),
-    getStudentProfileHints(),
   ]);
 
-  if (!scholarship || scholarship.status !== "published") {
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+
+  if (!scholarship || !isScholarshipOpen(scholarship, now)) {
     return (
       <section className="panel workflow-empty">
         <h1>ไม่พบทุนที่เปิดรับสมัคร</h1>
+        <p>
+          {!scholarship
+            ? "ไม่พบข้อมูลทุนการศึกษานี้"
+            : scholarship.status !== "published"
+            ? "ทุนนี้ยังไม่ได้เปิดรับสมัครอย่างเป็นทางการ"
+            : now < new Date(scholarship.opens_at).getTime()
+            ? "ทุนนี้ยังไม่ถึงกำหนดเปิดรับสมัคร"
+            : "ทุนนี้ปิดรับสมัครแล้ว"}
+        </p>
         <Link className="btn" href="/scholarships">
           กลับรายการทุน
         </Link>
@@ -44,6 +67,12 @@ export default async function ApplyPage({
   }
 
   const { application, documents, paymentAccount } = editorData;
+  const isEditable =
+    !application ||
+    ["draft", "revision_requested"].includes(application.status);
+
+  // Requirement 9: หน้า Apply ไม่ควรเรียกข้อมูล SIS/Profile หากใบสมัครส่งแล้วและแก้ไขไม่ได้
+  const profile = isEditable ? await getStudentProfileHints() : null;
 
   return (
     <StudentApplicationEditor
