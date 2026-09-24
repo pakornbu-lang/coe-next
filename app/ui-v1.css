@@ -510,10 +510,22 @@ textarea {
   margin-top: 2px;
 }
 .landing-scholarships {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 15px;
   margin-bottom: 15px;
+  padding: 2px 2px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.landing-scholarships .landing-fund {
+  flex: 0 0 calc((100% - 30px) / 3);
+  min-width: 290px;
+  scroll-snap-align: start;
 }
 .landing-fund {
   padding: 17px;
@@ -2073,8 +2085,9 @@ td .badge {
   .features p {
     font-size: 12px;
   }
-  .landing-scholarships {
-    grid-template-columns: 1fr;
+  .landing-scholarships .landing-fund {
+    flex-basis: min(78vw, 360px);
+    min-width: min(78vw, 360px);
   }
   .fund-metrics {
     margin: 8px 0 0;
