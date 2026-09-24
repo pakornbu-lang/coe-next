@@ -102,7 +102,10 @@ export function Landing({ scholarships, viewer, contact }: { scholarships: Schol
           {!scholarships.some((item) => item.status === "published") && <Panel><h3>ยังไม่มีทุนที่เปิดรับ</h3><p>กรุณาตรวจสอบประกาศอีกครั้งภายหลัง หรือติดต่อเจ้าหน้าที่ทุน</p></Panel>}
         </div>
         <div className="columns home-lower">
-          <Panel title="ขั้นตอนการสมัคร">
+          <Panel
+            title="ขั้นตอนการสมัคร"
+            action={<Link href="/steps">ดูขั้นตอนแบบละเอียด →</Link>}
+          >
             <div id="steps" className="steps">
               {[
                 ["search", "ค้นหาทุน", "เลือกทุนที่สนใจและตรวจสอบคุณสมบัติ"],
