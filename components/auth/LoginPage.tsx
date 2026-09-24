@@ -49,7 +49,7 @@ export default function LoginPage({ register = false, resetComplete = false }: {
                   autoComplete="current-password" />
                 <button type="button" onClick={() => setVisible(!visible)}
                   aria-label={visible ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}>
-                  <Icon name={visible ? "eye-off" : "eye"} size={20} />
+                  <Icon name={visible ? "eye" : "eye-off"} size={20} />
                 </button>
               </span>
               <Link className="text-button forgot" href="/forgot-password">ลืมรหัสผ่าน?</Link>
