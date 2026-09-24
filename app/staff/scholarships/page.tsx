@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { deleteScholarship } from "@/app/actions/scholarships";
 import { requireRole } from "@/lib/auth/server";
-import { getScholarship, listStaffScholarships } from "@/lib/scholarships/server";
+import { getScholarship, listStaffScholarships, getAcademicOptions } from "@/lib/scholarships/server";
 import { createClient } from "@/lib/supabase/server";
 import ScholarshipEditor from "@/components/workflow/ScholarshipEditor";
 import { ScholarshipStatusBadge } from "@/components/workflow/StatusBadge";
@@ -33,7 +33,7 @@ export default async function StaffScholarshipsPage({
 
   const client = await createClient();
 
-  const [scholarships, typesResult, selected] = await Promise.all([
+  const [scholarships, typesResult, selected, academicOptions] = await Promise.all([
     listStaffScholarships(),
 
     client
@@ -44,6 +44,7 @@ export default async function StaffScholarshipsPage({
       .order("name"),
 
     edit ? getScholarship(edit) : Promise.resolve(null),
+    getAcademicOptions(),
   ]);
 
   return (
@@ -70,6 +71,7 @@ export default async function StaffScholarshipsPage({
       {edit && selected ? (
         <ScholarshipEditor
           scholarship={selected}
+          academicOptions={academicOptions}
           types={typesResult.data ?? []}
         />
       ) : (

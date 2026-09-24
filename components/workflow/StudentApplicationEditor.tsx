@@ -1,4 +1,5 @@
 "use client";
+import { personNamePattern } from "@/lib/forms/person-name";
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -104,7 +105,7 @@ export default function StudentApplicationEditor({ scholarship, application, req
         <label>จำนวนสมาชิกในครอบครัว *<DigitsInput name="family_members" required minLength={1} maxLength={2} defaultValue={data.family_members ?? ""}/></label>
         <label>สถานะบิดามารดา *<select name="parent_status" required value={parentStatus} onChange={(event) => setParentStatus(event.target.value)}><option value="">เลือกสถานะ</option>{parentStatuses.map((status) => <option key={status} value={status}>{status}</option>)}<option value="other">อื่น ๆ</option></select></label>
         {parentStatus === "other" && <label>โปรดระบุสถานะบิดามารดา *<input name="parent_status_other" required maxLength={150} defaultValue={data.parent_status_other ?? details.parent_status_other ?? ""}/></label>}
-        <label>ชื่อผู้ติดต่อฉุกเฉิน<input name="emergency_name" maxLength={200} defaultValue={data.emergency_name ?? ""}/></label>
+        <label>ชื่อผู้ติดต่อฉุกเฉิน<input name="emergency_name" pattern={personNamePattern} title="กรอกชื่อด้วยตัวอักษร เว้นวรรค จุด หรือขีดกลางเท่านั้น ห้ามใช้ตัวเลข" maxLength={200} defaultValue={data.emergency_name ?? ""}/></label>
         <label>โทรศัพท์ฉุกเฉิน<DigitsInput name="emergency_phone" minLength={10} maxLength={10} title="กรุณากรอกหมายเลขโทรศัพท์ 10 หลัก" defaultValue={data.emergency_phone ?? ""}/></label>
         <label className="workflow-wide">เหตุผลและความจำเป็นในการสมัคร *<textarea name="reason" required minLength={20} maxLength={5000} rows={6} defaultValue={data.reason ?? ""}/></label>
         <label className="workflow-wide">กิจกรรมและผลงานที่ผ่านมา<textarea name="activities" maxLength={5000} rows={5} defaultValue={data.activities ?? ""}/></label>

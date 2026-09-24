@@ -2,6 +2,14 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { Notification } from "@/lib/scholarships/types";
 
+export async function getUnreadNotificationCount(userId: string) {
+  const client = await createClient();
+  const { count, error } = await client.from("portal_notifications")
+    .select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null);
+  if (error) throw new Error("Notification count unavailable");
+  return { unread: count ?? 0 };
+}
+
 export async function getStudentNotifications(userId: string, page: number, unreadOnly: boolean) {
   const client = await createClient();
   // Count separately so an out-of-range page still returns 200 with an empty list.

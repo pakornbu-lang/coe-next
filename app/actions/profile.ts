@@ -53,7 +53,7 @@ export async function updateMyProfile(_previous: ProfileState, form: FormData): 
   });
   if (error) {
     if (newPath) await client.storage.from("portal-avatars").remove([newPath]);
-    return fail(error.code === "40001" ? "ข้อมูลถูกเปลี่ยนแล้ว กรุณารีเฟรชหน้าแล้วแก้ไขอีกครั้ง" : "บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลและสิทธิ์บัญชีแล้วลองใหม่");
+    return fail((error.code === "PT409" || error.code === "40001") ? "ข้อมูลถูกเปลี่ยนแล้ว กรุณารีเฟรชหน้าแล้วแก้ไขอีกครั้ง" : "บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลและสิทธิ์บัญชีแล้วลองใหม่");
   }
   // The profile is committed first; never delete the old image on a failed save.
   if ((newPath || remove) && previous.avatar_path) {

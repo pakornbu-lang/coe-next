@@ -71,8 +71,8 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
             ["/notifications", "การแจ้งเตือน", "bell"],
             ["/profile", "โปรไฟล์", "user"],
           ];
-  if (viewer && viewer.role !== "student") nav.push(["/notifications", "????????????", "bell"]);
-  if (viewer?.role === "admin") nav.push(["/admin/notifications", "???????????", "mail"]);
+  if (viewer && viewer.role !== "student") nav.push(["/notifications", "การแจ้งเตือน", "bell"]);
+  if (viewer?.role === "admin") nav.push(["/admin/notifications", "การส่งอีเมล", "mail"]);
   if (auth) return <>{children}</>;
   return (
     <div className="ui-app">

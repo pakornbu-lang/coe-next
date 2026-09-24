@@ -1,4 +1,5 @@
 "use server";
+import { isPersonName } from "@/lib/forms/person-name";
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -31,7 +32,7 @@ const failure = (
   code?: string,
   message?: string,
 ): WorkflowState => {
-  if (code === "40001")
+  if ((code === "PT409" || code === "40001"))
     return {
       error:
         "ข้อมูลนี้ถูกเปลี่ยนโดยผู้ใช้อื่น กรุณารีเฟรชหน้าแล้วลองอีกครั้ง",
@@ -140,6 +141,8 @@ function applicationData(form: FormData) {
 
     data[key] = item;
   }
+
+  if (data.emergency_name && !isPersonName(data.emergency_name)) throw new Error("INVALID_EMERGENCY_NAME");
 
   if (
     data.income &&
@@ -341,6 +344,7 @@ export async function saveApplication(
       applicationId: savedId,
     };
   } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_EMERGENCY_NAME") return { error: "ชื่อผู้ติดต่อฉุกเฉินใช้ได้เฉพาะตัวอักษร เว้นวรรค จุด หรือขีดกลาง ห้ามใช้ตัวเลข", success: "" };
     if (
       error instanceof Error &&
       error.message === "INPUT_TOO_LONG"
@@ -596,6 +600,10 @@ export async function saveScholarship(
   const viewer =
     await requireRole(["staff"]);
 
+  const restricted = value(form, "faculty_scope") === "selected";
+  const faculties = restricted ? [...new Set(form.getAll("eligible_faculties").map(String).map(v => v.trim()))] : [];
+  const majors = restricted ? [...new Set(form.getAll("eligible_majors").map(String).map(v => v.trim()))] : [];
+  if ((restricted && !faculties.length) || faculties.length > 100 || majors.length > 200 || [...faculties, ...majors].some(v => !v || v.length > 150)) return { error: "กรุณาเลือกสำนักวิชาอย่างน้อย 1 รายการ และตรวจสอบรายชื่อสาขา", success: "" };
   const id = value(form, "id");
 
   const version = id
@@ -752,8 +760,8 @@ export async function saveScholarship(
 
   const { data, error } =
     await client.rpc(
-      "staff_save_scholarship",
-      {
+      "staff_save_scholarship_with_audience",
+      { p_faculties: faculties, p_majors: majors, p_data: {
         p_id: id || null,
         p_version: version,
         p_title: value(
@@ -797,7 +805,7 @@ export async function saveScholarship(
           form,
           "reason",
         ),
-      },
+      } },
     );
 
   if (error || !data) {

@@ -41,7 +41,7 @@ export async function listPublishedScholarships(): Promise<ScholarshipSummary[]>
   const client = await createClient();
   const { data, error } = await client
     .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at")
+    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at")
     .in("status", ["published", "closed"])
     .order("closes_at", { ascending: true })
     .limit(100);
@@ -56,7 +56,7 @@ export async function getScholarship(id: string): Promise<(ScholarshipSummary & 
   const client = await createClient();
   const { data: scholarship, error } = await client
     .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at")
+    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at")
     .eq("id", id)
     .maybeSingle();
   if (error) fail("ไม่สามารถโหลดรายละเอียดทุนได้");
@@ -212,7 +212,7 @@ export async function listStudentApplicationsPaginated({
 
   const { data: applications, count, error } = await client
     .from("applications")
-    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at)", { count: "exact" })
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at)", { count: "exact" })
     .range(from, to)
     .order("updated_at", { ascending: false });
 
@@ -257,7 +257,7 @@ export async function listStaffApplications(status?: string, search?: string): P
   const client = await createClient();
   let query = client
     .from("applications")
-    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at)")
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at)")
     .order("updated_at", { ascending: false })
     .limit(200);
   if (status) query = query.eq("status", status);
@@ -342,7 +342,7 @@ export async function listStaffScholarships(): Promise<ScholarshipSummary[]> {
   const client = await createClient();
   const { data, error } = await client
     .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline")
+    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline")
     .order("updated_at", { ascending: false })
     .limit(200);
   if (error) fail("ไม่สามารถโหลดทุนได้");
@@ -416,4 +416,11 @@ export async function getNotifications(): Promise<Notification[]> {
     .limit(8);
   if (error) return [];
   return (data ?? []) as Notification[];
+}
+
+export async function getAcademicOptions() {
+ const client = await createClient();
+ const { data, error } = await client.from("portal_reference_data").select("name,kind").in("kind", ["faculty", "major"]).eq("active", true).order("name");
+ if (error) throw new Error("โหลดรายชื่อสำนักวิชาและสาขาไม่ได้");
+ return { faculties: data.filter(item => item.kind === "faculty").map(item => item.name), majors: data.filter(item => item.kind === "major").map(item => item.name) };
 }
