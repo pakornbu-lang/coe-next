@@ -44,7 +44,14 @@ export async function setScholarshipProcess(_previous: WorkflowState, form: Form
   if (error) return failed(error.message === "No final results are available" ? "ยังไม่มีผลการพิจารณาสำหรับประกาศ" : undefined);
   revalidatePath("/staff/scholarships");
   revalidatePath(`/scholarships/${scholarshipId}/results`);
-  return { error: "", success: publish ? "เผยแพร่ผลและกำหนดช่วงอุทธรณ์แล้ว" : "บันทึกจำนวนกรรมการและซ่อนผลประกาศแล้ว" };
+  revalidatePath("/notifications");
+  // Publication and its notification queue are already committed. Email delivery
+  // failure must not make the successful publication appear to have failed.
+  if (publish) {
+    try { await dispatchNotificationEmails(); }
+    catch { /* The existing outbox worker retries pending email deliveries. */ }
+  }
+  return { error: "", success: publish ? "บันทึกการเผยแพร่ผลแล้ว ระบบสร้างการแจ้งเตือนเมื่อเริ่มเผยแพร่ผล" : "บันทึกจำนวนกรรมการและซ่อนผลประกาศแล้ว" };
 }
 
 export async function scheduleInterview(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
