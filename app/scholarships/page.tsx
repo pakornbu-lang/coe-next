@@ -193,13 +193,13 @@ export default async function ScholarshipsPage({
           )}
 
           {isUpcoming && (
-            <span className="scholarship-upcoming-status">
+            <span className="scholarship-upcoming-status" data-scholarship-badge>
               ยังไม่เปิดรับสมัคร
             </span>
           )}
 
           {isClosed && (
-            <span className="scholarship-expired-status">
+            <span className="scholarship-expired-status" data-scholarship-badge>
               ปิดรับสมัคร
             </span>
           )}
