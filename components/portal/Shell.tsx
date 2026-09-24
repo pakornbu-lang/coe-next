@@ -12,6 +12,27 @@ import StaffNavigation from "./StaffNavigation";
 
 export default function Shell({ children, viewer }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
   const path = usePathname();
+  const contentRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const content = contentRef.current;
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (!content || motionPreference.matches) return;
+    const animation = content.animate(
+      [
+        { opacity: 0, transform: "translateY(6px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ],
+      { duration: 180, easing: "ease-out" },
+    );
+    const stopForReducedMotion = () => {
+      if (motionPreference.matches) animation.cancel();
+    };
+    motionPreference.addEventListener("change", stopForReducedMotion);
+    return () => {
+      animation.cancel();
+      motionPreference.removeEventListener("change", stopForReducedMotion);
+    };
+  }, [path]);
   const [open, setOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -176,7 +197,7 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
           </div>
         )}
       </header>
-      <main id="main-content" className={landing ? "landing" : "workspace"}>
+      <main ref={contentRef} id="main-content" className={landing ? "landing" : "workspace"}>
         {children}
       </main>
       <footer className="site-footer">
