@@ -52,6 +52,7 @@ export default async function StaffScholarshipsPage({
    * เรียงทุนที่ปิดรับสมัคร / หมดเวลา
    * ให้อยู่ล่างสุดของรายการ
    */
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
 
   const isScholarshipClosed = (
