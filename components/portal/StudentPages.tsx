@@ -199,7 +199,7 @@ export function SearchPage() {
         </Panel>
         <Panel title="ต้องการความช่วยเหลือ?">
           <p>หากมีข้อสงสัยเกี่ยวกับการสมัครทุน ติดต่อกองพัฒนานักศึกษา</p>
-          <Action href="/#contact" secondary>
+          <Action href="/contact" secondary>
             <Icon name="mail" />
             ติดต่อเจ้าหน้าที่
           </Action>

@@ -2,17 +2,19 @@ import "server-only";
 import { cache } from "react";
 import { queryScholarshipSchema } from "./schema-compat";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  ApplicationDocument,
-  ApplicationAppeal,
-  ApplicationInterview,
-  ApplicationSummary,
-  Criterion,
-  Disbursement,
-  Notification,
-  PaymentAccount,
-  Requirement,
-  ScholarshipSummary,
+import { requireRole } from "@/lib/auth/server";
+import {
+  isScholarshipOpen,
+  type ApplicationDocument,
+  type ApplicationAppeal,
+  type ApplicationInterview,
+  type ApplicationSummary,
+  type Criterion,
+  type Disbursement,
+  type Notification,
+  type PaymentAccount,
+  type Requirement,
+  type ScholarshipSummary,
 } from "./types";
 import { fetchSisStudentRecord } from "@/lib/integrations/sis";
 
@@ -60,13 +62,37 @@ export async function listPublishedScholarships(): Promise<ScholarshipSummary[]>
 export async function listOpenScholarships(): Promise<ScholarshipSummary[]> {
   const scholarships = await listPublishedScholarships();
   const now = Date.now();
+  return scholarships.filter((item) => isScholarshipOpen(item, now));
+}
 
-  return scholarships.filter(
-    (item) =>
-      item.status === "published" &&
-      new Date(item.opens_at).getTime() <= now &&
-      now < new Date(item.closes_at).getTime(),
-  );
+export type ScholarshipWithRequirements = ScholarshipSummary & {
+  requirements: Requirement[];
+};
+
+export async function getScholarshipForApplication(
+  id: string
+): Promise<ScholarshipWithRequirements | null> {
+  const client = await createClient();
+  const { data: scholarship, error } = await client
+    .from("scholarships")
+    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) fail("ไม่สามารถโหลดรายละเอียดทุนได้");
+  if (!scholarship) return null;
+
+  const { data: requirements, error: requirementError } = await client
+    .from("scholarship_document_requirements")
+    .select("id,label,details,required,sort_order")
+    .eq("scholarship_id", id)
+    .order("sort_order");
+
+  if (requirementError) fail("ไม่สามารถโหลดเงื่อนไขเอกสารทุนได้");
+
+  return {
+    ...(scholarship as ScholarshipSummary),
+    requirements: (requirements ?? []) as Requirement[],
+  };
 }
 
 export async function getScholarship(id: string): Promise<(ScholarshipSummary & {
@@ -115,13 +141,17 @@ export async function getStudentApplicationEditorData(
   scholarshipId: string,
   applicationId?: string
 ): Promise<StudentApplicationEditorData> {
+  const viewer = await requireRole(["student"]);
   const client = await createClient();
   let applicationQuery = client
     .from("applications")
-    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at");
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at")
+    .eq("student_id", viewer.id);
 
   if (applicationId) {
-    applicationQuery = applicationQuery.eq("id", applicationId);
+    applicationQuery = applicationQuery
+      .eq("id", applicationId)
+      .eq("scholarship_id", scholarshipId);
   } else {
     applicationQuery = applicationQuery.eq("scholarship_id", scholarshipId);
   }
@@ -131,6 +161,10 @@ export async function getStudentApplicationEditorData(
 
   const application = (applicationData as ApplicationSummary | null) ?? null;
   if (!application) {
+    return { application: null, documents: [], paymentAccount: null };
+  }
+
+  if (application.scholarship_id !== scholarshipId || application.student_id !== viewer.id) {
     return { application: null, documents: [], paymentAccount: null };
   }
 
@@ -172,7 +206,7 @@ export async function getApplicationDocuments(applicationId: string): Promise<Ap
 
 export async function getStudentApplicationDetail(id: string): Promise<{
   application: ApplicationSummary;
-  scholarship: ScholarshipSummary & { requirements: Requirement[]; criteria: Criterion[] };
+  scholarship: ScholarshipWithRequirements;
   requirements: Requirement[];
   documents: ApplicationDocument[];
   paymentAccount: PaymentAccount | null;
@@ -181,16 +215,18 @@ export async function getStudentApplicationDetail(id: string): Promise<{
   appeal: ApplicationAppeal | null;
   history: { id: number; from_status: string | null; to_status: string; reason: string; created_at: string }[];
 } | null> {
+  const viewer = await requireRole(["student"]);
   const client = await createClient();
   const { data: application, error } = await client
     .from("applications")
     .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at")
     .eq("id", id)
+    .eq("student_id", viewer.id)
     .maybeSingle();
   if (error) fail("ไม่สามารถโหลดใบสมัครได้");
   if (!application) return null;
   const [scholarship, documents, accountResult, disbursementResult, historyResult, interviewResult, appealResult] = await Promise.all([
-    getScholarship(application.scholarship_id),
+    getScholarshipForApplication(application.scholarship_id),
     getApplicationDocuments(id),
     client.from("application_payment_accounts").select("bank_name,account_holder,account_number").eq("application_id", id).maybeSingle(),
     client.from("disbursements").select("id,amount,status,transfer_date,transfer_reference,proof_path,version,updated_at").eq("application_id", id).maybeSingle(),
@@ -199,17 +235,25 @@ export async function getStudentApplicationDetail(id: string): Promise<{
     client.from("application_appeals").select("id,reason,status,response,submitted_at,resolved_at,version").eq("application_id", id).maybeSingle(),
   ]);
   if (!scholarship) throw new Error("ไม่พบทุนการศึกษานี้");
-  if (accountResult.error || disbursementResult.error || historyResult.error) fail("ไม่สามารถโหลดข้อมูลใบสมัครได้");
+  if (
+    accountResult.error ||
+    disbursementResult.error ||
+    historyResult.error ||
+    interviewResult.error ||
+    appealResult.error
+  ) {
+    fail("ไม่สามารถโหลดข้อมูลใบสมัครได้");
+  }
   return {
     application: application as ApplicationSummary,
     scholarship,
     requirements: scholarship.requirements,
     documents,
-    paymentAccount: accountResult.data as PaymentAccount | null,
-    disbursement: disbursementResult.data as Disbursement | null,
-    interview: interviewResult.error ? null : interviewResult.data as ApplicationInterview | null,
-    appeal: appealResult.error ? null : appealResult.data as ApplicationAppeal | null,
-    history: historyResult.data ?? [],
+    paymentAccount: (accountResult.data as PaymentAccount | null) ?? null,
+    disbursement: (disbursementResult.data as Disbursement | null) ?? null,
+    interview: (interviewResult.data as ApplicationInterview | null) ?? null,
+    appeal: (appealResult.data as ApplicationAppeal | null) ?? null,
+    history: (historyResult.data ?? []) as { id: number; from_status: string | null; to_status: string; reason: string; created_at: string }[],
   };
 }
 
@@ -228,6 +272,7 @@ export async function listStudentApplicationsPaginated({
   page?: number;
   pageSize?: number;
 } = {}): Promise<PaginatedStudentApplications> {
+  const viewer = await requireRole(["student"]);
   const client = await createClient();
   const validPage = Math.max(1, page);
   const from = (validPage - 1) * pageSize;
@@ -235,7 +280,8 @@ export async function listStudentApplicationsPaginated({
 
   const { data: applications, count, error } = await client
     .from("applications")
-    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at)", { count: "exact" })
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title)", { count: "exact" })
+    .eq("student_id", viewer.id)
     .range(from, to)
     .order("updated_at", { ascending: false });
 
@@ -276,14 +322,15 @@ export async function getStudentProfileHints() {
   };
 }
 
-export async function listStaffApplications(status?: string, search?: string): Promise<ApplicationSummary[]> {
+export async function listStaffApplications(status?: string | readonly string[], search?: string): Promise<ApplicationSummary[]> {
   const client = await createClient();
   let query = client
     .from("applications")
     .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at)")
     .order("updated_at", { ascending: false })
     .limit(200);
-  if (status) query = query.eq("status", status);
+  if (typeof status === "string" && status) query = query.eq("status", status);
+  else if (Array.isArray(status) && status.length) query = query.in("status", status);
   const { data, error } = await query;
   if (error) fail("ไม่สามารถโหลดใบสมัครสำหรับเจ้าหน้าที่ได้");
   const applications = ((data ?? []) as unknown as Record<string, unknown>[]).map(normalizeApplication);
@@ -473,7 +520,7 @@ export const getNotifications = cache(async (userId?: string): Promise<Notificat
 
 export async function getAcademicOptions() {
  const client = await createClient();
- const { data, error } = await client.from("portal_reference_data").select("name,kind").in("kind", ["faculty", "major"]).eq("active", true).order("name");
+ const { data, error } = await client.from("portal_reference_data").select("name,kind").in("kind", ["faculty", "major", "document_type"]).eq("active", true).order("name");
  if (error) throw new Error("โหลดรายชื่อสำนักวิชาและสาขาไม่ได้");
- return { faculties: data.filter(item => item.kind === "faculty").map(item => item.name), majors: data.filter(item => item.kind === "major").map(item => item.name) };
+ return { faculties: data.filter(item => item.kind === "faculty").map(item => item.name), majors: data.filter(item => item.kind === "major").map(item => item.name), documentTypes: data.filter(item => item.kind === "document_type").map(item => item.name) };
 }

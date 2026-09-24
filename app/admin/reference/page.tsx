@@ -15,7 +15,7 @@ export default async function ReferencePage() {
     <div className="admin-heading"><div>
       <span className="admin-eyebrow">REFERENCE DATA</span>
       <h1>จัดการข้อมูลพื้นฐาน</h1>
-      <p>เพิ่มและแก้ไขประเภททุน คณะ และสาขาวิชา พร้อมประวัติการเปลี่ยนแปลง</p>
+      <p>เพิ่มและแก้ไขประเภททุน คณะ สาขาวิชา และประเภทเอกสาร พร้อมประวัติการเปลี่ยนแปลง</p>
     </div></div>
     <p className="admin-note">ข้อมูลนี้บันทึกในฐานข้อมูลจริง เจ้าหน้าที่เลือกประเภททุนที่เปิดใช้งานได้เมื่อสร้างประกาศทุน</p>
     <ReferenceManager items={(data ?? []) as ReferenceItem[]} />

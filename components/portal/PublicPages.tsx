@@ -69,11 +69,11 @@ export function Landing({ scholarships, viewer, contact }: { scholarships: Schol
           <Link href="/scholarships">ดูทุนทั้งหมด →</Link>
         </div>
         <div className="landing-scholarships">
-          {scholarships.filter((item) => item.status === "published").slice(0, 3).map((s, i) => (
-            <article className={`landing-fund fund-${i}`} key={s.id}>
+          {scholarships.filter((item) => item.status === "published").map((s, i) => (
+            <article className={`landing-fund fund-${i % 3}`} key={s.id}>
               <div className="section-title">
                 <span className="feature-icon">
-                  <Icon name={["trophy", "money", "people"][i]} size={30} />
+                  <Icon name={["trophy", "money", "people"][i % 3]} size={30} />
                 </span>
                 <div>
                   <h3>{s.title}</h3>
@@ -102,7 +102,10 @@ export function Landing({ scholarships, viewer, contact }: { scholarships: Schol
           {!scholarships.some((item) => item.status === "published") && <Panel><h3>ยังไม่มีทุนที่เปิดรับ</h3><p>กรุณาตรวจสอบประกาศอีกครั้งภายหลัง หรือติดต่อเจ้าหน้าที่ทุน</p></Panel>}
         </div>
         <div className="columns home-lower">
-          <Panel title="ขั้นตอนการสมัคร">
+          <Panel
+            title="ขั้นตอนการสมัคร"
+            action={<Link href="/steps">ดูขั้นตอนแบบละเอียด →</Link>}
+          >
             <div id="steps" className="steps">
               {[
                 ["search", "ค้นหาทุน", "เลือกทุนที่สนใจและตรวจสอบคุณสมบัติ"],
@@ -155,7 +158,7 @@ export function Landing({ scholarships, viewer, contact }: { scholarships: Schol
               {!scholarships.length && <li>ยังไม่มีประกาศทุนในระบบ</li>}
             </ul>
           </Panel>
-          <Panel title="ติดต่อเจ้าหน้าที่">
+          <Panel title="ติดต่อเจ้าหน้าที่" action={<Link href="/contact">ดูข้อมูลการติดต่อและแผนที่ →</Link>}>
             <div id="contact">
               <p>{contact.department}</p>
               {contact.phone && <p>☎ {contact.phone}</p>}

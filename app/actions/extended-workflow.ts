@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
-import { dispatchNotificationEmails } from "@/lib/notifications/email";
 import type { WorkflowState } from "./scholarships";
 
 const uuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -27,7 +26,6 @@ export async function declareReviewConflict(_previous: WorkflowState, form: Form
   if (error) return failed(error.code === "42501" ? "งานนี้ไม่พร้อมให้ยืนยันแล้ว" : undefined);
   revalidatePath(`/staff/evaluation?assignment=${assignmentId}`);
   revalidatePath("/committee");
-  await dispatchNotificationEmails();
   return { error: "", success: hasConflict ? "แจ้งเจ้าหน้าที่แล้ว งานนี้ถูกถอนจากรายการประเมินของคุณ" : "ยืนยันแล้วว่าไม่มีผลประโยชน์ทับซ้อน" };
 }
 
@@ -44,7 +42,8 @@ export async function setScholarshipProcess(_previous: WorkflowState, form: Form
   if (error) return failed(error.message === "No final results are available" ? "ยังไม่มีผลการพิจารณาสำหรับประกาศ" : undefined);
   revalidatePath("/staff/scholarships");
   revalidatePath(`/scholarships/${scholarshipId}/results`);
-  return { error: "", success: publish ? "เผยแพร่ผลและกำหนดช่วงอุทธรณ์แล้ว" : "บันทึกจำนวนกรรมการและซ่อนผลประกาศแล้ว" };
+  revalidatePath("/notifications");
+  return { error: "", success: publish ? "บันทึกการเผยแพร่ผลแล้ว ระบบสร้างการแจ้งเตือนเมื่อเริ่มเผยแพร่ผล" : "บันทึกจำนวนกรรมการและซ่อนผลประกาศแล้ว" };
 }
 
 export async function scheduleInterview(_previous: WorkflowState, form: FormData): Promise<WorkflowState> {
@@ -58,7 +57,6 @@ export async function scheduleInterview(_previous: WorkflowState, form: FormData
   if (error) return failed();
   revalidatePath(`/staff/review/${applicationId}`);
   revalidatePath(`/applications/${applicationId}`);
-  await dispatchNotificationEmails();
   return { error: "", success: "บันทึกนัดสัมภาษณ์และแจ้งนักศึกษาแล้ว" };
 }
 
@@ -71,7 +69,6 @@ export async function submitAppeal(_previous: WorkflowState, form: FormData): Pr
   const { error } = await client.rpc("student_submit_appeal", { p_application_id: applicationId, p_reason: reason });
   if (error) return failed(error.code === "23505" ? "คุณส่งคำอุทธรณ์สำหรับใบสมัครนี้แล้ว" : error.message === "Appeal period is closed" ? "ขณะนี้ไม่อยู่ในช่วงเวลารับอุทธรณ์" : undefined);
   revalidatePath(`/applications/${applicationId}`);
-  await dispatchNotificationEmails();
   return { error: "", success: "ส่งคำอุทธรณ์แล้ว เจ้าหน้าที่จะพิจารณาและแจ้งผลผ่านระบบ" };
 }
 
@@ -88,6 +85,5 @@ export async function resolveAppeal(_previous: WorkflowState, form: FormData): P
   if (error) return failed((error.code === "PT409" || error.code === "40001" || (error.code === "P0001" && error.message === "Appeal is not available or changed")) ? "คำอุทธรณ์นี้ถูกเปลี่ยนแล้ว กรุณารีเฟรชหน้า" : undefined);
   revalidatePath(`/staff/review/${applicationId}`);
   revalidatePath(`/applications/${applicationId}`);
-  await dispatchNotificationEmails();
   return { error: "", success: "บันทึกและแจ้งผลคำอุทธรณ์แล้ว" };
 }

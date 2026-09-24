@@ -11,7 +11,6 @@ import {
   MAX_SCHOLARSHIP_COVER_BYTES,
 } from "@/lib/scholarships/cover.mjs";
 import { validApplicationDocument } from "@/lib/scholarships/document-validation";
-import { dispatchNotificationEmails } from "@/lib/notifications/email";
 import { invalidatePublishedScholarshipsCache } from "@/lib/scholarships/server";
 
 export type WorkflowState = {
@@ -56,6 +55,18 @@ const failure = (
         "มีข้อมูลนี้ในระบบแล้ว กรุณาตรวจสอบและลองใหม่",
       success: "",
     };
+
+  if (message === "Scholarship is not open")
+    return {
+      error: "ทุนนี้ยังไม่เปิดรับสมัคร หมดเขต หรือปิดรับสมัครแล้ว จึงส่งใบสมัครไม่ได้ หากเป็นการส่งเอกสารแก้ไข กรุณาติดต่อเจ้าหน้าที่",
+      success: "",
+    };
+
+  if (message === "GPA is below scholarship minimum")
+    return { error: "เกรดเฉลี่ยของคุณต่ำกว่าเกณฑ์ขั้นต่ำของทุนนี้ จึงไม่สามารถส่งใบสมัครได้", success: "" };
+
+  if (message === "Invalid application GPA")
+    return { error: "กรุณากรอกเกรดเฉลี่ยระหว่าง 0–4 และทศนิยมไม่เกิน 2 ตำแหน่ง", success: "" };
 
   if (message === "Invalid bank account details")
     return {
@@ -477,6 +488,28 @@ export async function uploadApplicationDocument(
 
   const client =
     await createClient();
+
+  const { data: appData, error: appCheckError } = await client
+    .from("applications")
+    .select("id,status,student_id")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  if (appCheckError || !appData || appData.student_id !== viewer.id) {
+    return {
+      error: "ไม่มีสิทธิ์แก้ไขหรืออัปโหลดเอกสารสำหรับใบสมัครนี้",
+      success: "",
+      applicationId,
+    };
+  }
+
+  if (!["draft", "revision_requested"].includes(appData.status)) {
+    return {
+      error: "ใบสมัครนี้อยู่ในสถานะที่ไม่สามารถแก้ไขเอกสารได้",
+      success: "",
+      applicationId,
+    };
+  }
 
   const admin =
     createAdminClient();
@@ -1031,7 +1064,6 @@ export async function reviewApplicationDocuments(
     "/staff/review",
   );
 
-  await dispatchNotificationEmails();
 
   return {
     error: "",
@@ -1093,7 +1125,6 @@ export async function assignReviewer(
     "/staff/review",
   );
 
-  await dispatchNotificationEmails();
 
   return {
     error: "",
@@ -1177,12 +1208,6 @@ export async function saveEvaluation(
     `/staff/evaluation?assignment=${assignmentId}`,
   );
 
-  if (
-    value(form, "mode") ===
-    "submit"
-  )
-    await dispatchNotificationEmails();
-
   return {
     error: "",
     success:
@@ -1247,7 +1272,6 @@ export async function decideApplication(
     "/staff/review",
   );
 
-  await dispatchNotificationEmails();
 
   return {
     error: "",
@@ -1416,7 +1440,6 @@ export async function recordDisbursement(
 
   revalidatePath("/staff");
 
-  await dispatchNotificationEmails();
 
   return {
     error: "",

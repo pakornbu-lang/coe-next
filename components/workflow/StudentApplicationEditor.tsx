@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveApplication, uploadApplicationDocument, type WorkflowState } from "@/app/actions/scholarships";
 import { money, type ApplicationDocument, type ApplicationSummary, type PaymentAccount, type Requirement, type ScholarshipSummary } from "@/lib/scholarships/types";
+import { removeDraftDocument } from "@/app/actions/remove-document";
 import { ApplicationStatusBadge } from "./StatusBadge";
 import MoneyInput from "@/components/forms/MoneyInput";
 import DigitsInput from "@/components/forms/DigitsInput";
@@ -15,18 +16,26 @@ const banks = ["ธนาคารกรุงเทพ", "ธนาคารก
 const parentStatuses = ["อยู่ด้วยกัน", "แยกกันอยู่", "หย่า", "บิดาเสียชีวิต", "มารดาเสียชีวิต", "เสียชีวิตทั้งคู่"];
 const steps = ["ข้อมูลการศึกษา", "ครอบครัวและเหตุผล", "บัญชีรับเงิน", "เอกสาร", "ตรวจทาน"];
 
-function DocumentUpload({ applicationId, requirement, document }: { applicationId: string; requirement: Requirement; document?: ApplicationDocument }) {
+function DocumentUpload({ applicationId, requirement, document, canRemove }: { canRemove: boolean; applicationId: string; requirement: Requirement; document?: ApplicationDocument }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(uploadApplicationDocument, empty);
+  const [removed, removeAction, removing] = useActionState(removeDraftDocument, empty);
+  useEffect(() => { if (removed.success) router.refresh(); }, [router, removed.success]);
   useEffect(() => { if (state.success) router.refresh(); }, [router, state.success]);
   return <article className="workflow-document">
     <div><strong>{requirement.label}</strong>{requirement.required && <span className="required-mark">จำเป็น</span>}<p>{requirement.details || "อัปโหลดเอกสาร PDF, JPG, PNG, DOC หรือ DOCX ขนาดไม่เกิน 10 MB"}</p>{document && <p>ไฟล์ปัจจุบัน: <Link href={`/documents/${document.id}`}>{document.file_name}</Link> · <span className={`document-state ${document.status}`}>{document.status === "verified" ? "ผ่านการตรวจ" : document.status === "revision_required" ? "ขอแก้ไข" : "รอตรวจ"}</span>{document.feedback && <> · {document.feedback}</>} · <Link href={`/applications/${applicationId}#document-history`}>ดูประวัติเวอร์ชัน</Link></p>}</div>
     <form action={action} className="workflow-upload-form">
       <input type="hidden" name="application_id" value={applicationId}/><input type="hidden" name="requirement_id" value={requirement.id}/>
       <input name="document" type="file" required accept="application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
-      <button className="btn secondary" disabled={pending}>{pending ? "กำลังอัปโหลด…" : document ? "แทนที่ไฟล์" : "อัปโหลด"}</button>
-      {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success">{state.success}</p>}
+      <button className="btn secondary" disabled={pending || removing} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังอัปโหลด…" : document ? "แทนที่ไฟล์" : "อัปโหลด"}</button>
+      {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success"><span className="action-success-mark" aria-hidden="true">✓</span>{state.success}</p>}
     </form>
+    {canRemove && document && <form action={removeAction} className="workflow-upload-form" onSubmit={event => { if (!window.confirm("นำเอกสารนี้ออกจากใบสมัคร? หากเป็นเอกสารจำเป็นต้องอัปโหลดใหม่ก่อนส่ง")) event.preventDefault(); }}>
+      <input type="hidden" name="application_id" value={applicationId}/><input type="hidden" name="document_id" value={document.id}/><input type="hidden" name="version" value={document.version}/>
+      <button className="btn secondary" disabled={pending || removing} aria-busy={removing}>{removing && <span className="action-spinner" aria-hidden="true"/>}{removing ? "กำลังลบ…" : "ลบออกจากใบสมัคร"}</button>
+      {removed.error && <p role="alert" className="workflow-error">{removed.error}</p>}
+    </form>}
+    {removed.success && <p role="status" className="workflow-success"><span className="action-success-mark" aria-hidden="true">✓</span>{removed.success}</p>}
   </article>;
 }
 
@@ -113,10 +122,11 @@ export default function StudentApplicationEditor({ scholarship, application, req
       <section className="panel" data-step="2" hidden={step !== 2}><h2>บัญชีรับเงิน</h2><p className="workflow-muted">ข้อมูลส่วนนี้เห็นได้เฉพาะนักศึกษาและเจ้าหน้าที่ผู้รับผิดชอบการจ่ายทุน เลขบัญชีใช้ตัวเลข 10–15 หลัก</p><div className="workflow-grid"><input type="hidden" name="bank_name" value={bankChoice === "other" ? customBank : bankChoice}/><label>ธนาคาร *<select name="bank_choice" required value={bankChoice} onChange={(event) => setBankChoice(event.target.value)}><option value="">เลือกธนาคาร</option>{banks.map((bank) => <option key={bank} value={bank}>{bank}</option>)}<option value="other">อื่น ๆ</option></select></label>{bankChoice === "other" && <label>ระบุธนาคาร *<input name="bank_name_other" required maxLength={150} value={customBank} onChange={(event) => setCustomBank(event.target.value)}/></label>}<label>ชื่อบัญชี *<input name="account_holder" required maxLength={200} defaultValue={paymentAccount?.account_holder ?? ""}/></label><label>เลขบัญชี *<DigitsInput name="account_number" required minLength={10} maxLength={15} title="กรุณากรอกเลขบัญชีเป็นตัวเลข 10–15 หลัก" defaultValue={paymentAccount?.account_number ?? ""}/></label></div></section>
       <section className="panel" data-step="3" hidden={step !== 3}><h2>เอกสารประกอบ</h2><p>{application ? "อัปโหลดเอกสารจำเป็นให้ครบก่อนตรวจทานใบสมัคร" : "กรุณาบันทึกร่างก่อน ระบบจึงจะสร้างพื้นที่ส่วนตัวสำหรับอัปโหลดเอกสาร"}</p></section>
       <section className="panel" data-step="4" hidden={step !== 4}><h2>ตรวจทานก่อนส่ง</h2><p className="workflow-info">เมื่อส่งแล้วจะแก้ไขไม่ได้จนกว่าเจ้าหน้าที่จะส่งกลับมาให้แก้ไข กรุณาตรวจสอบข้อมูลต่อไปนี้</p><div className="workflow-review-grid"><div><span>คณะ / สาขา</span><strong>{reviewData.faculty} · {reviewData.major}</strong></div><div><span>ระดับ / ชั้นปี</span><strong>{reviewData.education_level} · ปี {reviewData.study_year}</strong></div><div><span>GPA</span><strong>{reviewData.gpa}</strong></div><div><span>โทรศัพท์</span><strong>{reviewData.phone}</strong></div><div><span>รายได้ครอบครัว</span><strong>{reviewData.income ? `${money(Number(reviewData.income))} บาท` : "—"}</strong></div><div><span>สถานะบิดามารดา</span><strong>{reviewData.parent_status === "other" ? reviewData.parent_status_other : reviewData.parent_status}</strong></div><div><span>บัญชีรับเงิน</span><strong>{reviewData.bank_name} · {reviewData.account_holder} · {reviewData.account_number}</strong></div><div className="workflow-wide"><span>เหตุผลสมัคร</span><strong>{reviewData.reason}</strong></div><div><span>เอกสาร</span><strong>{documents.length}/{requirements.filter((item) => item.required).length} รายการจำเป็น</strong></div></div></section>
-      {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success">{state.success}</p>}
+      
     </form>
-    {step === 3 && application && <section className="panel"><div className="workflow-document-list">{requirements.map((requirement) => <DocumentUpload key={requirement.id} applicationId={application.id} requirement={requirement} document={documents.find((item) => item.requirement_id === requirement.id)}/>)}</div></section>}
+    {step === 3 && application && <section className="panel"><div className="workflow-document-list">{requirements.map((requirement) => <DocumentUpload canRemove={application.status === "draft" && !application.submitted_at} key={requirement.id} applicationId={application.id} requirement={requirement} document={documents.find((item) => item.requirement_id === requirement.id)}/>)}</div></section>}
+    {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success"><span className="action-success-mark" aria-hidden="true">✓</span>{state.success}</p>}
     {stepError && <p role="alert" className="workflow-error">{stepError}</p>}
-    <div className="workflow-actions workflow-step-actions">{step === 0 ? <Link className="btn secondary" href={`/scholarships/${scholarship.id}`}>กลับรายละเอียดทุน</Link> : <button className="btn secondary" type="button" onClick={() => { setStepError(""); setStep((current) => current - 1); }}>ย้อนกลับ</button>}<button className="btn secondary" form="student-application-form" name="mode" value="draft" formNoValidate disabled={pending}>{pending ? "กำลังบันทึก…" : application ? "บันทึกร่าง" : "บันทึกร่างเพื่ออัปโหลดเอกสาร"}</button>{step < steps.length - 1 && (step !== 2 || application) && <button className="btn" type="button" onClick={nextStep}>ถัดไป</button>}{step === steps.length - 1 && <button className="btn" form="student-application-form" name="mode" value="submit" disabled={pending} onClick={(event) => event.currentTarget.form?.classList.add("form-validated")}>{pending ? "กำลังส่ง…" : "ยืนยันและส่งใบสมัคร"}</button>}</div>
+    <div className="workflow-actions workflow-step-actions">{step === 0 ? <Link className="btn secondary" href={`/scholarships/${scholarship.id}`}>กลับรายละเอียดทุน</Link> : <button className="btn secondary" type="button" onClick={() => { setStepError(""); setStep((current) => current - 1); }}>ย้อนกลับ</button>}<button className="btn secondary" form="student-application-form" name="mode" value="draft" formNoValidate disabled={pending} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังบันทึก…" : application ? "บันทึกร่าง" : "บันทึกร่างและไปต่อ"}</button>{step < steps.length - 1 && (step !== 2 || application) && <button className="btn" type="button" onClick={nextStep}>ถัดไป</button>}{step === steps.length - 1 && <button className="btn" form="student-application-form" name="mode" value="submit" disabled={pending} onClick={(event) => event.currentTarget.form?.classList.add("form-validated")} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังส่ง…" : "ยืนยันและส่งใบสมัคร"}</button>}</div>
   </div>;
 }

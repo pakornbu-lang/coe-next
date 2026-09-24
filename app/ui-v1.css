@@ -136,8 +136,8 @@ textarea {
     background 0.15s,
     box-shadow 0.15s;
 }
-.btn:hover {
-  background: #165f46;
+.btn:hover:not(:disabled):not([aria-disabled="true"]) {
+  filter: brightness(.94);
   box-shadow: 0 3px 10px #235c4420;
 }
 .btn.secondary {
@@ -145,7 +145,7 @@ textarea {
   color: var(--green);
   border-color: #6b9c87;
 }
-.btn.secondary:hover {
+.btn.secondary:hover:not(:disabled):not([aria-disabled="true"]) {
   background: #edf8f1;
 }
 .button-row {
@@ -510,10 +510,22 @@ textarea {
   margin-top: 2px;
 }
 .landing-scholarships {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 15px;
   margin-bottom: 15px;
+  padding: 2px 2px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.landing-scholarships .landing-fund {
+  flex: 0 0 calc((100% - 30px) / 3);
+  min-width: 290px;
+  scroll-snap-align: start;
 }
 .landing-fund {
   padding: 17px;
@@ -2073,8 +2085,9 @@ td .badge {
   .features p {
     font-size: 12px;
   }
-  .landing-scholarships {
-    grid-template-columns: 1fr;
+  .landing-scholarships .landing-fund {
+    flex-basis: min(78vw, 360px);
+    min-width: min(78vw, 360px);
   }
   .fund-metrics {
     margin: 8px 0 0;
@@ -2484,3 +2497,92 @@ body {
 .account-details dt { font-weight: 700; }
 .account-details dd { margin: 0; overflow-wrap: anywhere; }
 .popover form { padding: 8px 0; }
+
+/* Staff navigation groups keep related tasks together. */
+.staff-navigation { display: flex; align-items: center; gap: 4px; }
+.staff-nav-group { position: relative; }
+.staff-nav-group > summary {
+  display: flex; align-items: center; gap: 9px; padding: 11px 10px;
+  border-radius: 7px; color: var(--ink); font-size: 14px;
+  white-space: nowrap; cursor: pointer; list-style: none;
+}
+.staff-nav-group > summary::-webkit-details-marker { display: none; }
+.staff-nav-group > summary.active,
+.staff-nav-group > summary:hover,
+.staff-nav-group[open] > summary { background: #e6f2ec; color: #12674f; }
+.staff-nav-chevron { transition: transform .15s; }
+.staff-nav-group[open] .staff-nav-chevron { transform: rotate(180deg); }
+.staff-nav-dropdown {
+  position: absolute; top: calc(100% + 8px); left: 0; min-width: 220px;
+  padding: 6px; background: #fff; border: 1px solid var(--line);
+  border-radius: 10px; box-shadow: 0 8px 30px #20375320; z-index: 25;
+}
+.staff-navigation :is(a, summary):focus-visible { outline: 3px solid #70ad92; outline-offset: 2px; }
+.staff-topbar .account { flex-shrink: 0; }
+.staff-topbar .account summary strong { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1250px) {
+  .staff-navigation { flex-wrap: wrap; }
+}
+@media (max-width: 620px) {
+  .staff-topbar nav.open { width: 100%; }
+  .staff-navigation { display: grid; width: 100%; gap: 4px; }
+  .staff-nav-group > summary { font-size: 13px; padding: 9px; }
+  .staff-nav-chevron { margin-left: auto; }
+  .staff-nav-dropdown { position: static; min-width: 0; margin: 4px 0 8px 16px; box-shadow: none; }
+}
+
+/* Keep navigation visible and anchor destinations clear of its actual height. */
+html { scroll-padding-top: calc(var(--portal-header-height, 90px) + 16px); }
+.topbar { position: sticky; top: 0; z-index: 40; }
+.back-to-top {
+  position: fixed; right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom)); z-index: 35;
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border: 1px solid #fff; border-radius: 50%;
+  background: #20785b; color: #fff; cursor: pointer;
+  box-shadow: 0 4px 16px #17315030;
+}
+.back-to-top:hover { background: #155b43; }
+.back-to-top:focus-visible { outline: 3px solid #70ad92; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* Animate only header dropdown panels; closing remains immediate. */
+@keyframes portal-dropdown-enter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.topbar .staff-nav-group[open] > .staff-nav-dropdown,
+.topbar .account details[open] > .popover {
+  animation: portal-dropdown-enter 150ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .topbar .staff-nav-group[open] > .staff-nav-dropdown,
+  .topbar .account details[open] > .popover { animation: none; }
+  .staff-nav-chevron { transition: none; }
+}
+
+/* Subtle feedback without moving the surrounding layout. */
+.btn, .back-to-top {
+  transition: background-color 150ms ease, color 150ms ease,
+    border-color 150ms ease, box-shadow 150ms ease, filter 150ms ease,
+    scale 100ms ease-out;
+}
+:is(button.btn, a.btn[href], .back-to-top):active:not(:disabled):not([aria-disabled="true"]) {
+  scale: .97;
+}
+.btn:focus-visible { outline: 3px solid #70ad92; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .btn, .back-to-top { transition: none; }
+  :is(button.btn, a.btn[href], .back-to-top):active:not(:disabled):not([aria-disabled="true"]) { scale: 1; }
+}
+
+/* Submission feedback follows each form's actual pending/success state. */
+.action-spinner {
+  display: inline-block; flex: 0 0 auto; width: 1em; height: 1em;
+  box-sizing: border-box; border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%; vertical-align: -.12em; margin-inline-end: .35em;
+  animation: action-spin 700ms linear infinite;
+}
+.action-success-mark { display: inline-block; color: #20795b; font-weight: 700; margin-inline-end: .45em; }
+@keyframes action-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .action-spinner { animation: none; } }

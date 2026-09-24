@@ -44,6 +44,8 @@ export async function saveReference(_previous:MutationState,form:FormData):Promi
   });
   if(error) return failure(error.code,error.message);
   revalidatePath("/admin/reference");
+  revalidatePath("/scholarships/new");
+  revalidatePath("/staff/scholarships");
   revalidatePath("/admin/audit");
   return {error:"",success:"บันทึกข้อมูลพื้นฐานแล้ว"};
 }

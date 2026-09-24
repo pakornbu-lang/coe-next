@@ -13,8 +13,8 @@ export function AssignmentControl({id,version,due,people}:{id:string;version:num
  <label>เปลี่ยนกรรมการ<select name="replacement"><option value="">คงคนเดิม</option>{people.map(x=><option key={x.id} value={x.id}>{x.full_name}</option>)}</select></label>
  <label><input type="checkbox" name="revoke"/> ถอนงาน (ไม่เลือกพร้อมเปลี่ยนกรรมการ)</label>
  <label>เหตุผล<textarea name="reason" required minLength={3} maxLength={500}/></label>
- <button className="btn" disabled={p}>{p?"กำลังบันทึก…":"ยืนยันการเปลี่ยนแปลง"}</button>
- {s.error&&<p role="alert">{s.error}</p>}{s.success&&<p role="status">{s.success}</p>}</form></details>;
+ <button className="btn" disabled={p} aria-busy={p}>{p && <span className="action-spinner" aria-hidden="true"/>}{p?"กำลังบันทึก…":"ยืนยันการเปลี่ยนแปลง"}</button>
+ {s.error&&<p role="alert">{s.error}</p>}{s.success&&<p role="status"><span className="action-success-mark" aria-hidden="true">✓</span>{s.success}</p>}</form></details>;
 }
 export function InterviewControl({applications,people,interview:i,defaultDate=""}:{applications:{id:string;student_name:string;application_no:number}[];people:Person[];interview?:Interview;defaultDate?:string}){
  const [s,a,p]=useActionState(saveInterview,{error:"",success:""});
@@ -46,6 +46,6 @@ export function InterviewControl({applications,people,interview:i,defaultDate=""
  <label>สถานะ<select name="status" value={status} onChange={e=>setStatus(e.target.value)}><option value="scheduled">นัดหมายแล้ว</option><option value="completed">สัมภาษณ์แล้ว</option><option value="cancelled">ยกเลิก</option><option value="no_show">ไม่มาตามนัด</option></select></label></div></fieldset>
  <label>คำแนะนำถึงผู้สมัคร<textarea name="note" maxLength={2000} defaultValue={i?.note}/></label>
  <label>ผลสัมภาษณ์ {status==="completed" && "*"}<textarea name="outcome" required={status==="completed"} minLength={status==="completed"?3:undefined} maxLength={2000} defaultValue={i?.outcome}/></label>
- <button className="btn" disabled={p || !start || !end || end<=start}>{p?"กำลังบันทึก…":"บันทึกและแจ้งผู้เกี่ยวข้อง"}</button>
- {s.error&&<p role="alert">{s.error}</p>}{s.success&&<p role="status">{s.success}</p>}</form>;
+ <button className="btn" disabled={p || !start || !end || end<=start} aria-busy={p}>{p && <span className="action-spinner" aria-hidden="true"/>}{p?"กำลังบันทึก…":"บันทึกและแจ้งผู้เกี่ยวข้อง"}</button>
+ {s.error&&<p role="alert">{s.error}</p>}{s.success&&<p role="status"><span className="action-success-mark" aria-hidden="true">✓</span>{s.success}</p>}</form>;
 }

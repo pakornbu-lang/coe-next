@@ -212,7 +212,7 @@ export default function ScholarshipEditor({
   types,
   academicOptions = { faculties: [], majors: [] },
 }: {
-  academicOptions?: { faculties: string[]; majors: string[] };
+  academicOptions?: { faculties: string[]; majors: string[]; documentTypes?: string[] };
   scholarship?: ScholarshipEditorScholarship;
   types: {
     id: string;
@@ -641,6 +641,7 @@ export default function ScholarshipEditor({
         </p>
 
         <RequirementEditor
+          documentTypes={academicOptions.documentTypes}
           rows={requirementRows}
           onChange={setRequirementRows}
         />
@@ -702,7 +703,7 @@ export default function ScholarshipEditor({
               "form-validated",
             )
           }
-        >
+         aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}
           {pending
             ? "กำลังบันทึก…"
             : scholarship
@@ -724,7 +725,7 @@ export default function ScholarshipEditor({
         <p
           role="status"
           className="workflow-success"
-        >
+        ><span className="action-success-mark" aria-hidden="true">✓</span>
           {state.success}
         </p>
       )}
