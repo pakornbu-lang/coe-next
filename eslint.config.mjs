@@ -14,6 +14,12 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "supabase/functions/**",
   ]),
+  {
+    files: ["scripts/**/*.cjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
