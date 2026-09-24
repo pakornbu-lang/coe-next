@@ -68,10 +68,8 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
             ["/scholarships", "ทุนการศึกษา", "cap"],
             ["/apply", "สมัครทุน", "edit"],
             ["/applications", "ใบสมัครของฉัน", "file"],
-            ["/notifications", "การแจ้งเตือน", "bell"],
             ["/profile", "โปรไฟล์", "user"],
           ];
-  if (viewer && viewer.role !== "student") nav.push(["/notifications", "การแจ้งเตือน", "bell"]);
   if (viewer?.role === "admin") nav.push(["/admin/notifications", "การส่งอีเมล", "mail"]);
   if (auth) return <>{children}</>;
   return (
