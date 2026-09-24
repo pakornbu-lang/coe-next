@@ -39,6 +39,7 @@ let publishedScholarshipsCache: CachedScholarships | null = null;
 
 export function invalidatePublishedScholarshipsCache() {
   publishedScholarshipsCache = null;
+  landingScholarshipsCache = null;
 }
 
 export async function listPublishedScholarships(): Promise<ScholarshipSummary[]> {
