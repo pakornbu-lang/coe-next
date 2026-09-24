@@ -78,6 +78,7 @@ export type ScholarshipWithRequirements = ScholarshipSummary & {
  */
 export type LandingScholarshipData = {
   scholarships: ScholarshipWithRequirements[];
+  latestAnnouncements: Pick<ScholarshipSummary, "id" | "title" | "closes_at">[];
   total: number;
   counts: {
     open: number;
@@ -104,6 +105,7 @@ export async function listLandingScholarships(): Promise<LandingScholarshipData>
     upcomingResult,
     closedResult,
     expiredResult,
+    latestResult,
   ] = await Promise.all([
     client
       .from("scholarships")
@@ -137,13 +139,21 @@ export async function listLandingScholarships(): Promise<LandingScholarshipData>
       .lte("closes_at", nowIso)
       .order("closes_at", { ascending: false })
       .limit(3),
+
+    client
+      .from("scholarships")
+      .select("id,title,closes_at")
+      .in("status", ["published", "closed"])
+      .order("created_at", { ascending: false })
+      .limit(3),
   ]);
 
   if (
     openResult.error ||
     upcomingResult.error ||
     closedResult.error ||
-    expiredResult.error
+    expiredResult.error ||
+    latestResult.error
   ) {
     fail("ไม่สามารถโหลดข้อมูลทุนสำหรับหน้าแรกได้");
   }
@@ -220,6 +230,11 @@ export async function listLandingScholarships(): Promise<LandingScholarshipData>
 
   const result: LandingScholarshipData = {
     scholarships,
+    latestAnnouncements:
+      (latestResult.data ?? []) as Pick<
+        ScholarshipSummary,
+        "id" | "title" | "closes_at"
+      >[],
     total: counts.open + counts.upcoming + counts.closed,
     counts,
   };
