@@ -869,6 +869,7 @@ export async function saveScholarship(
       ]);
 
   invalidatePublishedScholarshipsCache();
+  revalidatePath("/");
   revalidatePath("/scholarships");
   revalidatePath("/staff");
 
@@ -984,6 +985,7 @@ export async function deleteScholarship(
   }
 
   invalidatePublishedScholarshipsCache();
+  revalidatePath("/");
   revalidatePath("/scholarships");
   revalidatePath("/staff");
 
