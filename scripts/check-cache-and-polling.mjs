@@ -6,11 +6,15 @@ const root = process.cwd();
 console.log("Checking cache, polling, and reload audit fixes...\n");
 
 // 1. Verify NO window.location.reload() in the codebase
+// 1. Verify NO setInterval polling in scholarships page; scheduled milestone refresh instead
 const scholarshipsPage = fs.readFileSync(path.join(root, "app/scholarships/page.tsx"), "utf8");
 assert(!scholarshipsPage.includes("window.location.reload()"), "FAIL: window.location.reload() must NOT exist in scholarships page");
 assert(!scholarshipsPage.includes("1000"), "FAIL: 1000ms setInterval must NOT exist in scholarships page");
+assert(!scholarshipsPage.includes("setInterval("), "FAIL: setInterval polling must NOT exist in scholarships page");
+assert(scholarshipsPage.includes("setTimeout("), "FAIL: scheduled setTimeout milestone refresh must exist");
 assert(scholarshipsPage.includes("card.setAttribute(\"data-state\""), "FAIL: scholarships page should update DOM attributes in place");
 console.log("PASS 1: window.location.reload() infinite loop eliminated; status updates in-place via DOM.");
+console.log("PASS 1: setInterval polling eliminated; milestone refresh scheduled on open/close.");
 
 // 2. Verify viewer profile caching
 const authServer = fs.readFileSync(path.join(root, "lib/auth/server.ts"), "utf8");

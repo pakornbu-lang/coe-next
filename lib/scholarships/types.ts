@@ -173,3 +173,26 @@ export const thaiDate = (value: string, withTime = false) =>
     ...(withTime ? { timeStyle: "short" as const } : {}),
     timeZone: "Asia/Bangkok",
   }).format(new Date(value));
+
+export function isScholarshipOpen(
+  item: { status?: string; opens_at: string; closes_at: string },
+  currentTime: number = Date.now()
+): boolean {
+  if (item.status && item.status !== "published") return false;
+  const opensAt = new Date(item.opens_at).getTime();
+  const closesAt = new Date(item.closes_at).getTime();
+  if (Number.isNaN(opensAt) || Number.isNaN(closesAt)) return false;
+  return opensAt <= currentTime && currentTime < closesAt;
+}
+
+export function getScholarshipTimeState(
+  item: { status?: string; opens_at: string; closes_at: string },
+  currentTime: number = Date.now()
+): "upcoming" | "open" | "closed" {
+  if (item.status === "closed" || item.status === "archived") return "closed";
+  const opensAt = new Date(item.opens_at).getTime();
+  const closesAt = new Date(item.closes_at).getTime();
+  if (currentTime >= closesAt) return "closed";
+  if (currentTime < opensAt) return "upcoming";
+  return item.status === "published" ? "open" : "closed";
+}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { listPublishedScholarships } from "@/lib/scholarships/server";
 import {
+  getScholarshipTimeState,
   money,
   scholarshipCoverUrl,
   thaiDate,
@@ -57,26 +58,7 @@ export default async function ScholarshipsPage({
   const scholarshipState = (
     item: (typeof items)[number],
   ) => {
-    const opensAt = new Date(
-      item.opens_at,
-    ).getTime();
-
-    const closesAt = new Date(
-      item.closes_at,
-    ).getTime();
-
-    if (
-      item.status === "closed" ||
-      now >= closesAt
-    ) {
-      return "closed";
-    }
-
-    if (now < opensAt) {
-      return "upcoming";
-    }
-
-    return "open";
+    return getScholarshipTimeState(item, now);
   };
 
   /*
@@ -174,6 +156,7 @@ export default async function ScholarshipsPage({
         }`}
         key={item.id}
         data-scholarship-card
+        data-scholarship-id={item.id}
         data-opens-at={
           item.opens_at
         }
@@ -292,35 +275,37 @@ export default async function ScholarshipsPage({
             ดูรายละเอียด
           </Link>
 
-          {/* เปิดรับสมัคร */}
-          {isOpen && (
-            <Link
-              className="btn"
-              href={`/apply?scholarship=${item.id}`}
-            >
-              สมัครทุน
-            </Link>
-          )}
+          <span data-apply-button-slot>
+            {/* เปิดรับสมัคร */}
+            {isOpen && (
+              <Link
+                className="btn"
+                href={`/apply?scholarship=${item.id}`}
+              >
+                สมัครทุน
+              </Link>
+            )}
 
-          {/* ยังไม่เปิดรับสมัคร */}
-          {isUpcoming && (
-            <span
-              className="btn scholarship-upcoming-button"
-              aria-disabled="true"
-            >
-              ยังไม่เปิดรับสมัคร
-            </span>
-          )}
+            {/* ยังไม่เปิดรับสมัคร */}
+            {isUpcoming && (
+              <span
+                className="btn scholarship-upcoming-button"
+                aria-disabled="true"
+              >
+                ยังไม่เปิดรับสมัคร
+              </span>
+            )}
 
-          {/* ปิดรับสมัคร */}
-          {isClosed && (
-            <span
-              className="btn scholarship-closed-button"
-              aria-disabled="true"
-            >
-              ปิดรับสมัคร
-            </span>
-          )}
+            {/* ปิดรับสมัคร */}
+            {isClosed && (
+              <span
+                className="btn scholarship-closed-button"
+                aria-disabled="true"
+              >
+                ปิดรับสมัคร
+              </span>
+            )}
+          </span>
         </div>
       </article>
     );
@@ -531,68 +516,38 @@ export default async function ScholarshipsPage({
         {`
           function updateScholarshipTimeStatus() {
             const now = Date.now();
+            let nextMilestone = null;
 
             document
-              .querySelectorAll(
-                "[data-scholarship-card]"
-              )
+              .querySelectorAll("[data-scholarship-card]")
               .forEach((card) => {
-                const opensAt =
-                  card.getAttribute(
-                    "data-opens-at"
-                  );
+                const opensAt = card.getAttribute("data-opens-at");
+                const closesAt = card.getAttribute("data-closes-at");
+                const scholarshipStatus = card.getAttribute("data-status");
+                const scholarshipId = card.getAttribute("data-scholarship-id");
 
-                const closesAt =
-                  card.getAttribute(
-                    "data-closes-at"
-                  );
+                if (!opensAt || !closesAt) return;
 
-                const scholarshipStatus =
-                  card.getAttribute(
-                    "data-status"
-                  );
+                const openTime = new Date(opensAt).getTime();
+                const closeTime = new Date(closesAt).getTime();
 
-                if (
-                  !opensAt ||
-                  !closesAt
-                ) {
-                  return;
+                if (openTime > now && (nextMilestone === null || openTime < nextMilestone)) {
+                  nextMilestone = openTime;
+                }
+                if (closeTime > now && (nextMilestone === null || closeTime < nextMilestone)) {
+                  nextMilestone = closeTime;
                 }
 
-                const openTime =
-                  new Date(
-                    opensAt
-                  ).getTime();
-
-                const closeTime =
-                  new Date(
-                    closesAt
-                  ).getTime();
-
-                let nextState =
-                  "open";
-
-                if (
-                  scholarshipStatus ===
-                    "closed" ||
-                  now >= closeTime
-                ) {
-                  nextState =
-                    "closed";
-                } else if (
-                  now < openTime
-                ) {
-                  nextState =
-                    "upcoming";
+                let nextState = "open";
+                if (scholarshipStatus === "closed" || now >= closeTime) {
+                  nextState = "closed";
+                } else if (now < openTime) {
+                  nextState = "upcoming";
                 }
 
-                if (
-                  card.getAttribute(
-                    "data-state"
-                  ) !== nextState
-                ) {
+                if (card.getAttribute("data-state") !== nextState) {
                   card.setAttribute("data-state", nextState);
-                  const badge = card.querySelector(".workflow-status");
+                  const badge = card.querySelector("[data-scholarship-badge]") || card.querySelector(".workflow-status");
                   if (badge) {
                     if (nextState === "closed") {
                       badge.textContent = "ปิดรับสมัครแล้ว";
@@ -605,16 +560,37 @@ export default async function ScholarshipsPage({
                       badge.className = "workflow-status scholarship-published";
                     }
                   }
+
+                  const btnSlot = card.querySelector("[data-apply-button-slot]");
+                  if (btnSlot) {
+                    if (nextState === "closed") {
+                      btnSlot.innerHTML = '<span class="btn scholarship-closed-button" aria-disabled="true">ปิดรับสมัคร</span>';
+                    } else if (nextState === "upcoming") {
+                      btnSlot.innerHTML = '<span class="btn scholarship-upcoming-button" aria-disabled="true">ยังไม่เปิดรับสมัคร</span>';
+                    } else {
+                      btnSlot.innerHTML = '<a class="btn" href="/apply?scholarship=' + encodeURIComponent(scholarshipId || "") + '">สมัครทุน</a>';
+                    }
+                  }
+
+                  if (nextState === "closed") {
+                    card.classList.add("scholarship-expired");
+                  } else {
+                    card.classList.remove("scholarship-expired");
+                  }
                 }
               });
+
+            if (nextMilestone !== null) {
+              const delay = Math.max(200, nextMilestone - now + 500);
+              if (delay <= 2147483647) {
+                setTimeout(() => {
+                  updateScholarshipTimeStatus();
+                }, delay);
+              }
+            }
           }
 
           updateScholarshipTimeStatus();
-
-          setInterval(
-            updateScholarshipTimeStatus,
-            30000
-          );
         `}
       </Script>
     </div>
