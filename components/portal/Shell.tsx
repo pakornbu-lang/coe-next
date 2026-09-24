@@ -13,6 +13,24 @@ import StaffNavigation from "./StaffNavigation";
 export default function Shell({ children, viewer }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const update = () => setShowBackToTop(window.scrollY > 300);
+    const frame = requestAnimationFrame(update);
+    window.addEventListener("scroll", update, { passive: true });
+    const header = headerRef.current;
+    const observer = new ResizeObserver(() => {
+      if (header) document.documentElement.style.setProperty("--portal-header-height", `${header.offsetHeight}px`);
+    });
+    if (header) observer.observe(header);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", update);
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--portal-header-height");
+    };
+  }, [path]);
   const profileMenu = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const menu = profileMenu.current;
@@ -72,7 +90,7 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
   return (
     <div className="ui-app">
       <a className="skip" href="#main-content">ข้ามไปเนื้อหาหลัก</a>
-      <header className={viewer?.role === "staff" ? "topbar staff-topbar" : "topbar"}>
+      <header ref={headerRef} tabIndex={-1} className={viewer?.role === "staff" ? "topbar staff-topbar" : "topbar"}>
         <Brand />
         <button className="menu-toggle btn secondary" aria-label="เปิดหรือปิดเมนู"
           aria-expanded={open} onClick={() => setOpen(!open)}>☰</button>
@@ -125,6 +143,12 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
         <span>ระบบติดตามทุนการศึกษา · ระบบทุนการศึกษาภายในมหาวิทยาลัย</span>
         <small>ข้อมูลส่วนบุคคลและเอกสารได้รับการคุ้มครองตามสิทธิ์ของบัญชี</small>
       </footer>
+      {showBackToTop && <button type="button" className="back-to-top" aria-label="กลับขึ้นบนสุด" title="กลับขึ้นบนสุด" onClick={() => {
+        headerRef.current?.focus({ preventScroll: true });
+        window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 12 6-6 6 6M12 6v14"/></svg>
+      </button>}
     </div>
   );
 }
