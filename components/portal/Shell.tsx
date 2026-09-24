@@ -7,9 +7,9 @@ import LogoutButton from "@/components/auth/LogoutButton";
 import Avatar from "@/components/account/Avatar";
 import { homeForRole, roleLabels, type Viewer } from "@/lib/auth/types";
 import type { Notification } from "@/lib/scholarships/types";
-import NotificationMenu from "./NotificationMenu";
+import StudentNotificationMenu from "./StudentNotificationMenu";
 
-export default function Shell({ children, viewer, notifications = [] }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
+export default function Shell({ children, viewer }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const profileMenu = useRef<HTMLDetailsElement>(null);
@@ -68,8 +68,11 @@ export default function Shell({ children, viewer, notifications = [] }: { childr
             ["/scholarships", "ทุนการศึกษา", "cap"],
             ["/apply", "สมัครทุน", "edit"],
             ["/applications", "ใบสมัครของฉัน", "file"],
+            ["/notifications", "การแจ้งเตือน", "bell"],
             ["/profile", "โปรไฟล์", "user"],
           ];
+  if (viewer && viewer.role !== "student") nav.push(["/notifications", "การแจ้งเตือน", "bell"]);
+  if (viewer?.role === "admin") nav.push(["/admin/notifications", "การส่งอีเมล", "mail"]);
   if (auth) return <>{children}</>;
   return (
     <div className="ui-app">
@@ -94,7 +97,7 @@ export default function Shell({ children, viewer, notifications = [] }: { childr
           </div>
         ) : (
           <div className="account">
-            <NotificationMenu notifications={notifications} />
+            <StudentNotificationMenu key={path} audience={viewer.role === "student" ? "student" : "member"} />
             <details ref={profileMenu}>
               <summary aria-label="เมนูบัญชีผู้ใช้">
                 <Avatar version={viewer.avatarVersion} name={viewer.fullName} />

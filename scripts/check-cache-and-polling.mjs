@@ -31,8 +31,8 @@ console.log("PASS 4: Published scholarships cached across home, scholarships, an
 
 // 5. Verify layout uses cached notifications with viewer.id
 const layoutCode = fs.readFileSync(path.join(root, "app/layout.tsx"), "utf8");
-assert(layoutCode.includes("getNotifications(viewer.id)"), "FAIL: app/layout.tsx must pass viewer.id to getNotifications");
-console.log("PASS 5: Root layout passes viewer.id for targeted caching.");
+assert(!layoutCode.includes("await getNotifications("), "FAIL: layout must not duplicate the notification menu API query");
+console.log("PASS 5: Root layout avoids duplicate notification queries; menu loads through role-scoped API.");
 
 // 6. Verify cache invalidations on mutations
 const profileAction = fs.readFileSync(path.join(root, "app/actions/profile.ts"), "utf8");

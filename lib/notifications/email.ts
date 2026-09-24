@@ -48,14 +48,9 @@ export async function dispatchNotificationEmails({ limit = DEFAULT_BATCH_LIMIT }
 
   // Fetch pending / queued / retryable failed rows (capped at batch limit, default 20)
   const batchSize = Math.min(Math.max(limit, 1), 20);
-  const { data, error } = await config.admin
-    .from("notification_email_outbox")
-    .select("id,to_email,subject,body,href,status,attempts,max_retries,next_attempt_at")
-    .in("status", ["pending", "queued", "failed"])
-    .order("created_at", { ascending: true })
-    .limit(batchSize);
+  const { data, error } = await config.admin.rpc("notification_email_batch", { p_limit: batchSize });
 
-  if (error) return { processed: 0, sent: 0, configured: true };
+  if (error) return { processed: 0, sent: 0, configured: true, error: "Unable to load email queue" };
 
   const now = Date.now();
   const rows = ((data ?? []) as OutboxRow[]).filter((row) => {
@@ -81,6 +76,7 @@ export async function dispatchNotificationEmails({ limit = DEFAULT_BATCH_LIMIT }
       })
       .eq("id", row.id)
       .eq("status", row.status)
+      .eq("attempts", row.attempts)
       .select("id")
       .maybeSingle();
 
@@ -133,5 +129,5 @@ export async function dispatchNotificationEmails({ limit = DEFAULT_BATCH_LIMIT }
     }
   }
 
-  return { processed: rows.length, sent, configured: true };
+  return { processed: rows.length, sent, failed: rows.length - sent, configured: true };
 }
