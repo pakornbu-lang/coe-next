@@ -29,7 +29,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
   return <div className="workflow-stack"><section className="panel"><h1>ตารางสัมภาษณ์</h1><p>เลือกวัน ดูนัด แล้วกำหนดเวลา ระบบตรวจเวลาซ้อนก่อนบันทึก</p>
     <form className="workflow-inline-form">{filters.application && <input type="hidden" name="application" value={filters.application}/>}
       <label>วันที่<input type="date" name="date" defaultValue={date}/></label><label>ทุน<select name="scholarship" defaultValue={filters.scholarship ?? ""}><option value="">ทุกทุน</option>{scholarships.data.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
-      <button className="btn">แสดงรายการ</button><Link className="btn secondary" href="/staff/interviews">วันนี้ / ล้างตัวกรอง</Link></form>
+      <div className="evaluation-filter-actions"><button className="btn">แสดงรายการ</button><Link className="btn secondary" href="/staff/interviews">วันนี้ / ล้างตัวกรอง</Link></div></form>
     {filters.application && <p><Link href={`/staff/review/${filters.application}`}>กลับใบสมัครที่เลือก</Link> · กำลังแสดงเฉพาะใบสมัครนี้</p>}</section>
     <div className="interview-layout"><InterviewCalendar date={date} counts={counts} scholarship={filters.scholarship} application={filters.application}/>
       <section className="workflow-stack"><div className="panel"><h2>นัดวันที่ {thaiDate(`${date}T00:00:00+07:00`)}</h2><p>{rows.length} รายการ</p></div>
