@@ -1229,3 +1229,6 @@
 .application-stage-tabs a.active { background: #e6f2ec; border-color: #78aa91; color: #12674f; }
 .application-stage-tabs a:focus-visible { outline: 3px solid #70ad92; outline-offset: 2px; }
 @media (max-width: 620px) { .application-stage-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .application-stage-tabs a { padding: 10px 8px; font-size: 13px; } }
+
+/* Separate assessment filter buttons from the fields above. */
+.evaluation-filter-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; grid-column: 1 / -1; }
