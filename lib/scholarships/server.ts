@@ -79,6 +79,11 @@ export type ScholarshipWithRequirements = ScholarshipSummary & {
 export type LandingScholarshipData = {
   scholarships: ScholarshipWithRequirements[];
   total: number;
+  counts: {
+    open: number;
+    upcoming: number;
+    closed: number;
+  };
 };
 
 let landingScholarshipsCache: { data: LandingScholarshipData; expiresAt: number } | null = null;
@@ -90,52 +95,140 @@ export async function listLandingScholarships(): Promise<LandingScholarshipData>
   }
 
   const client = await createClient();
-  const { data, count, error } = await client
-    .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at", { count: "exact" })
-    .in("status", ["published", "closed"])
-    .order("closes_at", { ascending: true })
-    .limit(18);
+  const nowIso = new Date(now).toISOString();
+  const columns =
+    "id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at";
 
-  if (error) fail("ไม่สามารถโหลดรายการทุนหน้าแรกได้");
+  const [
+    openResult,
+    upcomingResult,
+    closedResult,
+    expiredResult,
+  ] = await Promise.all([
+    client
+      .from("scholarships")
+      .select(columns, { count: "exact" })
+      .eq("status", "published")
+      .lte("opens_at", nowIso)
+      .gt("closes_at", nowIso)
+      .order("closes_at", { ascending: true })
+      .limit(6),
 
-  const scholarships = (data ?? []) as ScholarshipSummary[];
-  const ids = scholarships.map((item) => item.id);
-  if (!ids.length) {
-    const empty = { scholarships: [], total: count ?? 0 };
-    landingScholarshipsCache = { data: empty, expiresAt: now + 60_000 };
-    return empty;
+    client
+      .from("scholarships")
+      .select(columns, { count: "exact" })
+      .eq("status", "published")
+      .gt("opens_at", nowIso)
+      .gt("closes_at", nowIso)
+      .order("opens_at", { ascending: true })
+      .limit(3),
+
+    client
+      .from("scholarships")
+      .select(columns, { count: "exact" })
+      .eq("status", "closed")
+      .order("closes_at", { ascending: false })
+      .limit(3),
+
+    client
+      .from("scholarships")
+      .select(columns, { count: "exact" })
+      .eq("status", "published")
+      .lte("closes_at", nowIso)
+      .order("closes_at", { ascending: false })
+      .limit(3),
+  ]);
+
+  if (
+    openResult.error ||
+    upcomingResult.error ||
+    closedResult.error ||
+    expiredResult.error
+  ) {
+    fail("????????????????????????????????");
   }
 
-  const { data: requirementData, error: requirementError } = await client
-    .from("scholarship_document_requirements")
-    .select("scholarship_id,id,label,details,required,sort_order")
-    .in("scholarship_id", ids)
-    .order("sort_order");
+  const openScholarships =
+    (openResult.data ?? []) as unknown as ScholarshipSummary[];
 
-  if (requirementError) fail("ไม่สามารถโหลดรายการเอกสารทุนได้");
+  const upcomingScholarships =
+    (upcomingResult.data ?? []) as unknown as ScholarshipSummary[];
+
+  const closedScholarships = [
+    ...((closedResult.data ?? []) as unknown as ScholarshipSummary[]),
+    ...((expiredResult.data ?? []) as unknown as ScholarshipSummary[]),
+  ]
+    .sort(
+      (a, b) =>
+        new Date(b.closes_at).getTime() -
+        new Date(a.closes_at).getTime(),
+    )
+    .slice(0, 3);
+
+  const requirementIds = openScholarships.map((item) => item.id);
 
   const requirementsByScholarship = new Map<string, Requirement[]>();
-  for (const row of (requirementData ?? []) as Array<Requirement & { scholarship_id: string }>) {
-    const requirements = requirementsByScholarship.get(row.scholarship_id) ?? [];
-    requirements.push({
-      id: row.id,
-      label: row.label,
-      details: row.details,
-      required: row.required,
-      sort_order: row.sort_order,
-    });
-    requirementsByScholarship.set(row.scholarship_id, requirements);
+
+  if (requirementIds.length) {
+    const { data: requirementData, error: requirementError } = await client
+      .from("scholarship_document_requirements")
+      .select("scholarship_id,id,label,details,required,sort_order")
+      .in("scholarship_id", requirementIds)
+      .order("sort_order");
+
+    if (requirementError) {
+      fail("???????????????????????????????");
+    }
+
+    for (
+      const row of (requirementData ?? []) as Array<
+        Requirement & { scholarship_id: string }
+      >
+    ) {
+      const requirements =
+        requirementsByScholarship.get(row.scholarship_id) ?? [];
+
+      requirements.push({
+        id: row.id,
+        label: row.label,
+        details: row.details,
+        required: row.required,
+        sort_order: row.sort_order,
+      });
+
+      requirementsByScholarship.set(row.scholarship_id, requirements);
+    }
   }
 
-  const result = {
-    scholarships: scholarships.map((scholarship) => ({
+  const scholarships = [
+    ...openScholarships,
+    ...upcomingScholarships,
+    ...closedScholarships,
+  ].map((scholarship) => ({
     ...scholarship,
-    requirements: requirementsByScholarship.get(scholarship.id) ?? [],
-    })),
-    total: count ?? scholarships.length,
+    requirements:
+      requirementsByScholarship.get(scholarship.id) ?? [],
+  }));
+
+  const counts = {
+    open: openResult.count ?? 0,
+    upcoming: upcomingResult.count ?? 0,
+    closed:
+      (closedResult.count ?? 0) +
+      (expiredResult.count ?? 0),
   };
-  landingScholarshipsCache = { data: result, expiresAt: now + 60_000 };
+
+  const result: LandingScholarshipData = {
+    scholarships,
+    total: counts.open + counts.upcoming + counts.closed,
+    counts,
+  };
+
+  landingScholarshipsCache = {
+    data: result,
+    expiresAt: now + 60_000,
+  };
+
   return result;
 }
 

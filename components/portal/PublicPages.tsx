@@ -26,11 +26,17 @@ const programIcons: Record<string, string> = {
 export function Landing({
   scholarships,
   totalScholarships,
+  scholarshipCounts,
   viewer,
   contact,
 }: {
   scholarships: ScholarshipWithRequirements[];
   totalScholarships: number;
+  scholarshipCounts: {
+    open: number;
+    upcoming: number;
+    closed: number;
+  };
   viewer: Viewer | null;
   contact: { department: string; phone: string; email: string; hours: string };
 }) {
@@ -38,7 +44,6 @@ export function Landing({
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const openScholarships = scholarships.filter((item) => getScholarshipTimeState(item, now) === "open");
-  const upcomingScholarships = scholarships.filter((item) => getScholarshipTimeState(item, now) === "upcoming");
   const closedScholarships = scholarships.filter((item) => getScholarshipTimeState(item, now) === "closed");
   const closingSoon = openScholarships.filter((item) => {
     const days = (new Date(item.closes_at).getTime() - now) / 86_400_000;
@@ -89,17 +94,17 @@ export function Landing({
           </div>
           <div>
             <span>กำลังเปิดรับสมัคร</span>
-            <strong>{openScholarships.length}</strong>
+            <strong>{scholarshipCounts.open}</strong>
             <small>ทุนที่สมัครได้ตอนนี้</small>
           </div>
           <div>
             <span>กำลังจะเปิดรับ</span>
-            <strong>{upcomingScholarships.length}</strong>
+            <strong>{scholarshipCounts.upcoming}</strong>
             <small>ทุนที่เตรียมเปิดสมัคร</small>
           </div>
           <div>
             <span>ปิดรับสมัครแล้ว</span>
-            <strong>{closedScholarships.length}</strong>
+            <strong>{scholarshipCounts.closed}</strong>
             <small>ดูประกาศและรายละเอียดย้อนหลัง</small>
           </div>
           <Link className="landing-overview-link" href="/scholarships">
