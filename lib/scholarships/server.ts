@@ -68,6 +68,75 @@ export type ScholarshipWithRequirements = ScholarshipSummary & {
   requirements: Requirement[];
 };
 
+/**
+ * Data used by the public landing page.
+ *
+ * Requirements are loaded in one query for all scholarships so the landing
+ * page does not introduce an N+1 query pattern while showing the checklist.
+ */
+export type LandingScholarshipData = {
+  scholarships: ScholarshipWithRequirements[];
+  total: number;
+};
+
+let landingScholarshipsCache: { data: LandingScholarshipData; expiresAt: number } | null = null;
+
+export async function listLandingScholarships(): Promise<LandingScholarshipData> {
+  const now = Date.now();
+  if (landingScholarshipsCache && landingScholarshipsCache.expiresAt > now) {
+    return landingScholarshipsCache.data;
+  }
+
+  const client = await createClient();
+  const { data, count, error } = await client
+    .from("scholarships")
+    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at", { count: "exact" })
+    .in("status", ["published", "closed"])
+    .order("closes_at", { ascending: true })
+    .limit(18);
+
+  if (error) fail("ไม่สามารถโหลดรายการทุนหน้าแรกได้");
+
+  const scholarships = (data ?? []) as ScholarshipSummary[];
+  const ids = scholarships.map((item) => item.id);
+  if (!ids.length) {
+    const empty = { scholarships: [], total: count ?? 0 };
+    landingScholarshipsCache = { data: empty, expiresAt: now + 60_000 };
+    return empty;
+  }
+
+  const { data: requirementData, error: requirementError } = await client
+    .from("scholarship_document_requirements")
+    .select("scholarship_id,id,label,details,required,sort_order")
+    .in("scholarship_id", ids)
+    .order("sort_order");
+
+  if (requirementError) fail("ไม่สามารถโหลดรายการเอกสารทุนได้");
+
+  const requirementsByScholarship = new Map<string, Requirement[]>();
+  for (const row of (requirementData ?? []) as Array<Requirement & { scholarship_id: string }>) {
+    const requirements = requirementsByScholarship.get(row.scholarship_id) ?? [];
+    requirements.push({
+      id: row.id,
+      label: row.label,
+      details: row.details,
+      required: row.required,
+      sort_order: row.sort_order,
+    });
+    requirementsByScholarship.set(row.scholarship_id, requirements);
+  }
+
+  const result = {
+    scholarships: scholarships.map((scholarship) => ({
+    ...scholarship,
+    requirements: requirementsByScholarship.get(scholarship.id) ?? [],
+    })),
+    total: count ?? scholarships.length,
+  };
+  landingScholarshipsCache = { data: result, expiresAt: now + 60_000 };
+  return result;
+}
+
 export async function getScholarshipForApplication(
   id: string
 ): Promise<ScholarshipWithRequirements | null> {
