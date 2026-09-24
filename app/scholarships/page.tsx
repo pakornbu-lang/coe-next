@@ -35,8 +35,17 @@ export default async function ScholarshipsPage({
 }) {
   const {
     q = "",
-    status = "all",
+    status: rawStatus = "all",
   } = await searchParams;
+
+  const status = [
+    "all",
+    "open",
+    "upcoming",
+    "closed",
+  ].includes(rawStatus)
+    ? rawStatus
+    : "all";
 
   const items =
     await listPublishedScholarships();
