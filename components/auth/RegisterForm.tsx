@@ -1,10 +1,12 @@
 "use client";
 import Link from "next/link";
-import {useActionState} from "react";
+import {useActionState,useState} from "react";
 import {registerStudent} from "@/app/actions/register";
 import DigitsInput from "@/components/forms/DigitsInput";
 export default function RegisterForm(){
  const [state,action,pending]=useActionState(registerStudent,{error:"",success:""});
+ const [showPassword,setShowPassword]=useState(false);
+ const [showConfirmPassword,setShowConfirmPassword]=useState(false);
  return <form action={action} onInvalidCapture={event=>event.currentTarget.classList.add("form-validated")}>
  <label htmlFor="register-prefix">คำนำหน้าชื่อ *</label><select id="register-prefix" name="prefix" required defaultValue="นาย"><option>นาย</option><option>นางสาว</option><option>นาง</option></select>
  <label htmlFor="register-first-name">ชื่อ *</label><input id="register-first-name" name="first_name" autoComplete="given-name" required maxLength={100}/>

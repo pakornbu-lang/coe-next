@@ -69,11 +69,11 @@ export function Landing({ scholarships, viewer, contact }: { scholarships: Schol
           <Link href="/scholarships">ดูทุนทั้งหมด →</Link>
         </div>
         <div className="landing-scholarships">
-          {scholarships.filter((item) => item.status === "published").slice(0, 3).map((s, i) => (
-            <article className={`landing-fund fund-${i}`} key={s.id}>
+          {scholarships.filter((item) => item.status === "published").map((s, i) => (
+            <article className={`landing-fund fund-${i % 3}`} key={s.id}>
               <div className="section-title">
                 <span className="feature-icon">
-                  <Icon name={["trophy", "money", "people"][i]} size={30} />
+                  <Icon name={["trophy", "money", "people"][i % 3]} size={30} />
                 </span>
                 <div>
                   <h3>{s.title}</h3>
