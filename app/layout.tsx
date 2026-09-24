@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import AppLayout from "@/components/portal/Shell";
-import BackToTop from "@/components/portal/BackToTop";
 import { getViewer } from "@/lib/auth/server";
 import "./globals.css";
 import "./ui-v1.css";
@@ -21,7 +20,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="th" data-scroll-behavior="smooth">
       <body>
         <AppLayout key={viewer?.id ?? "guest"} viewer={viewer}>{children}</AppLayout>
-        <BackToTop />
       </body>
     </html>
   );

@@ -996,34 +996,6 @@ textarea {
   color: var(--green);
   font-size: 18px;
 }
-.back-to-top {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 45;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid #6b9c87;
-  border-radius: 50%;
-  background: #fff;
-  color: var(--green);
-  box-shadow: 0 5px 18px #163d2b22;
-  font-size: 24px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(10px);
-  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
-}
-.back-to-top.is-visible {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-.back-to-top:hover {
-  background: #edf8f1;
-}
 .welcome-banner {
   position: relative;
   overflow: hidden;
@@ -2609,10 +2581,6 @@ td .badge {
   }
   .landing-closed-date {
     white-space: normal;
-  }
-  .back-to-top {
-    right: 15px;
-    bottom: 15px;
   }
   .features {
     grid-template-columns: 1fr;
