@@ -15,6 +15,46 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
   const [open, setOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+  const scrollAnimation = useRef<number | null>(null);
+  const stopScrollAnimation = () => {
+    if (scrollAnimation.current !== null) cancelAnimationFrame(scrollAnimation.current);
+    scrollAnimation.current = null;
+  };
+  const scrollToTop = () => {
+    stopScrollAnimation();
+    const startY = window.scrollY;
+    const startX = window.scrollX;
+    const startedAt = performance.now();
+    const animate = (now: number) => {
+      const progress = Math.min((now - startedAt) / 700, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      // Each frame sets an exact position; native smooth scrolling would compete.
+      window.scrollTo({ top: startY * (1 - eased), left: startX, behavior: "instant" });
+      if (progress < 1) scrollAnimation.current = requestAnimationFrame(animate);
+      else {
+        scrollAnimation.current = null;
+        headerRef.current?.focus({ preventScroll: true });
+      }
+    };
+    scrollAnimation.current = requestAnimationFrame(animate);
+  };
+  useEffect(() => {
+    const cancel = () => stopScrollAnimation();
+    const cancelWithKey = (event: KeyboardEvent) => {
+      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "Escape", "Tab"].includes(event.key)) cancel();
+    };
+    window.addEventListener("wheel", cancel, { passive: true });
+    window.addEventListener("touchstart", cancel, { passive: true });
+    window.addEventListener("pointerdown", cancel, { passive: true });
+    window.addEventListener("keydown", cancelWithKey);
+    return () => {
+      cancel();
+      window.removeEventListener("wheel", cancel);
+      window.removeEventListener("touchstart", cancel);
+      window.removeEventListener("pointerdown", cancel);
+      window.removeEventListener("keydown", cancelWithKey);
+    };
+  }, [path]);
   useEffect(() => {
     const update = () => setShowBackToTop(window.scrollY > 300);
     const frame = requestAnimationFrame(update);
@@ -143,10 +183,7 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
         <span>ระบบติดตามทุนการศึกษา · ระบบทุนการศึกษาภายในมหาวิทยาลัย</span>
         <small>ข้อมูลส่วนบุคคลและเอกสารได้รับการคุ้มครองตามสิทธิ์ของบัญชี</small>
       </footer>
-      {showBackToTop && <button type="button" className="back-to-top" aria-label="กลับขึ้นบนสุด" title="กลับขึ้นบนสุด" onClick={() => {
-        headerRef.current?.focus({ preventScroll: true });
-        window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
-      }}>
+      {showBackToTop && <button type="button" className="back-to-top" aria-label="กลับขึ้นบนสุด" title="กลับขึ้นบนสุด" onClick={scrollToTop}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 12 6-6 6 6M12 6v14"/></svg>
       </button>}
     </div>
