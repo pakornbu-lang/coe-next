@@ -514,9 +514,12 @@ export default async function ScholarshipsPage({
         strategy="afterInteractive"
       >
         {`
+          const activeFilter = ${JSON.stringify(status)};
+
           function updateScholarshipTimeStatus() {
             const now = Date.now();
             let nextMilestone = null;
+            let filterNeedsReload = false;
 
             document
               .querySelectorAll("[data-scholarship-card]")
@@ -546,6 +549,11 @@ export default async function ScholarshipsPage({
                 }
 
                 if (card.getAttribute("data-state") !== nextState) {
+                  if (activeFilter !== "all") {
+                    filterNeedsReload = true;
+                    return;
+                  }
+
                   card.setAttribute("data-state", nextState);
                   const badge = card.querySelector("[data-scholarship-badge]") || card.querySelector(".workflow-status");
                   if (badge) {
@@ -579,6 +587,11 @@ export default async function ScholarshipsPage({
                   }
                 }
               });
+
+            if (filterNeedsReload) {
+              window.location.reload();
+              return;
+            }
 
             if (nextMilestone !== null) {
               const delay = Math.max(200, nextMilestone - now + 500);
