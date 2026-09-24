@@ -43,7 +43,7 @@ const {PGlite}=require(process.env.PGLITE_MODULE||"@electric-sql/pglite");
  // Verify fail-closed behavior: an unrecognised handler rolls back earlier edits.
  await db.exec("create or replace function private.portal_admin_member(p_mode integer) returns integer language plpgsql security definer set search_path='' as $$ begin raise exception 'STALE_VERSION' using errcode='40001'; end; $$;");
  await db.exec("create or replace function public.staff_schedule_interview_v2(p_mode integer) returns integer language plpgsql security definer set search_path='' as $$ begin return 8; end; $$;");
- await assert.rejects(()=>db.exec(migration),/Unexpected conflict handler/);
+ await assert.rejects(()=>db.exec(migration),/Expected conflict handler in at least one overload/);
  await db.exec("rollback");
  await assert.rejects(()=>db.query("select private.portal_admin_member(1)"),e=>e.code==="40001");
  await db.close();

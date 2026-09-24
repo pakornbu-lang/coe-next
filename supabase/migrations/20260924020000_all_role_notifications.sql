@@ -86,6 +86,7 @@ begin
   return new;
 end; $$;
 revoke all on function private.notify_review_quorum() from public,anon,authenticated;
+drop trigger if exists notify_review_quorum on public.review_assignments;
 create trigger notify_review_quorum after update of status on public.review_assignments
 for each row execute function private.notify_review_quorum();
 
@@ -104,6 +105,7 @@ begin
   return new;
 end; $$;
 revoke all on function private.notify_assigned_document_change() from public,anon,authenticated;
+drop trigger if exists notify_assigned_document_change on public.application_documents;
 create trigger notify_assigned_document_change after insert or update of file_path on public.application_documents
 for each row execute function private.notify_assigned_document_change();
 
@@ -128,6 +130,7 @@ begin
   return new;
 end; $$;
 revoke all on function private.notify_admin_account_change() from public,anon,authenticated;
+drop trigger if exists notify_admin_account_change on public.portal_profiles;
 create trigger notify_admin_account_change after insert or update of active,role,pending_role on public.portal_profiles
 for each row execute function private.notify_admin_account_change();
 
@@ -148,11 +151,13 @@ begin
   return new;
 end; $$;
 revoke all on function private.notify_terminal_email_failure() from public,anon,authenticated;
+drop trigger if exists notify_terminal_email_failure on public.notification_email_outbox;
 create trigger notify_terminal_email_failure after update of status,attempts on public.notification_email_outbox
 for each row execute function private.notify_terminal_email_failure();
 
 -- Admin-only read access; no direct UPDATE grant.
 grant select on public.notification_email_outbox to authenticated;
+drop policy if exists "Admins read email delivery" on public.notification_email_outbox;
 create policy "Admins read email delivery" on public.notification_email_outbox
 for select to authenticated using((select private.portal_is_admin()));
 create or replace function public.admin_retry_notification_email(p_id uuid)
