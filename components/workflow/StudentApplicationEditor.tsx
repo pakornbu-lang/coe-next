@@ -27,15 +27,15 @@ function DocumentUpload({ applicationId, requirement, document, canRemove }: { c
     <form action={action} className="workflow-upload-form">
       <input type="hidden" name="application_id" value={applicationId}/><input type="hidden" name="requirement_id" value={requirement.id}/>
       <input name="document" type="file" required accept="application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"/>
-      <button className="btn secondary" disabled={pending || removing}>{pending ? "กำลังอัปโหลด…" : document ? "แทนที่ไฟล์" : "อัปโหลด"}</button>
-      {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success">{state.success}</p>}
+      <button className="btn secondary" disabled={pending || removing} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังอัปโหลด…" : document ? "แทนที่ไฟล์" : "อัปโหลด"}</button>
+      {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success"><span className="action-success-mark" aria-hidden="true">✓</span>{state.success}</p>}
     </form>
     {canRemove && document && <form action={removeAction} className="workflow-upload-form" onSubmit={event => { if (!window.confirm("นำเอกสารนี้ออกจากใบสมัคร? หากเป็นเอกสารจำเป็นต้องอัปโหลดใหม่ก่อนส่ง")) event.preventDefault(); }}>
       <input type="hidden" name="application_id" value={applicationId}/><input type="hidden" name="document_id" value={document.id}/><input type="hidden" name="version" value={document.version}/>
-      <button className="btn secondary" disabled={pending || removing}>{removing ? "กำลังลบ…" : "ลบออกจากใบสมัคร"}</button>
+      <button className="btn secondary" disabled={pending || removing} aria-busy={removing}>{removing && <span className="action-spinner" aria-hidden="true"/>}{removing ? "กำลังลบ…" : "ลบออกจากใบสมัคร"}</button>
       {removed.error && <p role="alert" className="workflow-error">{removed.error}</p>}
     </form>}
-    {removed.success && <p role="status" className="workflow-success">{removed.success}</p>}
+    {removed.success && <p role="status" className="workflow-success"><span className="action-success-mark" aria-hidden="true">✓</span>{removed.success}</p>}
   </article>;
 }
 
@@ -125,8 +125,8 @@ export default function StudentApplicationEditor({ scholarship, application, req
       
     </form>
     {step === 3 && application && <section className="panel"><div className="workflow-document-list">{requirements.map((requirement) => <DocumentUpload canRemove={application.status === "draft" && !application.submitted_at} key={requirement.id} applicationId={application.id} requirement={requirement} document={documents.find((item) => item.requirement_id === requirement.id)}/>)}</div></section>}
-    {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success">{state.success}</p>}
+    {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success"><span className="action-success-mark" aria-hidden="true">✓</span>{state.success}</p>}
     {stepError && <p role="alert" className="workflow-error">{stepError}</p>}
-    <div className="workflow-actions workflow-step-actions">{step === 0 ? <Link className="btn secondary" href={`/scholarships/${scholarship.id}`}>กลับรายละเอียดทุน</Link> : <button className="btn secondary" type="button" onClick={() => { setStepError(""); setStep((current) => current - 1); }}>ย้อนกลับ</button>}<button className="btn secondary" form="student-application-form" name="mode" value="draft" formNoValidate disabled={pending}>{pending ? "กำลังบันทึก…" : application ? "บันทึกร่าง" : "บันทึกร่างและไปต่อ"}</button>{step < steps.length - 1 && (step !== 2 || application) && <button className="btn" type="button" onClick={nextStep}>ถัดไป</button>}{step === steps.length - 1 && <button className="btn" form="student-application-form" name="mode" value="submit" disabled={pending} onClick={(event) => event.currentTarget.form?.classList.add("form-validated")}>{pending ? "กำลังส่ง…" : "ยืนยันและส่งใบสมัคร"}</button>}</div>
+    <div className="workflow-actions workflow-step-actions">{step === 0 ? <Link className="btn secondary" href={`/scholarships/${scholarship.id}`}>กลับรายละเอียดทุน</Link> : <button className="btn secondary" type="button" onClick={() => { setStepError(""); setStep((current) => current - 1); }}>ย้อนกลับ</button>}<button className="btn secondary" form="student-application-form" name="mode" value="draft" formNoValidate disabled={pending} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังบันทึก…" : application ? "บันทึกร่าง" : "บันทึกร่างและไปต่อ"}</button>{step < steps.length - 1 && (step !== 2 || application) && <button className="btn" type="button" onClick={nextStep}>ถัดไป</button>}{step === steps.length - 1 && <button className="btn" form="student-application-form" name="mode" value="submit" disabled={pending} onClick={(event) => event.currentTarget.form?.classList.add("form-validated")} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังส่ง…" : "ยืนยันและส่งใบสมัคร"}</button>}</div>
   </div>;
 }

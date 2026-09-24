@@ -44,10 +44,10 @@ export default function ProfileForm({ profile, role, onSaved, onCancel }: { prof
         </> : <label>ตำแหน่งงาน<input name="position" maxLength={150} value={position} onChange={e => setPosition(e.target.value)} autoComplete="organization-title" /></label>}
         {committee && <label className="profile-wide">ความเชี่ยวชาญ<textarea name="expertise" maxLength={500} rows={4} value={expertise} onChange={e => setExpertise(e.target.value)} placeholder="ระบุสาขาหรือประสบการณ์ที่เกี่ยวข้องกับการพิจารณาทุน" /><span className="profile-hint">ไม่เกิน 500 ตัวอักษร</span></label>}
       </div>
-      <button className="profile-submit" type="submit">{pending ? "กำลังบันทึก…" : "บันทึกโปรไฟล์"}</button>
+      <button className="profile-submit" type="submit" aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังบันทึก…" : "บันทึกโปรไฟล์"}</button>
       {onCancel && <button type="button" className="btn secondary profile-cancel" onClick={onCancel}>ยกเลิก</button>}
     </fieldset>
     {state.error && <p className="profile-error" role="alert">{state.error}</p>}
-    {state.success && <p className="profile-success" role="status">{state.success}</p>}
+    {state.success && <p className="profile-success" role="status"><span className="action-success-mark" aria-hidden="true">✓</span>{state.success}</p>}
   </form>;
 }

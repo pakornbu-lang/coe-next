@@ -48,10 +48,10 @@ export default function EvaluationPanel({ assignment, application, scholarship, 
       <section className="panel">
         <label>ข้อเสนอแนะ<select name="recommendation" disabled={locked} defaultValue={evaluation?.recommendation ?? "approve"}><option value="approve">เสนออนุมัติ</option><option value="reserve">เสนอรายชื่อสำรอง</option><option value="reject">ไม่เสนออนุมัติ</option></select></label>
         <label>ความเห็นเพิ่มเติม<textarea name="comment" disabled={locked} maxLength={2000} rows={5} defaultValue={evaluation?.comment ?? ""}/></label>
-        {!locked && <div className="workflow-actions"><button className="btn secondary" name="mode" value="draft" formNoValidate disabled={pending}>{pending ? "กำลังบันทึก…" : "บันทึกร่าง"}</button><button className="btn" name="mode" value="submit" disabled={pending} onClick={(event) => event.currentTarget.form?.classList.add("form-validated")}>{pending ? "กำลังส่ง…" : "ส่งผลประเมิน"}</button></div>}
+        {!locked && <div className="workflow-actions"><button className="btn secondary" name="mode" value="draft" formNoValidate disabled={pending} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังบันทึก…" : "บันทึกร่าง"}</button><button className="btn" name="mode" value="submit" disabled={pending} onClick={(event) => event.currentTarget.form?.classList.add("form-validated")} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังส่ง…" : "ส่งผลประเมิน"}</button></div>}
         {locked && !conflictPending && <p className="workflow-info">ส่งผลประเมินแล้ว จึงไม่สามารถแก้ไขได้</p>}
         {conflictPending && <p className="workflow-info">กรุณายืนยันสถานะผลประโยชน์ทับซ้อนก่อนเริ่มให้คะแนน</p>}
-        {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success">{state.success}</p>}
+        {state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success"><span className="action-success-mark" aria-hidden="true">✓</span>{state.success}</p>}
       </section>
     </form>
   </div>;

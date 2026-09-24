@@ -703,7 +703,7 @@ export default function ScholarshipEditor({
               "form-validated",
             )
           }
-        >
+         aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}
           {pending
             ? "กำลังบันทึก…"
             : scholarship
@@ -725,7 +725,7 @@ export default function ScholarshipEditor({
         <p
           role="status"
           className="workflow-success"
-        >
+        ><span className="action-success-mark" aria-hidden="true">✓</span>
           {state.success}
         </p>
       )}
