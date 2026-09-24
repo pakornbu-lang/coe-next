@@ -57,6 +57,12 @@ const failure = (
       success: "",
     };
 
+  if (message === "Scholarship is not open")
+    return {
+      error: "ทุนนี้ยังไม่เปิดรับสมัคร หมดเขต หรือปิดรับสมัครแล้ว จึงส่งใบสมัครไม่ได้ หากเป็นการส่งเอกสารแก้ไข กรุณาติดต่อเจ้าหน้าที่",
+      success: "",
+    };
+
   if (message === "Invalid bank account details")
     return {
       error:
