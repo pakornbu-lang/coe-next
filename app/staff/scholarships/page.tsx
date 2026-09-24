@@ -24,11 +24,11 @@ export const metadata = {
 export default async function StaffScholarshipsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string }>;
+  searchParams: Promise<{ edit?: string; delete_result?: string }>;
 }) {
   await requireRole(["staff"]);
 
-  const { edit } = await searchParams;
+  const { edit, delete_result: deleteResult } = await searchParams;
 
   const client = await createClient();
 
@@ -97,6 +97,24 @@ export default async function StaffScholarshipsPage({
           สร้างทุนใหม่
         </Link>
       </section>
+
+      {deleteResult === "deleted" && (
+        <p className="workflow-success" role="status">
+          ?????????????????
+        </p>
+      )}
+
+      {deleteResult === "blocked" && (
+        <p className="workflow-error" role="alert">
+          ???????????????????? ?????????????????????????????????????
+        </p>
+      )}
+
+      {deleteResult === "failed" && (
+        <p className="workflow-error" role="alert">
+          ?????????????? ????????????????????
+        </p>
+      )}
 
       {edit && selected ? (
         <ScholarshipEditor

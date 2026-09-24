@@ -3,6 +3,7 @@ import { isPersonName } from "@/lib/forms/person-name";
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -900,14 +901,14 @@ export async function deleteScholarship(
   );
 
   if (!uuid(scholarshipId)) {
-    return;
+    redirect("/staff/scholarships?delete_result=failed");
   }
 
   const admin =
     createAdminClient();
 
   if (!admin) {
-    return;
+    redirect("/staff/scholarships?delete_result=failed");
   }
 
   /*
@@ -927,7 +928,7 @@ export async function deleteScholarship(
     scholarshipError ||
     !scholarship
   ) {
-    return;
+    redirect("/staff/scholarships?delete_result=failed");
   }
 
   /*
@@ -948,11 +949,12 @@ export async function deleteScholarship(
       scholarshipId,
     );
 
-  if (
-    applicationError ||
-    (count ?? 0) > 0
-  ) {
-    return;
+  if (applicationError) {
+    redirect("/staff/scholarships?delete_result=failed");
+  }
+
+  if ((count ?? 0) > 0) {
+    redirect("/staff/scholarships?delete_result=blocked");
   }
 
   /*
@@ -969,7 +971,7 @@ export async function deleteScholarship(
       .eq("id", scholarshipId);
 
   if (deleteError) {
-    return;
+    redirect("/staff/scholarships?delete_result=failed");
   }
 
   /*
@@ -992,6 +994,8 @@ export async function deleteScholarship(
   revalidatePath(
     "/staff/scholarships",
   );
+
+  redirect("/staff/scholarships?delete_result=deleted");
 }
 
 export async function reviewApplicationDocuments(
