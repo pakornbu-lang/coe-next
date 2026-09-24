@@ -3,6 +3,7 @@ import Link from "next/link";
 import {useActionState,useState} from "react";
 import {registerStudent} from "@/app/actions/register";
 import DigitsInput from "@/components/forms/DigitsInput";
+import {Icon} from "@/components/portal/Shared";
 export default function RegisterForm(){
  const [state,action,pending]=useActionState(registerStudent,{error:"",success:""});
  const [showPassword,setShowPassword]=useState(false);
@@ -13,8 +14,8 @@ export default function RegisterForm(){
  <label htmlFor="register-last-name">นามสกุล *</label><input id="register-last-name" name="last_name" autoComplete="family-name" required maxLength={100}/>
  <label htmlFor="register-id">รหัสนักศึกษา *</label><DigitsInput id="register-id" name="student_id" minLength={8} maxLength={12} required/>
  <label htmlFor="register-email">อีเมลนักศึกษา @mail.wu.ac.th *</label><input id="register-email" name="email" type="email" autoComplete="email" placeholder="name@mail.wu.ac.th" required maxLength={254}/>
- <label htmlFor="register-password">รหัสผ่าน *</label><input id="register-password" name="password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required/>
- <label htmlFor="register-confirm">ยืนยันรหัสผ่าน *</label><input id="register-confirm" name="confirm_password" type="password" autoComplete="new-password" minLength={8} maxLength={128} required/>
+ <label htmlFor="register-password">รหัสผ่าน *</label><span className="password-field"><input id="register-password" name="password" type={showPassword?"text":"password"} autoComplete="new-password" minLength={8} maxLength={128} required/><button type="button" onClick={()=>setShowPassword(!showPassword)} aria-label="Toggle password visibility"><Icon name={showPassword?"eye-off":"eye"} size={20}/></button></span>
+ <label htmlFor="register-confirm">ยืนยันรหัสผ่าน *</label><span className="password-field"><input id="register-confirm" name="confirm_password" type={showConfirmPassword?"text":"password"} autoComplete="new-password" minLength={8} maxLength={128} required/><button type="button" onClick={()=>setShowConfirmPassword(!showConfirmPassword)} aria-label="Toggle confirm password visibility"><Icon name={showConfirmPassword?"eye-off":"eye"} size={20}/></button></span>
  <p>ใช้รหัสผ่านอย่างน้อย 8 ตัวอักษร และตรวจสอบอีเมลให้ถูกต้องก่อนสมัคร</p>
  <button className="btn" type="submit" disabled={pending} onClick={event=>event.currentTarget.form?.classList.add("form-validated")}>{pending?"กำลังสมัครสมาชิก…":"สมัครสมาชิกนักศึกษา"}</button>
  {state.error&&<p className="soft-box" role="alert">{state.error}</p>}
