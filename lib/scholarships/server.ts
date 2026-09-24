@@ -212,7 +212,7 @@ export async function listStudentApplicationsPaginated({
 
   const { data: applications, count, error } = await client
     .from("applications")
-    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at)", { count: "exact" })
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at)", { count: "exact" })
     .range(from, to)
     .order("updated_at", { ascending: false });
 
@@ -257,7 +257,7 @@ export async function listStaffApplications(status?: string, search?: string): P
   const client = await createClient();
   let query = client
     .from("applications")
-    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at)")
+    .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at)")
     .order("updated_at", { ascending: false })
     .limit(200);
   if (status) query = query.eq("status", status);
