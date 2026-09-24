@@ -9,10 +9,33 @@ import { bangkokDate, interviewApplicationStatuses } from "@/lib/scholarships/in
 export default async function Page({ searchParams }: { searchParams: Promise<{ date?: string; scholarship?: string; application?: string }> }) {
   await requireRole(["staff"]);
   const filters = await searchParams, client = await createClient();
+
+  let interviewQuery = client
+    .from("application_interviews")
+    .select("id,application_id,scheduled_at,ends_at,interviewer_id,location,meeting_url,note,status,outcome,version")
+    .order("scheduled_at");
+
+  if (filters.application) {
+    interviewQuery = interviewQuery.eq("application_id", filters.application);
+  }
+
+  let applicationQuery = client
+    .from("applications")
+    .select("id,student_name,application_no,scholarship_id,status")
+    .in("status", interviewApplicationStatuses);
+
+  if (filters.application) {
+    applicationQuery = applicationQuery.eq("id", filters.application);
+  }
+
+  if (filters.scholarship) {
+    applicationQuery = applicationQuery.eq("scholarship_id", filters.scholarship);
+  }
+
   const [interviews, people, applications, scholarships] = await Promise.all([
-    client.from("application_interviews").select("*").order("scheduled_at"),
+    interviewQuery,
     client.from("portal_profiles").select("id,full_name").eq("role", "committee").eq("active", true),
-    client.from("applications").select("id,student_name,application_no,scholarship_id,status"),
+    applicationQuery,
     client.from("scholarships").select("id,title"),
   ]);
   if (interviews.error || people.error || applications.error || scholarships.error) throw Error("โหลดตารางสัมภาษณ์ไม่ได้");
@@ -20,7 +43,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
   const applicationById = new Map(applications.data.map(item => [item.id, item]));
   const personById = new Map(people.data.map(person => [person.id, person]));
   const interviewApplicationIds = new Set(interviews.data.map(item => item.application_id));
-  const eligible = applications.data.filter(item => interviewApplicationStatuses.includes(item.status));
+  const eligible = applications.data;
   const eligibleApplicationIds = new Set(eligible.map(item => item.id));
   const matches = (interviews.data as Interview[]).filter(item =>
     (!filters.application || item.application_id === filters.application) &&
