@@ -25,12 +25,18 @@ const programIcons: Record<string, string> = {
 
 export function Landing({
   scholarships,
+  latestAnnouncements,
   totalScholarships,
   scholarshipCounts,
   viewer,
   contact,
 }: {
   scholarships: ScholarshipWithRequirements[];
+  latestAnnouncements: Array<{
+    id: string;
+    title: string;
+    closes_at: string;
+  }>;
   totalScholarships: number;
   scholarshipCounts: {
     open: number;
@@ -326,13 +332,13 @@ export function Landing({
         <div className="three-columns">
           <Panel title="ประกาศล่าสุด">
             <ul id="news" className="news-list">
-              {scholarships.slice(0, 3).map((item) => (
+              {latestAnnouncements.map((item) => (
                 <li key={item.id}>
                   <Link href={`/scholarships/${item.id}`}>{item.title}</Link>
                   <time>ปิดรับ {thaiDate(item.closes_at, true)}</time>
                 </li>
               ))}
-              {!scholarships.length && <li>ยังไม่มีประกาศทุนในระบบ</li>}
+              {!latestAnnouncements.length && <li>ยังไม่มีประกาศทุนในระบบ</li>}
             </ul>
           </Panel>
           <Panel title="ติดต่อเจ้าหน้าที่" action={<Link href="/contact">ดูข้อมูลการติดต่อและแผนที่ →</Link>}>
