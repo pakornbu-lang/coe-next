@@ -7,10 +7,6 @@ import { Icon } from "./Shared";
 
 type Item = { href: string; label: string; icon: string };
 const groups: { label: string; icon: string; items: Item[] }[] = [
-  { label: "ใบสมัคร", icon: "file", items: [
-    { href: "/staff/review", label: "ตรวจเอกสาร", icon: "check" },
-    { href: "/staff/review?status=approved", label: "อนุมัติ / จ่ายทุน", icon: "chart" },
-  ] },
   { label: "การประเมิน", icon: "people", items: [
     { href: "/staff/assignments", label: "งานกรรมการ", icon: "people" },
     { href: "/staff/interviews", label: "สัมภาษณ์", icon: "file" },
@@ -50,9 +46,6 @@ export default function StaffNavigation({ onNavigate }: { onNavigate: () => void
     const [pathname, query] = href.split("?");
     const matches = path === pathname || (pathname !== "/staff" && path.startsWith(`${pathname}/`));
     if (!matches) return false;
-    if (pathname === "/staff/review" && path === pathname) {
-      return query ? search.get("status") === "approved" : search.get("status") !== "approved";
-    }
     return !query;
   }
 
@@ -68,6 +61,7 @@ export default function StaffNavigation({ onNavigate }: { onNavigate: () => void
   return <div className="staff-navigation" ref={container}>
     {link({ href: "/staff", label: "แดชบอร์ด", icon: "home" })}
     {link({ href: "/staff/scholarships", label: "ทุนการศึกษา", icon: "cap" })}
+    {link({ href: "/staff/review", label: "จัดการใบสมัคร", icon: "file" })}
     {groups.map(group => <details key={group.label} className="staff-nav-group" onToggle={event => {
       const current = event.currentTarget;
       if (current.open) container.current?.querySelectorAll("details").forEach(menu => {

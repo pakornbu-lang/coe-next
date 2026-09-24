@@ -275,14 +275,15 @@ export async function getStudentProfileHints() {
   };
 }
 
-export async function listStaffApplications(status?: string, search?: string): Promise<ApplicationSummary[]> {
+export async function listStaffApplications(status?: string | readonly string[], search?: string): Promise<ApplicationSummary[]> {
   const client = await createClient();
   let query = client
     .from("applications")
     .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at,scholarship:scholarships(id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,opens_at,closes_at,status,version,created_at)")
     .order("updated_at", { ascending: false })
     .limit(200);
-  if (status) query = query.eq("status", status);
+  if (typeof status === "string" && status) query = query.eq("status", status);
+  else if (Array.isArray(status) && status.length) query = query.in("status", status);
   const { data, error } = await query;
   if (error) fail("ไม่สามารถโหลดใบสมัครสำหรับเจ้าหน้าที่ได้");
   const applications = ((data ?? []) as unknown as Record<string, unknown>[]).map(normalizeApplication);
