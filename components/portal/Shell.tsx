@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Brand, Icon } from "./Shared";
 import LogoutButton from "@/components/auth/LogoutButton";
 import Avatar from "@/components/account/Avatar";
 import { homeForRole, roleLabels, type Viewer } from "@/lib/auth/types";
 import type { Notification } from "@/lib/scholarships/types";
 import StudentNotificationMenu from "./StudentNotificationMenu";
+import StaffNavigation from "./StaffNavigation";
 
 export default function Shell({ children, viewer }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
   const path = usePathname();
@@ -50,13 +51,7 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
     : viewer.role === "admin"
       ? [["/admin", "จัดการสมาชิก", "people"], ["/admin/reference", "ข้อมูลพื้นฐาน", "folder"], ["/admin/audit", "ประวัติการแก้ไข", "file"]]
     : viewer.role === "staff"
-      ? [
-          ["/staff", "แดชบอร์ด", "home"],
-          ["/staff/scholarships", "ทุนการศึกษา", "cap"],
-          ["/staff/review", "ตรวจเอกสาร", "check"],
-          ["/staff/review?status=approved", "อนุมัติ / จ่ายทุน", "chart"],
-          ["/staff/assignments", "งานกรรมการ", "people"], ["/staff/interviews", "สัมภาษณ์", "file"], ["/staff/evaluations", "สรุปคะแนน", "chart"], ["/staff/reports", "รายงาน", "file"],
-        ]
+      ? []
       : viewer.role === "committee"
         ? [
             ["/committee", "พื้นที่กรรมการ", "home"], ["/committee/interviews", "นัดสัมภาษณ์", "file"],
@@ -71,18 +66,20 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
             ["/notifications", "การแจ้งเตือน", "bell"],
             ["/profile", "โปรไฟล์", "user"],
           ];
-  if (viewer && viewer.role !== "student") nav.push(["/notifications", "การแจ้งเตือน", "bell"]);
+  if (viewer && viewer.role !== "student" && viewer.role !== "staff") nav.push(["/notifications", "การแจ้งเตือน", "bell"]);
   if (viewer?.role === "admin") nav.push(["/admin/notifications", "การส่งอีเมล", "mail"]);
   if (auth) return <>{children}</>;
   return (
     <div className="ui-app">
       <a className="skip" href="#main-content">ข้ามไปเนื้อหาหลัก</a>
-      <header className="topbar">
+      <header className={viewer?.role === "staff" ? "topbar staff-topbar" : "topbar"}>
         <Brand />
         <button className="menu-toggle btn secondary" aria-label="เปิดหรือปิดเมนู"
           aria-expanded={open} onClick={() => setOpen(!open)}>☰</button>
         <nav className={open ? "open" : ""} aria-label="เมนูหลัก">
-          {nav.map(([url, label, icon]) => (
+          {viewer?.role === "staff" ? <Suspense fallback={<span>กำลังโหลดเมนู…</span>}>
+            <StaffNavigation onNavigate={() => setOpen(false)} />
+          </Suspense> : nav.map(([url, label, icon]) => (
             <Link key={url} href={url} onClick={() => setOpen(false)}
               className={path === url.split(/[?#]/)[0] || (url === "/scholarships" && path.startsWith("/scholarships/")) ? "active" : ""}
               aria-current={path === url.split(/[?#]/)[0] ? "page" : undefined}>
