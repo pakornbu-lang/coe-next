@@ -59,16 +59,16 @@ export default function StaffDocumentReview({ application, documents }: {
           <textarea name="reason" required minLength={3} maxLength={2000} rows={3} placeholder="สรุปผลการตรวจเอกสาร"/>
         </label>
         <div className="workflow-actions">
-          <button className="btn secondary" name="action" value="request_revision" disabled={pending || waiting || missingFeedback || !hasRevision}>
+          <button className="btn secondary" name="action" value="request_revision" disabled={pending || waiting || missingFeedback || !hasRevision} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}
             {pending ? "กำลังบันทึก…" : "ขอแก้ไขเอกสาร"}
           </button>
-          <button className="btn" name="action" value="verify" disabled={pending || waiting || hasRevision}>
+          <button className="btn" name="action" value="verify" disabled={pending || waiting || hasRevision} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}
             {pending ? "กำลังบันทึก…" : "ยืนยันเอกสารครบ"}
           </button>
         </div>
       </>}
       {state.error && <p role="alert" className="workflow-error">{state.error}</p>}
-      {state.success && <p role="status" className="workflow-success">{state.success}</p>}
+      {state.success && <p role="status" className="workflow-success"><span className="action-success-mark" aria-hidden="true">✓</span>{state.success}</p>}
     </form>
   </section>;
 }

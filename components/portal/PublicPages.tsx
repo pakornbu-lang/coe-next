@@ -274,7 +274,10 @@ export function Landing({
           ))}
         </div>
         <div className="columns home-lower">
-          <Panel title="ขั้นตอนการสมัคร">
+          <Panel
+            title="ขั้นตอนการสมัคร"
+            action={<Link href="/steps">ดูขั้นตอนแบบละเอียด →</Link>}
+          >
             <div id="steps" className="steps">
               {[
                 ["search", "ค้นหาทุน", "เลือกทุนที่สนใจและตรวจสอบคุณสมบัติ"],
@@ -327,7 +330,7 @@ export function Landing({
               {!scholarships.length && <li>ยังไม่มีประกาศทุนในระบบ</li>}
             </ul>
           </Panel>
-          <Panel title="ติดต่อเจ้าหน้าที่">
+          <Panel title="ติดต่อเจ้าหน้าที่" action={<Link href="/contact">ดูข้อมูลการติดต่อและแผนที่ →</Link>}>
             <div id="contact">
               <p>{contact.department}</p>
               {contact.phone && <p>☎ {contact.phone}</p>}

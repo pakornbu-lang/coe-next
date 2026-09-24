@@ -12,7 +12,86 @@ import StaffNavigation from "./StaffNavigation";
 
 export default function Shell({ children, viewer }: { children: ReactNode; viewer: Viewer | null; notifications?: Notification[] }) {
   const path = usePathname();
+  const contentRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const content = contentRef.current;
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (!content || motionPreference.matches) return;
+    const animation = content.animate(
+      [
+        { opacity: 0, transform: "translateY(6px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ],
+      { duration: 180, easing: "ease-out" },
+    );
+    const stopForReducedMotion = () => {
+      if (motionPreference.matches) animation.cancel();
+    };
+    motionPreference.addEventListener("change", stopForReducedMotion);
+    return () => {
+      animation.cancel();
+      motionPreference.removeEventListener("change", stopForReducedMotion);
+    };
+  }, [path]);
   const [open, setOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const scrollAnimation = useRef<number | null>(null);
+  const stopScrollAnimation = () => {
+    if (scrollAnimation.current !== null) cancelAnimationFrame(scrollAnimation.current);
+    scrollAnimation.current = null;
+  };
+  const scrollToTop = () => {
+    stopScrollAnimation();
+    const startY = window.scrollY;
+    const startX = window.scrollX;
+    const startedAt = performance.now();
+    const animate = (now: number) => {
+      const progress = Math.min((now - startedAt) / 700, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      // Each frame sets an exact position; native smooth scrolling would compete.
+      window.scrollTo({ top: startY * (1 - eased), left: startX, behavior: "instant" });
+      if (progress < 1) scrollAnimation.current = requestAnimationFrame(animate);
+      else {
+        scrollAnimation.current = null;
+        headerRef.current?.focus({ preventScroll: true });
+      }
+    };
+    scrollAnimation.current = requestAnimationFrame(animate);
+  };
+  useEffect(() => {
+    const cancel = () => stopScrollAnimation();
+    const cancelWithKey = (event: KeyboardEvent) => {
+      if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "Escape", "Tab"].includes(event.key)) cancel();
+    };
+    window.addEventListener("wheel", cancel, { passive: true });
+    window.addEventListener("touchstart", cancel, { passive: true });
+    window.addEventListener("pointerdown", cancel, { passive: true });
+    window.addEventListener("keydown", cancelWithKey);
+    return () => {
+      cancel();
+      window.removeEventListener("wheel", cancel);
+      window.removeEventListener("touchstart", cancel);
+      window.removeEventListener("pointerdown", cancel);
+      window.removeEventListener("keydown", cancelWithKey);
+    };
+  }, [path]);
+  useEffect(() => {
+    const update = () => setShowBackToTop(window.scrollY > 300);
+    const frame = requestAnimationFrame(update);
+    window.addEventListener("scroll", update, { passive: true });
+    const header = headerRef.current;
+    const observer = new ResizeObserver(() => {
+      if (header) document.documentElement.style.setProperty("--portal-header-height", `${header.offsetHeight}px`);
+    });
+    if (header) observer.observe(header);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", update);
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--portal-header-height");
+    };
+  }, [path]);
   const profileMenu = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const menu = profileMenu.current;
@@ -45,8 +124,8 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
     ? [
         ["/", "หน้าแรก", "home"],
         ["/scholarships", "ทุนการศึกษา", "cap"],
-        ["/#steps", "ขั้นตอนการสมัคร", "file"],
-        ["/#contact", "ติดต่อ", "mail"],
+        ["/steps", "ขั้นตอนการสมัคร", "file"],
+        ["/contact", "ติดต่อ", "mail"],
       ]
     : viewer.role === "admin"
       ? [["/admin", "จัดการสมาชิก", "people"], ["/admin/reference", "ข้อมูลพื้นฐาน", "folder"], ["/admin/audit", "ประวัติการแก้ไข", "file"]]
@@ -63,16 +142,13 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
             ["/scholarships", "ทุนการศึกษา", "cap"],
             ["/apply", "สมัครทุน", "edit"],
             ["/applications", "ใบสมัครของฉัน", "file"],
-            ["/notifications", "การแจ้งเตือน", "bell"],
-            ["/profile", "โปรไฟล์", "user"],
           ];
-  if (viewer && viewer.role !== "student" && viewer.role !== "staff") nav.push(["/notifications", "การแจ้งเตือน", "bell"]);
   if (viewer?.role === "admin") nav.push(["/admin/notifications", "การส่งอีเมล", "mail"]);
   if (auth) return <>{children}</>;
   return (
     <div className="ui-app">
       <a className="skip" href="#main-content">ข้ามไปเนื้อหาหลัก</a>
-      <header className={viewer?.role === "staff" ? "topbar staff-topbar" : "topbar"}>
+      <header ref={headerRef} tabIndex={-1} className={viewer?.role === "staff" ? "topbar staff-topbar" : "topbar"}>
         <Brand />
         <button className="menu-toggle btn secondary" aria-label="เปิดหรือปิดเมนู"
           aria-expanded={open} onClick={() => setOpen(!open)}>☰</button>
@@ -118,13 +194,16 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
           </div>
         )}
       </header>
-      <main id="main-content" className={landing ? "landing" : "workspace"}>
+      <main ref={contentRef} id="main-content" className={landing ? "landing" : "workspace"}>
         {children}
       </main>
       <footer className="site-footer">
         <span>ระบบติดตามทุนการศึกษา · ระบบทุนการศึกษาภายในมหาวิทยาลัย</span>
         <small>ข้อมูลส่วนบุคคลและเอกสารได้รับการคุ้มครองตามสิทธิ์ของบัญชี</small>
       </footer>
+      {showBackToTop && <button type="button" className="back-to-top" aria-label="กลับขึ้นบนสุด" title="กลับขึ้นบนสุด" onClick={scrollToTop}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 12 6-6 6 6M12 6v14"/></svg>
+      </button>}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { queryScholarshipSchema } from "./schema-compat";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole } from "@/lib/auth/server";
 import {
@@ -46,14 +47,14 @@ export async function listPublishedScholarships(): Promise<ScholarshipSummary[]>
     return publishedScholarshipsCache.data;
   }
   const client = await createClient();
-  const { data, error } = await client
+  const { data, error } = await queryScholarshipSchema("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at", columns => client
     .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at")
+    .select(columns)
     .in("status", ["published", "closed"])
     .order("closes_at", { ascending: true })
-    .limit(100);
+    .limit(100));
   if (error) fail("ไม่สามารถโหลดรายการทุนได้");
-  const list = (data ?? []) as ScholarshipSummary[];
+  const list = (data ?? []) as unknown as ScholarshipSummary[];
   publishedScholarshipsCache = { data: list, expiresAt: now + 60_000 };
   return list;
 }
@@ -168,11 +169,11 @@ export async function getScholarship(id: string): Promise<(ScholarshipSummary & 
   criteria: Criterion[];
 }) | null> {
   const client = await createClient();
-  const { data: scholarship, error } = await client
+  const { data: scholarship, error } = await queryScholarshipSchema("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline", columns => client
     .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline")
+    .select(columns)
     .eq("id", id)
-    .maybeSingle();
+    .maybeSingle());
   if (error) fail("ไม่สามารถโหลดรายละเอียดทุนได้");
   if (!scholarship) return null;
   const [{ data: requirements, error: requirementError }, { data: criteria, error: criterionError }] = await Promise.all([
@@ -181,7 +182,7 @@ export async function getScholarship(id: string): Promise<(ScholarshipSummary & 
   ]);
   if (requirementError || criterionError) fail("ไม่สามารถโหลดเงื่อนไขทุนได้");
   return {
-    ...(scholarship as ScholarshipSummary),
+    ...(scholarship as unknown as ScholarshipSummary),
     requirements: (requirements ?? []) as Requirement[],
     criteria: (criteria ?? []) as Criterion[],
   };
@@ -485,13 +486,13 @@ export async function getStaffApplicationDetail(id: string) {
 
 export async function listStaffScholarships(): Promise<ScholarshipSummary[]> {
   const client = await createClient();
-  const { data, error } = await client
+  const { data, error } = await queryScholarshipSchema("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline", columns => client
     .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline")
+    .select(columns)
     .order("updated_at", { ascending: false })
-    .limit(200);
+    .limit(200));
   if (error) fail("ไม่สามารถโหลดทุนได้");
-  return (data ?? []) as ScholarshipSummary[];
+  return (data ?? []) as unknown as ScholarshipSummary[];
 }
 
 export async function getCommitteeAssignment(id: string) {
