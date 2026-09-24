@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ApplicationDocument,
@@ -27,17 +28,21 @@ function normalizeApplication(row: Record<string, unknown>): ApplicationSummary 
   return { ...(row as unknown as ApplicationSummary), scholarship };
 }
 
-async function getScholarshipProcess(client: Awaited<ReturnType<typeof createClient>>, id: string) {
-  const { data, error } = await client
-    .from("scholarships")
-    .select("id,required_reviewer_count,results_published_at,appeal_deadline")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) return null;
-  return data as Pick<ScholarshipSummary, "id" | "required_reviewer_count" | "results_published_at" | "appeal_deadline"> | null;
+type CachedScholarships = {
+  data: ScholarshipSummary[];
+  expiresAt: number;
+};
+let publishedScholarshipsCache: CachedScholarships | null = null;
+
+export function invalidatePublishedScholarshipsCache() {
+  publishedScholarshipsCache = null;
 }
 
 export async function listPublishedScholarships(): Promise<ScholarshipSummary[]> {
+  const now = Date.now();
+  if (publishedScholarshipsCache && publishedScholarshipsCache.expiresAt > now) {
+    return publishedScholarshipsCache.data;
+  }
   const client = await createClient();
   const { data, error } = await client
     .from("scholarships")
@@ -46,7 +51,21 @@ export async function listPublishedScholarships(): Promise<ScholarshipSummary[]>
     .order("closes_at", { ascending: true })
     .limit(100);
   if (error) fail("ไม่สามารถโหลดรายการทุนได้");
-  return (data ?? []) as ScholarshipSummary[];
+  const list = (data ?? []) as ScholarshipSummary[];
+  publishedScholarshipsCache = { data: list, expiresAt: now + 60_000 };
+  return list;
+}
+
+export async function listOpenScholarships(): Promise<ScholarshipSummary[]> {
+  const scholarships = await listPublishedScholarships();
+  const now = Date.now();
+
+  return scholarships.filter(
+    (item) =>
+      item.status === "published" &&
+      new Date(item.opens_at).getTime() <= now &&
+      now < new Date(item.closes_at).getTime(),
+  );
 }
 
 export async function getScholarship(id: string): Promise<(ScholarshipSummary & {
@@ -56,7 +75,7 @@ export async function getScholarship(id: string): Promise<(ScholarshipSummary & 
   const client = await createClient();
   const { data: scholarship, error } = await client
     .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at")
+    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at,required_reviewer_count,results_published_at,appeal_deadline")
     .eq("id", id)
     .maybeSingle();
   if (error) fail("ไม่สามารถโหลดรายละเอียดทุนได้");
@@ -66,8 +85,11 @@ export async function getScholarship(id: string): Promise<(ScholarshipSummary & 
     client.from("scholarship_review_criteria").select("id,label,details,max_score,sort_order").eq("scholarship_id", id).order("sort_order"),
   ]);
   if (requirementError || criterionError) fail("ไม่สามารถโหลดเงื่อนไขทุนได้");
-  const process = await getScholarshipProcess(client, id);
-  return { ...(scholarship as ScholarshipSummary), ...(process ?? {}), requirements: (requirements ?? []) as Requirement[], criteria: (criteria ?? []) as Criterion[] };
+  return {
+    ...(scholarship as ScholarshipSummary),
+    requirements: (requirements ?? []) as Requirement[],
+    criteria: (criteria ?? []) as Criterion[],
+  };
 }
 
 export async function getStudentApplicationForScholarship(scholarshipId: string): Promise<ApplicationSummary | null> {
@@ -288,7 +310,6 @@ export async function getStaffApplicationDetail(id: string) {
     appealResult,
     assignmentsResult,
     committeesResult,
-    conflictResult,
   ] = await Promise.all([
     getScholarship(application.scholarship_id),
     getApplicationDocuments(id),
@@ -296,9 +317,8 @@ export async function getStaffApplicationDetail(id: string) {
     client.from("disbursements").select("id,amount,status,transfer_date,transfer_reference,proof_path,version,updated_at").eq("application_id", id).maybeSingle(),
     client.from("application_interviews").select("id,scheduled_at,location,meeting_url,note,status,version").eq("application_id", id).maybeSingle(),
     client.from("application_appeals").select("id,reason,status,response,submitted_at,resolved_at,version").eq("application_id", id).maybeSingle(),
-    client.from("review_assignments").select("id,reviewer_id,assigned_by,status,reason,assigned_at,completed_at,reviewer:portal_profiles!review_assignments_reviewer_id_fkey(full_name,student_id),evaluation:evaluations(id,total_score,recommendation,comment,submitted_at,version)").eq("application_id", id).order("assigned_at"),
+    client.from("review_assignments").select("id,reviewer_id,assigned_by,status,reason,assigned_at,completed_at,conflict_status,conflict_note,reviewer:portal_profiles!review_assignments_reviewer_id_fkey(full_name,student_id),evaluation:evaluations(id,total_score,recommendation,comment,submitted_at,version)").eq("application_id", id).order("assigned_at"),
     client.from("portal_profiles").select("id,full_name,student_id,department,expertise").eq("role", "committee").eq("active", true).order("full_name").limit(100),
-    client.from("review_assignments").select("id,conflict_status,conflict_note,conflict_declared_at").eq("application_id", id),
   ]);
 
   if (!scholarship) throw new Error("ไม่พบทุนการศึกษานี้");
@@ -306,9 +326,18 @@ export async function getStaffApplicationDetail(id: string) {
     fail("ไม่สามารถโหลดข้อมูลการพิจารณาได้");
   }
 
-  const conflicts = new Map((conflictResult.error ? [] : conflictResult.data ?? []).map((row) => [row.id, row]));
   const assignments = ((assignmentsResult.data ?? []) as unknown as Record<string, unknown>[]).map((row) => {
-    const base = row as unknown as { id: string; reviewer_id: string; assigned_by: string; status: string; reason: string; assigned_at: string; completed_at: string | null };
+    const base = row as unknown as {
+      id: string;
+      reviewer_id: string;
+      assigned_by: string;
+      status: string;
+      reason: string;
+      assigned_at: string;
+      completed_at: string | null;
+      conflict_status?: string;
+      conflict_note?: string | null;
+    };
     return {
       id: base.id,
       reviewer_id: base.reviewer_id,
@@ -317,8 +346,8 @@ export async function getStaffApplicationDetail(id: string) {
       reason: base.reason,
       assigned_at: base.assigned_at,
       completed_at: base.completed_at,
-      conflict_status: conflicts.get(base.id)?.conflict_status as string | undefined,
-      conflict_note: conflicts.get(base.id)?.conflict_note as string | null | undefined,
+      conflict_status: base.conflict_status,
+      conflict_note: base.conflict_note,
       reviewer: first(row.reviewer as { full_name: string; student_id: string } | { full_name: string; student_id: string }[] | null),
       evaluation: first(row.evaluation as { id: string; total_score: number; recommendation: string; comment: string; submitted_at: string | null; version: number } | { id: string; total_score: number; recommendation: string; comment: string; submitted_at: string | null; version: number }[] | null),
     };
@@ -353,14 +382,13 @@ export async function getCommitteeAssignment(id: string) {
   const client = await createClient();
   const { data: assignment, error } = await client
     .from("review_assignments")
-    .select("id,application_id,reviewer_id,assigned_by,status,reason,assigned_at,completed_at")
+    .select("id,application_id,reviewer_id,assigned_by,status,reason,assigned_at,completed_at,conflict_status,conflict_note")
     .eq("id", id)
     .maybeSingle();
   if (error) fail("ไม่สามารถโหลดงานประเมินได้");
   if (!assignment) return null;
 
-  const [conflictResult, appResult, evaluationResult] = await Promise.all([
-    client.from("review_assignments").select("conflict_status,conflict_note").eq("id", id).maybeSingle(),
+  const [appResult, evaluationResult] = await Promise.all([
     client
       .from("applications")
       .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at")
@@ -377,8 +405,6 @@ export async function getCommitteeAssignment(id: string) {
   if (evaluationResult.error) fail("ไม่สามารถโหลดผลประเมินได้");
 
   const application = appResult.data as ApplicationSummary;
-  const assignmentWithConflict = conflictResult.error ? assignment : { ...assignment, ...(conflictResult.data ?? {}) };
-
   const [scholarship, documents] = await Promise.all([
     getScholarship(application.scholarship_id),
     getApplicationDocuments(application.id),
@@ -387,7 +413,7 @@ export async function getCommitteeAssignment(id: string) {
   if (!scholarship) throw new Error("ไม่พบทุนการศึกษานี้");
 
   return {
-    assignment: assignmentWithConflict,
+    assignment,
     application,
     scholarship,
     requirements: scholarship.requirements,
@@ -407,7 +433,29 @@ export async function listCommitteeAssignments() {
   return data ?? [];
 }
 
-export async function getNotifications(): Promise<Notification[]> {
+type CachedNotifications = {
+  data: Notification[];
+  expiresAt: number;
+};
+const notificationsCache = new Map<string, CachedNotifications>();
+
+export function invalidateNotificationsCache(userId?: string) {
+  if (userId) {
+    notificationsCache.delete(userId);
+  } else {
+    notificationsCache.clear();
+  }
+}
+
+export const getNotifications = cache(async (userId?: string): Promise<Notification[]> => {
+  const now = Date.now();
+  if (userId) {
+    const cached = notificationsCache.get(userId);
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
+    }
+  }
+
   const client = await createClient();
   const { data, error } = await client
     .from("portal_notifications")
@@ -415,8 +463,12 @@ export async function getNotifications(): Promise<Notification[]> {
     .order("created_at", { ascending: false })
     .limit(8);
   if (error) return [];
-  return (data ?? []) as Notification[];
-}
+  const list = (data ?? []) as Notification[];
+  if (userId) {
+    notificationsCache.set(userId, { data: list, expiresAt: now + 30_000 });
+  }
+  return list;
+});
 
 export async function getAcademicOptions() {
  const client = await createClient();

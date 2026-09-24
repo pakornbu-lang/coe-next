@@ -5,8 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import type { MutationState } from "@/lib/admin/types";
 
 const text = (form:FormData,key:string) => String(form.get(key)??"").trim();
-function failure(code:string):MutationState {
-  return { success:"",error:(code === "PT409" || code === "40001") ? "ข้อมูลถูกแก้ไขแล้ว กรุณารีเฟรชหน้าก่อนลองใหม่" :
+function failure(code:string,message=""):MutationState {
+  if(code==="PT409") code="40001";
+  if(code==="P0001"&&message==="STALE_VERSION") code="40001";
+  return { success:"",error:code==="40001" ? "ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น กรุณารีเฟรชหน้าแล้วลองใหม่" :
     code==="23505" ? "รหัสนักศึกษาหรือชื่อข้อมูลนี้มีอยู่แล้ว" :
     code==="42501" ? "ไม่มีสิทธิ์ทำรายการนี้ หรือบัญชีถูกระงับ" :
     "บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลและลองอีกครั้ง" };
@@ -27,7 +29,7 @@ export async function updateMember(_previous:MutationState,form:FormData):Promis
     p_value:role||null,p_reason:reason,
     p_full_name:text(form,"full_name")||null,p_student_id:text(form,"student_id")||null
   });
-  if(error) return failure(error.code);
+  if(error) return failure(error.code,error.message);
   revalidatePath("/","layout");
   return {error:"",success:operation==="set_role"?"เปลี่ยนบทบาทและอนุมัติแล้ว พร้อมเก็บประวัติการแก้ไข":"บันทึกแล้ว พร้อมเก็บประวัติการแก้ไข"};
 }
@@ -40,7 +42,7 @@ export async function saveReference(_previous:MutationState,form:FormData):Promi
     p_id:id||null,p_version:id?Number(text(form,"version")):null,
     p_kind:text(form,"kind"),p_name:name,p_active:text(form,"active")==="true",p_reason:reason
   });
-  if(error) return failure(error.code);
+  if(error) return failure(error.code,error.message);
   revalidatePath("/admin/reference");
   revalidatePath("/admin/audit");
   return {error:"",success:"บันทึกข้อมูลพื้นฐานแล้ว"};

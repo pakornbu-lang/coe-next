@@ -85,7 +85,7 @@ export async function resolveAppeal(_previous: WorkflowState, form: FormData): P
   if (!uuid(appealId) || !uuid(applicationId) || !Number.isSafeInteger(version) || !["upheld", "rejected"].includes(status) || response.length < 10) return failed("กรุณาเลือกผลและอธิบายคำวินิจฉัย");
   const client = await createClient();
   const { error } = await client.rpc("staff_resolve_appeal", { p_appeal_id: appealId, p_version: version, p_status: status, p_response: response });
-  if (error) return failed((error.code === "PT409" || error.code === "40001") ? "คำอุทธรณ์นี้ถูกเปลี่ยนแล้ว กรุณารีเฟรชหน้า" : undefined);
+  if (error) return failed((error.code === "PT409" || error.code === "40001" || (error.code === "P0001" && error.message === "Appeal is not available or changed")) ? "คำอุทธรณ์นี้ถูกเปลี่ยนแล้ว กรุณารีเฟรชหน้า" : undefined);
   revalidatePath(`/staff/review/${applicationId}`);
   revalidatePath(`/applications/${applicationId}`);
   await dispatchNotificationEmails();

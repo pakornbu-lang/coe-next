@@ -5,7 +5,6 @@ import { getScholarship, listStaffScholarships, getAcademicOptions } from "@/lib
 import { createClient } from "@/lib/supabase/server";
 import ScholarshipEditor from "@/components/workflow/ScholarshipEditor";
 import { ScholarshipStatusBadge } from "@/components/workflow/StatusBadge";
-import { money, thaiDate } from "@/lib/scholarships/types";
 import { ScholarshipProcessForm } from "@/components/workflow/WorkflowExtensions";
 
 const programLabels: Record<string, string> = {
@@ -47,6 +46,37 @@ export default async function StaffScholarshipsPage({
     getAcademicOptions(),
   ]);
 
+  /*
+   * เรียงทุนที่ปิดรับสมัคร / หมดเวลา
+   * ให้อยู่ล่างสุดของรายการ
+   */
+  // Server-rendered snapshot used only to order the current response.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+
+  const isScholarshipClosed = (
+    item: (typeof scholarships)[number],
+  ) => {
+    return (
+      item.status === "closed" ||
+      item.status === "archived" ||
+      now >= new Date(item.closes_at).getTime()
+    );
+  };
+
+  const sortedScholarships = [...scholarships].sort(
+    (a, b) => {
+      const aClosed = isScholarshipClosed(a);
+      const bClosed = isScholarshipClosed(b);
+
+      if (aClosed === bClosed) {
+        return 0;
+      }
+
+      return aClosed ? 1 : -1;
+    },
+  );
+
   return (
     <div className="workflow-stack">
       <section className="panel workflow-heading">
@@ -81,7 +111,7 @@ export default async function StaffScholarshipsPage({
 
             {scholarships.length ? (
               <div className="workflow-scholarship-admin-list">
-                {scholarships.map((item) => (
+                {sortedScholarships.map((item) => (
                   <article
                     className="workflow-scholarship-admin"
                     key={item.id}
@@ -103,14 +133,6 @@ export default async function StaffScholarshipsPage({
                           </small>
 
                           <small style={{ display: "block" }}>
-                            จำนวนเงินต่อคน: {money(item.amount)} บาท
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            จำนวนทุน: {item.quota} คน
-                          </small>
-
-                          <small style={{ display: "block" }}>
                             GPA ขั้นต่ำ:{" "}
                             {item.minimum_gpa ?? "ไม่กำหนด"}
                           </small>
@@ -126,16 +148,6 @@ export default async function StaffScholarshipsPage({
                                   )
                                   .join(", ")
                               : "ทุกสำนักวิชา / ทุกสาขาวิชา"}
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            เปิดรับสมัคร:{" "}
-                            {thaiDate(item.opens_at, true)}
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            ปิดรับสมัคร:{" "}
-                            {thaiDate(item.closes_at, true)}
                           </small>
                         </span>
                       </span>

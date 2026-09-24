@@ -12,6 +12,7 @@ import {
 } from "@/lib/scholarships/cover.mjs";
 import { validApplicationDocument } from "@/lib/scholarships/document-validation";
 import { dispatchNotificationEmails } from "@/lib/notifications/email";
+import { invalidatePublishedScholarshipsCache } from "@/lib/scholarships/server";
 
 export type WorkflowState = {
   error: string;
@@ -32,7 +33,10 @@ const failure = (
   code?: string,
   message?: string,
 ): WorkflowState => {
-  if ((code === "PT409" || code === "40001"))
+  if (
+    code === "PT409" || code === "40001" ||
+    (code === "P0001" && message === "STALE_VERSION")
+  )
     return {
       error:
         "ข้อมูลนี้ถูกเปลี่ยนโดยผู้ใช้อื่น กรุณารีเฟรชหน้าแล้วลองอีกครั้ง",
@@ -521,7 +525,7 @@ export async function uploadApplicationDocument(
       .from("scholarship-documents")
       .remove([path]);
 
-    return failure(error.code);
+    return failure(error.code, error.message);
   }
 
   revalidatePath(
@@ -818,7 +822,7 @@ export async function saveScholarship(
         .from("scholarship-covers")
         .remove([coverPath]);
 
-    return failure(error?.code);
+    return failure(error?.code, error?.message);
   }
 
   if (
@@ -831,6 +835,7 @@ export async function saveScholarship(
         existingCoverPath,
       ]);
 
+  invalidatePublishedScholarshipsCache();
   revalidatePath("/scholarships");
   revalidatePath("/staff");
 
@@ -945,6 +950,7 @@ export async function deleteScholarship(
       ]);
   }
 
+  invalidatePublishedScholarshipsCache();
   revalidatePath("/scholarships");
   revalidatePath("/staff");
 
@@ -1015,7 +1021,7 @@ export async function reviewApplicationDocuments(
     );
 
   if (error)
-    return failure(error.code);
+    return failure(error.code, error.message);
 
   revalidatePath(
     `/staff/review/${applicationId}`,
@@ -1077,7 +1083,7 @@ export async function assignReviewer(
     );
 
   if (error)
-    return failure(error.code);
+    return failure(error.code, error.message);
 
   revalidatePath(
     `/staff/review/${applicationId}`,
@@ -1163,7 +1169,7 @@ export async function saveEvaluation(
     );
 
   if (error)
-    return failure(error.code);
+    return failure(error.code, error.message);
 
   revalidatePath("/committee");
 
@@ -1231,7 +1237,7 @@ export async function decideApplication(
     );
 
   if (error)
-    return failure(error.code);
+    return failure(error.code, error.message);
 
   revalidatePath(
     `/staff/review/${applicationId}`,
@@ -1391,7 +1397,7 @@ export async function recordDisbursement(
         )
         .remove([path]);
 
-    return failure(error.code);
+    return failure(error.code, error.message);
   }
 
   if (
