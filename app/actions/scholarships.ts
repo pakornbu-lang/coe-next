@@ -11,7 +11,6 @@ import {
   MAX_SCHOLARSHIP_COVER_BYTES,
 } from "@/lib/scholarships/cover.mjs";
 import { validApplicationDocument } from "@/lib/scholarships/document-validation";
-import { dispatchNotificationEmails } from "@/lib/notifications/email";
 import { invalidatePublishedScholarshipsCache } from "@/lib/scholarships/server";
 
 export type WorkflowState = {
@@ -1043,7 +1042,6 @@ export async function reviewApplicationDocuments(
     "/staff/review",
   );
 
-  await dispatchNotificationEmails();
 
   return {
     error: "",
@@ -1105,7 +1103,6 @@ export async function assignReviewer(
     "/staff/review",
   );
 
-  await dispatchNotificationEmails();
 
   return {
     error: "",
@@ -1189,12 +1186,6 @@ export async function saveEvaluation(
     `/staff/evaluation?assignment=${assignmentId}`,
   );
 
-  if (
-    value(form, "mode") ===
-    "submit"
-  )
-    await dispatchNotificationEmails();
-
   return {
     error: "",
     success:
@@ -1259,7 +1250,6 @@ export async function decideApplication(
     "/staff/review",
   );
 
-  await dispatchNotificationEmails();
 
   return {
     error: "",
@@ -1428,7 +1418,6 @@ export async function recordDisbursement(
 
   revalidatePath("/staff");
 
-  await dispatchNotificationEmails();
 
   return {
     error: "",

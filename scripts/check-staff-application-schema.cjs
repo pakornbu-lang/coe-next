@@ -6,7 +6,7 @@ const code = ts.transpileModule(fs.readFileSync('lib/scholarships/server.ts','ut
 let fail=false;let selected='';const filters=[];
 const row={id:'application',student_name:'นักศึกษาทดลอง',student_code:'123',application_no:1,scholarship:{title:'ทุนทดลอง'}};
 const client={from(table){assert.equal(table,'applications');return {select(fields){selected=fields;return this},order(){return this},limit(){return this},eq(key,value){filters.push([key,value]);return this},then(resolve){const missing=/eligible_faculties|eligible_majors/.test(selected);return Promise.resolve({data:fail||missing?null:[row],error:fail||missing?{code:missing?'42703':'42501'}:null}).then(resolve)}}}};
-const exportsObject={};vm.runInNewContext(code,{exports:exportsObject,require(name){if(name==='server-only')return {};if(name==='@/lib/supabase/server')return {createClient:async()=>client};if(name==='@/lib/integrations/sis')return {};throw Error(name)}});
+const exportsObject={};vm.runInNewContext(code,{exports:exportsObject,require(name){if(name==='server-only')return {};if(name==='react')return {cache:(fn)=>fn};if(name==='@/lib/supabase/server')return {createClient:async()=>client};if(name==='@/lib/integrations/sis')return {};throw Error(name)}});
 (async()=>{
 assert.equal((await exportsObject.listStaffApplications()).length,1);
 assert.ok(!selected.includes('eligible_faculties'));
