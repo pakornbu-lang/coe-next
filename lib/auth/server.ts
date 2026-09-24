@@ -6,28 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAuthConfigured } from "@/lib/supabase/config";
 import { isPortalRole, type PortalRole, type Viewer } from "./types";
 
-type CachedViewer = {
-  viewer: Viewer | null;
-  expiresAt: number;
-};
-
-const viewerCache = new Map<string, CachedViewer>();
-
-export function invalidateViewerCache(userId?: string) {
-  if (userId) {
-    viewerCache.delete(userId);
-  } else {
-    viewerCache.clear();
-  }
-}
-
 export async function readViewer(client: SupabaseClient, user: User): Promise<Viewer | null> {
-  const now = Date.now();
-  const cached = viewerCache.get(user.id);
-  if (cached && cached.expiresAt > now) {
-    return cached.viewer;
-  }
-
   const { data, error } = await client
     .from("portal_profiles")
     .select("full_name, student_id, role, active, avatar_path, version")
@@ -35,7 +14,6 @@ export async function readViewer(client: SupabaseClient, user: User): Promise<Vi
     .maybeSingle();
   if (error) throw new Error("Unable to load portal permissions");
   if (!data?.active || !isPortalRole(data.role)) {
-    viewerCache.set(user.id, { viewer: null, expiresAt: now + 30_000 });
     return null;
   }
 
@@ -48,7 +26,6 @@ export async function readViewer(client: SupabaseClient, user: User): Promise<Vi
     avatarVersion: data.avatar_path ? data.version : undefined,
   };
 
-  viewerCache.set(user.id, { viewer, expiresAt: now + 60_000 });
   return viewer;
 }
 
