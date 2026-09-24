@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { deleteScholarship } from "@/app/actions/scholarships";
 import { requireRole } from "@/lib/auth/server";
-import { getScholarship, listStaffScholarships } from "@/lib/scholarships/server";
+import {
+  getScholarship,
+  listStaffScholarships,
+} from "@/lib/scholarships/server";
 import { createClient } from "@/lib/supabase/server";
 import ScholarshipEditor from "@/components/workflow/ScholarshipEditor";
 import { ScholarshipStatusBadge } from "@/components/workflow/StatusBadge";
-import { money, thaiDate } from "@/lib/scholarships/types";
 import { ScholarshipProcessForm } from "@/components/workflow/WorkflowExtensions";
 
 const programLabels: Record<string, string> = {
@@ -101,14 +103,6 @@ export default async function StaffScholarshipsPage({
                           </small>
 
                           <small style={{ display: "block" }}>
-                            จำนวนเงินต่อคน: {money(item.amount)} บาท
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            จำนวนทุน: {item.quota} คน
-                          </small>
-
-                          <small style={{ display: "block" }}>
                             GPA ขั้นต่ำ:{" "}
                             {item.minimum_gpa ?? "ไม่กำหนด"}
                           </small>
@@ -124,16 +118,6 @@ export default async function StaffScholarshipsPage({
                                   )
                                   .join(", ")
                               : "ทุกสำนักวิชา / ทุกสาขาวิชา"}
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            เปิดรับสมัคร:{" "}
-                            {thaiDate(item.opens_at, true)}
-                          </small>
-
-                          <small style={{ display: "block" }}>
-                            ปิดรับสมัคร:{" "}
-                            {thaiDate(item.closes_at, true)}
                           </small>
                         </span>
                       </span>
