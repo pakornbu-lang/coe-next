@@ -6,6 +6,7 @@ import type { MutationState } from "@/lib/admin/types";
 
 const text = (form:FormData,key:string) => String(form.get(key)??"").trim();
 function failure(code:string,message=""):MutationState {
+  if(code==="PT409") code="40001";
   if(code==="P0001"&&message==="STALE_VERSION") code="40001";
   return { success:"",error:code==="40001" ? "ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น กรุณารีเฟรชหน้าแล้วลองใหม่" :
     code==="23505" ? "รหัสนักศึกษาหรือชื่อข้อมูลนี้มีอยู่แล้ว" :

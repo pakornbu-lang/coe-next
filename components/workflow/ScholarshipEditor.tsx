@@ -16,6 +16,7 @@ import type {
   ScholarshipSummary,
 } from "@/lib/scholarships/types";
 import { ScholarshipStatusBadge } from "./StatusBadge";
+import SearchableMultiSelect from "@/components/forms/SearchableMultiSelect";
 import MoneyInput from "@/components/forms/MoneyInput";
 import {
   CriterionEditor,
@@ -209,7 +210,9 @@ type ScholarshipEditorScholarship = ScholarshipSummary & {
 export default function ScholarshipEditor({
   scholarship,
   types,
+  academicOptions = { faculties: [], majors: [] },
 }: {
+  academicOptions?: { faculties: string[]; majors: string[] };
   scholarship?: ScholarshipEditorScholarship;
   types: {
     id: string;
@@ -244,15 +247,7 @@ export default function ScholarshipEditor({
     string[]
   >(scholarship?.eligible_faculties ?? []);
 
-  function toggleFaculty(faculty: string) {
-    setSelectedFaculties((current) => {
-      if (current.includes(faculty)) {
-        return current.filter((item) => item !== faculty);
-      }
-
-      return [...current, faculty];
-    });
-  }
+  const [selectedMajors, setSelectedMajors] = useState<string[]>(scholarship?.eligible_majors ?? []);
 
   const eligibilityRef =
     useRef<HTMLTextAreaElement>(null);
@@ -572,216 +567,15 @@ export default function ScholarshipEditor({
             />
           </label>
 
-          {/* =================================================
-    คณะ / สำนักวิชาที่เปิดรับสมัคร
-    ================================================= */}
-
-          <div
-            className="workflow-wide"
-            style={{
-              width: "100%",
-              textAlign: "left",
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                marginBottom: "12px",
-                fontWeight: 600,
-                textAlign: "left",
-              }}
-            >
-              คณะ / สำนักวิชาที่เปิดรับสมัคร *
-            </div>
-
-            {/* ทุกสำนักวิชา */}
-            <label
-              style={{
-                width: "100%",
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "flex-start",
-                gap: "10px",
-                marginBottom: "10px",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-            >
-              <input
-                type="radio"
-                name="faculty_scope"
-                value="all"
-                checked={facultyScope === "all"}
-                onChange={() => setFacultyScope("all")}
-                style={{
-                  width: "auto",
-                  minWidth: "auto",
-                  margin: 0,
-                  padding: 0,
-                  flex: "0 0 auto",
-                }}
-              />
-
-              <span
-                style={{
-                  width: "auto",
-                  whiteSpace: "nowrap",
-                  textAlign: "left",
-                }}
-              >
-                ทุกสำนักวิชา / ทุกสาขาวิชา
-              </span>
-            </label>
-
-            {/* เฉพาะสำนักวิชาที่เลือก */}
-            <label
-              style={{
-                width: "100%",
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "flex-start",
-                gap: "10px",
-                marginBottom: "14px",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
-            >
-              <input
-                type="radio"
-                name="faculty_scope"
-                value="selected"
-                checked={facultyScope === "selected"}
-                onChange={() => setFacultyScope("selected")}
-                style={{
-                  width: "auto",
-                  minWidth: "auto",
-                  margin: 0,
-                  padding: 0,
-                  flex: "0 0 auto",
-                }}
-              />
-
-              <span
-                style={{
-                  width: "auto",
-                  whiteSpace: "nowrap",
-                  textAlign: "left",
-                }}
-              >
-                เฉพาะสำนักวิชาที่เลือก
-              </span>
-            </label>
-
-            {/* ถ้าเลือกเฉพาะสำนักวิชา */}
-            {facultyScope === "selected" && (
-              <div
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  border: "1px solid #d9e2dd",
-                  borderRadius: "12px",
-                  padding: "16px",
-                  textAlign: "left",
-                }}
-              >
-                <p
-                  className="workflow-muted"
-                  style={{
-                    marginTop: 0,
-                    marginBottom: "14px",
-                    textAlign: "left",
-                  }}
-                >
-                  เลือกได้มากกว่า 1 สำนักวิชา
-                </p>
-
-                <div
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                    gap: "10px",
-                  }}
-                >
-                  {walailakAcademicUnits.map((faculty) => (
-                    <label
-                      key={faculty}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "flex-start",
-                        gap: "10px",
-                        padding: "3px 0",
-                        margin: 0,
-                        cursor: "pointer",
-                        textAlign: "left",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        name="eligible_faculties"
-                        value={faculty}
-                        checked={selectedFaculties.includes(faculty)}
-                        required={
-                          facultyScope === "selected" &&
-                          selectedFaculties.length === 0
-                        }
-                        onChange={() => toggleFaculty(faculty)}
-                        style={{
-                          width: "auto",
-                          minWidth: "auto",
-                          margin: 0,
-                          padding: 0,
-                          flex: "0 0 auto",
-                        }}
-                      />
-
-                      <span
-                        style={{
-                          width: "auto",
-                          textAlign: "left",
-                        }}
-                      >
-                        {faculty
-                          .replace("สำนักวิชา", "")
-                          .replace("วิทยาลัย", "")}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-
-                <small
-                  className="workflow-muted"
-                  style={{
-                    display: "block",
-                    marginTop: "14px",
-                    textAlign: "left",
-                  }}
-                >
-                  เลือกแล้ว {selectedFaculties.length} สำนักวิชา / วิทยาลัย
-                </small>
-              </div>
-            )}
-
-            {/* ถ้าเลือกทุกสำนักวิชา */}
-            {facultyScope === "all" && (
-              <small
-                className="workflow-muted"
-                style={{
-                  display: "block",
-                  marginTop: "6px",
-                  textAlign: "left",
-                }}
-              >
-                นักศึกษาจากทุกสำนักวิชาและทุกสาขาวิชาสามารถสมัครทุนนี้ได้
-              </small>
-            )}
-          </div>
+          <fieldset className="workflow-wide academic-audience"><legend>คณะ / สำนักวิชาและสาขาที่เปิดรับสมัคร</legend>
+            <label><input type="radio" name="faculty_scope" value="all" checked={facultyScope === "all"} onChange={() => setFacultyScope("all")}/> ทุกสำนักวิชาและทุกสาขา</label>
+            <label><input type="radio" name="faculty_scope" value="selected" checked={facultyScope === "selected"} onChange={() => setFacultyScope("selected")}/> ระบุสำนักวิชา / สาขา</label>
+            {facultyScope === "selected" && <div className="workflow-grid">
+              <SearchableMultiSelect label="คณะ / สำนักวิชา" name="eligible_faculties" options={academicOptions.faculties.length ? academicOptions.faculties : walailakAcademicUnits} values={selectedFaculties} onChange={setSelectedFaculties} required/>
+              <SearchableMultiSelect label="สาขาวิชา" name="eligible_majors" options={academicOptions.majors} values={selectedMajors} onChange={setSelectedMajors}/>
+              <p className="workflow-wide workflow-muted">เลือกได้หลายรายการ ไม่เลือกสาขาหมายถึงทุกสาขาของสำนักวิชาที่เลือก หากไม่มีสาขาในรายการ ให้ผู้ดูแลระบบเพิ่มที่ข้อมูลพื้นฐาน</p>
+            </div>}
+          </fieldset>
 
           {/* ภาพปก */}
 

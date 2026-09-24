@@ -2484,3 +2484,36 @@ body {
 .account-details dt { font-weight: 700; }
 .account-details dd { margin: 0; overflow-wrap: anywhere; }
 .popover form { padding: 8px 0; }
+
+/* Staff navigation groups keep related tasks together. */
+.staff-navigation { display: flex; align-items: center; gap: 4px; }
+.staff-nav-group { position: relative; }
+.staff-nav-group > summary {
+  display: flex; align-items: center; gap: 9px; padding: 11px 10px;
+  border-radius: 7px; color: var(--ink); font-size: 14px;
+  white-space: nowrap; cursor: pointer; list-style: none;
+}
+.staff-nav-group > summary::-webkit-details-marker { display: none; }
+.staff-nav-group > summary.active,
+.staff-nav-group > summary:hover,
+.staff-nav-group[open] > summary { background: #e6f2ec; color: #12674f; }
+.staff-nav-chevron { transition: transform .15s; }
+.staff-nav-group[open] .staff-nav-chevron { transform: rotate(180deg); }
+.staff-nav-dropdown {
+  position: absolute; top: calc(100% + 8px); left: 0; min-width: 220px;
+  padding: 6px; background: #fff; border: 1px solid var(--line);
+  border-radius: 10px; box-shadow: 0 8px 30px #20375320; z-index: 25;
+}
+.staff-navigation :is(a, summary):focus-visible { outline: 3px solid #70ad92; outline-offset: 2px; }
+.staff-topbar .account { flex-shrink: 0; }
+.staff-topbar .account summary strong { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 1250px) {
+  .staff-navigation { flex-wrap: wrap; }
+}
+@media (max-width: 620px) {
+  .staff-topbar nav.open { width: 100%; }
+  .staff-navigation { display: grid; width: 100%; gap: 4px; }
+  .staff-nav-group > summary { font-size: 13px; padding: 9px; }
+  .staff-nav-chevron { margin-left: auto; }
+  .staff-nav-dropdown { position: static; min-width: 0; margin: 4px 0 8px 16px; box-shadow: none; }
+}
