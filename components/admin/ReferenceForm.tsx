@@ -108,7 +108,7 @@ export default function ReferenceForm({
         </div>
       )}
       {state.success && (
-        <p role="status" className="admin-success">
+        <p role="status" className="admin-success"><span className="action-success-mark" aria-hidden="true">✓</span>
           {state.success}
         </p>
       )}
@@ -119,12 +119,12 @@ export default function ReferenceForm({
             className="btn secondary"
             disabled={pending}
             onClick={onCancel}
-          >
+           aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}
             {state.success ? "ปิด" : "ยกเลิก"}
           </button>
         )}
         {!state.success && (
-          <button className="btn" disabled={pending || isStale}>
+          <button className="btn" disabled={pending || isStale} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}
             {pending ? "กำลังบันทึก…" : item ? "บันทึกการแก้ไข" : "เพิ่มข้อมูล"}
           </button>
         )}

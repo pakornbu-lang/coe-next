@@ -2575,3 +2575,14 @@ html { scroll-padding-top: calc(var(--portal-header-height, 90px) + 16px); }
   .btn, .back-to-top { transition: none; }
   :is(button.btn, a.btn[href], .back-to-top):active:not(:disabled):not([aria-disabled="true"]) { scale: 1; }
 }
+
+/* Submission feedback follows each form's actual pending/success state. */
+.action-spinner {
+  display: inline-block; flex: 0 0 auto; width: 1em; height: 1em;
+  box-sizing: border-box; border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%; vertical-align: -.12em; margin-inline-end: .35em;
+  animation: action-spin 700ms linear infinite;
+}
+.action-success-mark { display: inline-block; color: #20795b; font-weight: 700; margin-inline-end: .45em; }
+@keyframes action-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .action-spinner { animation: none; } }

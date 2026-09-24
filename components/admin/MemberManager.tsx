@@ -202,7 +202,7 @@ function MemberCard({ member: m }: { member: Member }) {
             <button
               className="btn"
               disabled={pending || isStale || Boolean(state.success)}
-            >
+             aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}
               {pending
                 ? "กำลังบันทึก…"
                 : operation === "set_role"
@@ -228,7 +228,7 @@ function MemberCard({ member: m }: { member: Member }) {
             )}
 
             {state.success && (
-              <p role="status" className="admin-success">
+              <p role="status" className="admin-success"><span className="action-success-mark" aria-hidden="true">✓</span>
                 {state.success}
               </p>
             )}
