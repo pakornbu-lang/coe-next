@@ -22,7 +22,7 @@ export const metadata = {
   title: "ทุนการศึกษา",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function ScholarshipsPage({
   searchParams,
@@ -44,6 +44,7 @@ export default async function ScholarshipsPage({
     .trim()
     .toLocaleLowerCase("th-TH");
 
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
 
   /*
@@ -590,7 +591,20 @@ export default async function ScholarshipsPage({
                     "data-state"
                   ) !== nextState
                 ) {
-                  window.location.reload();
+                  card.setAttribute("data-state", nextState);
+                  const badge = card.querySelector(".workflow-status");
+                  if (badge) {
+                    if (nextState === "closed") {
+                      badge.textContent = "ปิดรับสมัครแล้ว";
+                      badge.className = "workflow-status scholarship-closed";
+                    } else if (nextState === "upcoming") {
+                      badge.textContent = "ยังไม่เปิดรับ";
+                      badge.className = "workflow-status scholarship-draft";
+                    } else {
+                      badge.textContent = "เปิดรับสมัคร";
+                      badge.className = "workflow-status scholarship-published";
+                    }
+                  }
                 }
               });
           }
@@ -599,7 +613,7 @@ export default async function ScholarshipsPage({
 
           setInterval(
             updateScholarshipTimeStatus,
-            1000
+            30000
           );
         `}
       </Script>

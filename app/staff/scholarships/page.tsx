@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { deleteScholarship } from "@/app/actions/scholarships";
 import { requireRole } from "@/lib/auth/server";
-import { getScholarship, listStaffScholarships } from "@/lib/scholarships/server";
+import {
+  getScholarship,
+  listStaffScholarships,
+} from "@/lib/scholarships/server";
 import { createClient } from "@/lib/supabase/server";
 import ScholarshipEditor from "@/components/workflow/ScholarshipEditor";
 import { ScholarshipStatusBadge } from "@/components/workflow/StatusBadge";
-import { money, thaiDate } from "@/lib/scholarships/types";
 import { ScholarshipProcessForm } from "@/components/workflow/WorkflowExtensions";
 
 const programLabels: Record<string, string> = {
@@ -86,6 +89,7 @@ export default async function StaffScholarshipsPage({
                     <div className="workflow-row-summary">
                       <span>
                         <strong>{item.title}</strong>
+
                         <span
                           style={{
                             display: "block",
@@ -107,19 +111,21 @@ export default async function StaffScholarshipsPage({
                             สำนักวิชาที่เปิดรับ:{" "}
                             {item.eligible_faculties?.length
                               ? item.eligible_faculties
-                                .map((faculty) =>
-                                  faculty
-                                    .replace("สำนักวิชา", "")
-                                    .replace("วิทยาลัย", ""),
-                                )
-                                .join(", ")
+                                  .map((faculty) =>
+                                    faculty
+                                      .replace("สำนักวิชา", "")
+                                      .replace("วิทยาลัย", ""),
+                                  )
+                                  .join(", ")
                               : "ทุกสำนักวิชา / ทุกสาขาวิชา"}
                           </small>
                         </span>
                       </span>
 
                       <span className="workflow-actions">
-                        <ScholarshipStatusBadge status={item.status} />
+                        <ScholarshipStatusBadge
+                          status={item.status}
+                        />
 
                         <span
                           style={{
@@ -135,21 +141,31 @@ export default async function StaffScholarshipsPage({
                             แก้ไข
                           </Link>
 
-                          <button
-                            type="button"
-                            className="btn secondary"
-                            style={{
-                              color: "#dc2626",
-                              borderColor: "#dc2626",
-                            }}
-                          >
-                            ลบ
-                          </button>
+                          <form action={deleteScholarship}>
+                            <input
+                              type="hidden"
+                              name="scholarship_id"
+                              value={item.id}
+                            />
+
+                            <button
+                              type="submit"
+                              className="btn secondary"
+                              style={{
+                                color: "#dc2626",
+                                borderColor: "#dc2626",
+                              }}
+                            >
+                              ลบ
+                            </button>
+                          </form>
                         </span>
                       </span>
                     </div>
 
-                    <ScholarshipProcessForm scholarship={item} />
+                    <ScholarshipProcessForm
+                      scholarship={item}
+                    />
                   </article>
                 ))}
               </div>

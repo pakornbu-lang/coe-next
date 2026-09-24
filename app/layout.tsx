@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const viewer = await getViewer();
-  const notifications = viewer ? await getNotifications() : [];
+  const notifications = viewer ? await getNotifications(viewer.id) : [];
   return (
     <html lang="th" data-scroll-behavior="smooth">
       <body>
