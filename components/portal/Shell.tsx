@@ -124,7 +124,7 @@ export default function Shell({ children, viewer }: { children: ReactNode; viewe
     ? [
         ["/", "หน้าแรก", "home"],
         ["/scholarships", "ทุนการศึกษา", "cap"],
-        ["/#steps", "ขั้นตอนการสมัคร", "file"],
+        ["/steps", "ขั้นตอนการสมัคร", "file"],
         ["/#contact", "ติดต่อ", "mail"],
       ]
     : viewer.role === "admin"
