@@ -1,0 +1,7 @@
+const fs=require('node:fs'), vm=require('node:vm'), assert=require('node:assert/strict'),ts=require('typescript');
+const exportsObject={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/scholarships/schema-compat.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:exportsObject});
+(async()=>{const fields='id,eligible_faculties,eligible_majors,title';
+for(const column of ['eligible_faculties','eligible_majors'])for(const code of ['42703','PGRST204']){const calls=[];const result=await exportsObject.queryScholarshipSchema(fields,async f=>{calls.push(f);return calls.length===1?{data:null,error:{code,message:`column ${column} does not exist`}}:{data:[{id:'1'}],error:null}});assert.deepEqual(calls,[fields,'id,title']);assert.equal(result.data.length,1);}
+for(const error of [null,{code:'42501',message:'permission denied'},{code:'42703',message:'column title missing'},{code:'08006',message:'connection lost'}]){let count=0;const result=await exportsObject.queryScholarshipSchema(fields,async()=>{count++;return {data:null,error}});assert.equal(count,1);assert.equal(result.error,error);}
+let count=0;await exportsObject.queryScholarshipSchema(fields,async()=>{count++;return {error:{code:'42703',message:'eligible_majors missing'}}});assert.equal(count,2);
+console.log('PASS: both optional columns, both schema codes, no retry for unrelated errors, bounded retry');})().catch(e=>{console.error(e);process.exitCode=1});
