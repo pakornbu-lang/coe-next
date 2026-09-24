@@ -63,6 +63,12 @@ const failure = (
       success: "",
     };
 
+  if (message === "GPA is below scholarship minimum")
+    return { error: "เกรดเฉลี่ยของคุณต่ำกว่าเกณฑ์ขั้นต่ำของทุนนี้ จึงไม่สามารถส่งใบสมัครได้", success: "" };
+
+  if (message === "Invalid application GPA")
+    return { error: "กรุณากรอกเกรดเฉลี่ยระหว่าง 0–4 และทศนิยมไม่เกิน 2 ตำแหน่ง", success: "" };
+
   if (message === "Invalid bank account details")
     return {
       error:
