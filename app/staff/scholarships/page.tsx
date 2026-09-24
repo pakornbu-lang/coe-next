@@ -48,6 +48,35 @@ export default async function StaffScholarshipsPage({
     edit ? getScholarship(edit) : Promise.resolve(null),
   ]);
 
+  /*
+   * เรียงทุนที่ปิดรับสมัคร / หมดเวลา
+   * ให้อยู่ล่างสุดของรายการ
+   */
+  const now = Date.now();
+
+  const isScholarshipClosed = (
+    item: (typeof scholarships)[number],
+  ) => {
+    return (
+      item.status === "closed" ||
+      item.status === "archived" ||
+      now >= new Date(item.closes_at).getTime()
+    );
+  };
+
+  const sortedScholarships = [...scholarships].sort(
+    (a, b) => {
+      const aClosed = isScholarshipClosed(a);
+      const bClosed = isScholarshipClosed(b);
+
+      if (aClosed === bClosed) {
+        return 0;
+      }
+
+      return aClosed ? 1 : -1;
+    },
+  );
+
   return (
     <div className="workflow-stack">
       <section className="panel workflow-heading">
@@ -81,7 +110,7 @@ export default async function StaffScholarshipsPage({
 
             {scholarships.length ? (
               <div className="workflow-scholarship-admin-list">
-                {scholarships.map((item) => (
+                {sortedScholarships.map((item) => (
                   <article
                     className="workflow-scholarship-admin"
                     key={item.id}
