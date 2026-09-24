@@ -136,8 +136,8 @@ textarea {
     background 0.15s,
     box-shadow 0.15s;
 }
-.btn:hover {
-  background: #165f46;
+.btn:hover:not(:disabled):not([aria-disabled="true"]) {
+  filter: brightness(.94);
   box-shadow: 0 3px 10px #235c4420;
 }
 .btn.secondary {
@@ -145,7 +145,7 @@ textarea {
   color: var(--green);
   border-color: #6b9c87;
 }
-.btn.secondary:hover {
+.btn.secondary:hover:not(:disabled):not([aria-disabled="true"]) {
   background: #edf8f1;
 }
 .button-row {
@@ -2559,4 +2559,19 @@ html { scroll-padding-top: calc(var(--portal-header-height, 90px) + 16px); }
   .topbar .staff-nav-group[open] > .staff-nav-dropdown,
   .topbar .account details[open] > .popover { animation: none; }
   .staff-nav-chevron { transition: none; }
+}
+
+/* Subtle feedback without moving the surrounding layout. */
+.btn, .back-to-top {
+  transition: background-color 150ms ease, color 150ms ease,
+    border-color 150ms ease, box-shadow 150ms ease, filter 150ms ease,
+    scale 100ms ease-out;
+}
+:is(button.btn, a.btn[href], .back-to-top):active:not(:disabled):not([aria-disabled="true"]) {
+  scale: .97;
+}
+.btn:focus-visible { outline: 3px solid #70ad92; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .btn, .back-to-top { transition: none; }
+  :is(button.btn, a.btn[href], .back-to-top):active:not(:disabled):not([aria-disabled="true"]) { scale: 1; }
 }
