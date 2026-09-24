@@ -473,7 +473,7 @@ export const getNotifications = cache(async (userId?: string): Promise<Notificat
 
 export async function getAcademicOptions() {
  const client = await createClient();
- const { data, error } = await client.from("portal_reference_data").select("name,kind").in("kind", ["faculty", "major"]).eq("active", true).order("name");
+ const { data, error } = await client.from("portal_reference_data").select("name,kind").in("kind", ["faculty", "major", "document_type"]).eq("active", true).order("name");
  if (error) throw new Error("โหลดรายชื่อสำนักวิชาและสาขาไม่ได้");
- return { faculties: data.filter(item => item.kind === "faculty").map(item => item.name), majors: data.filter(item => item.kind === "major").map(item => item.name) };
+ return { faculties: data.filter(item => item.kind === "faculty").map(item => item.name), majors: data.filter(item => item.kind === "major").map(item => item.name), documentTypes: data.filter(item => item.kind === "document_type").map(item => item.name) };
 }

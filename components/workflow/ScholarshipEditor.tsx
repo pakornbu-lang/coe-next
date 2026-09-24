@@ -212,7 +212,7 @@ export default function ScholarshipEditor({
   types,
   academicOptions = { faculties: [], majors: [] },
 }: {
-  academicOptions?: { faculties: string[]; majors: string[] };
+  academicOptions?: { faculties: string[]; majors: string[]; documentTypes?: string[] };
   scholarship?: ScholarshipEditorScholarship;
   types: {
     id: string;
@@ -641,6 +641,7 @@ export default function ScholarshipEditor({
         </p>
 
         <RequirementEditor
+          documentTypes={academicOptions.documentTypes}
           rows={requirementRows}
           onChange={setRequirementRows}
         />

@@ -1,6 +1,7 @@
 "use client";
 
 import { numericInputProps } from "@/lib/numeric-input";
+import { useId } from "react";
 
 export type RequirementDraft = {
   label: string;
@@ -93,12 +94,15 @@ function move<T>(
 export function RequirementEditor({
   rows,
   onChange,
+  documentTypes = [],
 }: {
+  documentTypes?: string[];
   rows: RequirementDraft[];
   onChange: (
     rows: RequirementDraft[],
   ) => void;
 }) {
+  const documentTypesId = useId();
   const serialized = rows
     .map(
       (row) =>
@@ -112,6 +116,8 @@ export function RequirementEditor({
 
   return (
     <div className="structure-editor">
+      <datalist id={documentTypesId}>{documentTypes.map(name => <option key={name} value={name}/>)}</datalist>
+      <p className="workflow-muted">เลือกชื่อจากประเภทเอกสารส่วนกลาง หรือระบุชื่อเอกสารเพิ่มเติมสำหรับทุนนี้</p>
       <input
         type="hidden"
         name="requirements"
@@ -163,6 +169,7 @@ export function RequirementEditor({
             <label>
               ชื่อเอกสาร *
               <input
+                list={documentTypesId}
                 required
                 maxLength={150}
                 value={row.label}
