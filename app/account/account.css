@@ -7,3 +7,30 @@
 .profile-form .profile-section-title{margin:28px 0 0;padding-top:24px;border-top:1px solid #e2e8f0;font-size:19px}.profile-form select{display:block;width:100%;margin-top:8px;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:white;color:#172554;font:inherit}.profile-form select:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 @media(max-width:800px){.account-columns{grid-template-columns:1fr}.profile-fields{grid-template-columns:1fr}.profile-heading{gap:16px}.profile-heading>span,.profile-heading>img{width:64px!important;height:64px!important}.account-page .panel{padding:20px}}
 .form-validated :is(input,select,textarea):invalid{border-color:#c93636!important;background:#fff7f7!important;box-shadow:0 0 0 1px #c93636}
+
+/* Profile header: quiet green tones and a decorative identity card. */
+.profile-heading.profile-banner {
+  position: relative; isolation: isolate; overflow: hidden;
+  justify-content: space-between; padding: 32px 40px; border-radius: 22px;
+  border: 1px solid #d7e8df;
+  background: radial-gradient(ellipse at 95% 15%, #cce7d880, transparent 55%), linear-gradient(115deg, #fff 5%, #edf7f1 100%);
+  box-shadow: 0 8px 24px #244e3a06;
+}
+.profile-banner::before { content: ""; position: absolute; top: 30px; bottom: 30px; left: 0; width: 4px; background: #318967; border-radius: 0 4px 4px 0; }
+.profile-banner-copy { position: relative; z-index: 1; }
+.profile-banner .profile-eyebrow { color: #27775b; letter-spacing: .2em; font-size: 11px; }
+.profile-banner h1 { margin: 8px 0 10px; font-size: clamp(28px, 3vw, 38px); }
+.profile-banner p { color: #5d7282; }
+.profile-role-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; margin-top: 14px; border: 1px solid #cfe3d7; border-radius: 99px; background: #ffffffb3; color: #276a51; font-size: 12px; font-weight: 600; }
+.profile-role-chip > span { width: 6px; height: 6px; border-radius: 50%; background: #318967; }
+.profile-banner-art { position: relative; flex: 0 0 180px; height: 170px; display: grid; place-items: center; }
+.profile-banner-orbit { position: absolute; width: 165px; height: 165px; border: 1px solid #b9d7c6; border-radius: 50%; box-shadow: 0 0 0 22px #d9ebdf65; }
+.profile-banner-card { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 112px; padding: 22px 15px; background: #ffffffeb; border: 1px solid #d0e4d8; border-radius: 18px; color: #338465; transform: rotate(8deg); box-shadow: 0 12px 28px #22543c12; }
+.profile-banner-card > span { width: 60px; height: 5px; border-radius: 5px; background: #dcece2; }
+.profile-banner-card > span:last-child { width: 40px; }
+.profile-banner-spark { position: absolute; top: 5px; right: 5px; color: #589477; font-size: 24px; }
+@media (max-width: 620px) {
+  .profile-heading.profile-banner { padding: 26px 22px; border-radius: 16px; }
+  .profile-banner-art { display: none; }
+  .profile-banner p { font-size: 14px; }
+}
