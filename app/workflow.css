@@ -1249,3 +1249,5 @@
   overflow-wrap: anywhere;
 }
 .report-page .workflow-stat-grid > .panel span { line-height: 1.5; }
+
+.btn.scholarship-icon-action { width: 44px; height: 44px; min-height: 44px; padding: 0; flex-shrink: 0; }
