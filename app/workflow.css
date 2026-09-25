@@ -1232,3 +1232,20 @@
 
 /* Separate assessment filter buttons from the fields above. */
 .evaluation-filter-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; grid-column: 1 / -1; }
+
+/* Report totals: number above its label, including long currency values. */
+.report-page .workflow-stat-grid > .panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  min-width: 0;
+}
+.report-page .workflow-stat-grid > .panel strong {
+  line-height: 1.2;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.report-page .workflow-stat-grid > .panel span { line-height: 1.5; }
