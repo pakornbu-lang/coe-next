@@ -18,7 +18,19 @@ export default function ProfileOverview({ viewer, profile, initialEditing = fals
   ];
   function edit() { setSaved(false); setEditing(true); }
   return <>
-    <section className="panel profile-summary-card"><Avatar version={viewer.avatarVersion} name={viewer.fullName} size={96} /><div className="profile-summary-text"><h2>{viewer.fullName}</h2><p>{student?"รหัสนักศึกษา":"รหัสประจำตัว"} {viewer.studentId}</p><span className="profile-role-badge">{roleLabels[viewer.role]}</span><p>{viewer.email}{profile.phone ? ` · ${profile.phone}` : ""}</p></div><button className="btn secondary" onClick={edit} aria-expanded={editing} aria-controls="profile-editor">แก้ไขข้อมูล / รูปโปรไฟล์</button></section>
+    <section className="profile-heading profile-banner profile-unified">
+      <header className="profile-unified-heading"><div><span className="profile-eyebrow">MY PROFILE</span><h1>โปรไฟล์ของฉัน</h1></div><span className="profile-role-chip"><span aria-hidden="true"/>{roleLabels[viewer.role]}</span></header>
+      <div className="profile-unified-account">
+        <div className="profile-unified-avatar"><Avatar version={viewer.avatarVersion} name={viewer.fullName} size={104}/></div>
+        <div className="profile-summary-text"><span className="profile-name-label">ชื่อ–นามสกุล</span><h2>{viewer.fullName}</h2><p>จัดการข้อมูลส่วนตัวและข้อมูลติดต่อของคุณ</p></div>
+        <button className="btn profile-edit-button" onClick={edit} aria-expanded={editing} aria-controls="profile-editor"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m16 3 5 5L8 21H3v-5L16 3ZM13 6l5 5"/></svg>แก้ไขโปรไฟล์</button>
+      </div>
+      <dl className="profile-banner-details">
+        <div><dt>{student ? "รหัสนักศึกษา" : "รหัสประจำตัว"}</dt><dd>{viewer.studentId}</dd></div>
+        <div><dt>อีเมลเข้าสู่ระบบ</dt><dd>{viewer.email}</dd></div>
+        <div><dt>เบอร์โทรศัพท์</dt><dd>{profile.phone || "ยังไม่ระบุ"}</dd></div>
+      </dl>
+    </section>
     {saved && <p className="profile-success" role="status">บันทึกโปรไฟล์แล้ว</p>}
     {editing && <section id="profile-editor" className="panel profile-editor"><ProfileForm profile={profile} role={viewer.role} onSaved={() => { setEditing(false); setSaved(true); }} onCancel={() => setEditing(false)} /></section>}
     <div className="profile-overview-grid">{sections.map(section => <section className="panel" key={section.title}><header className="profile-card-heading"><h2>{section.title}</h2><button className="text-button" onClick={edit}>แก้ไข ›</button></header><dl className="profile-facts">{section.items.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value || "ยังไม่ระบุ"}</dd></div>)}</dl>{student && section.title === "ข้อมูลการศึกษา" && <p className="profile-hint">ข้อมูลที่คุณกรอกเอง ยังไม่ผ่านการตรวจสอบคุณสมบัติทุน</p>}</section>)}</div>
