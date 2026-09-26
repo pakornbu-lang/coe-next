@@ -11,16 +11,16 @@ import { bangkokDate, interviewApplicationStatuses } from "@/lib/scholarships/in
 // แก้ฟอร์มวันเวลา/กรรมการ/สถานที่: InterviewControl ใน components/workflow/OperationsForms.tsx
 // แก้การบันทึก: saveInterview ใน app/actions/review-operations.ts -> staff_schedule_interview_v2
 // แก้สถานะใบสมัครที่นัดได้: lib/scholarships/interviews.ts และกฎ RPC ใน migration ใหม่ต้องตรงกัน
-export default async function Page({ searchParams }: { searchParams: Promise<{ date?: string; scholarship?: string; application?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ date?: string; scholarship?: string; /* ข้อมูลทุนที่ใบสมัครอ้างถึง */ application?: string /* ข้อมูลใบสมัคร */ }> }) {
   await requireRole(["staff"]);
-  const filters = await searchParams, client = await createClient();
+  const filters = await searchParams /* ตัวกรองที่อ่านจาก query string ของ URL */, client = await createClient() /* Supabase client ที่ใช้ session ของผู้ใช้ปัจจุบัน */;
 
 // เลือกคอลัมน์ของนัดที่ใช้ทั้งแสดงผลและเติมฟอร์มแก้ไข
 // เพิ่มฟิลด์นัดใหม่ให้แก้ตารางด้วย migration, type Interview, select นี้, ฟอร์ม และ RPC ให้ครบ
   let interviewQuery = client
     .from("application_interviews")
     .select("id,application_id,scheduled_at,ends_at,interviewer_id,location,meeting_url,note,status,outcome,version")
-    .order("scheduled_at");
+    .order("scheduled_at") /* คำสั่งอ่านรายการนัด สามารถต่อเงื่อนไขกรองก่อนส่ง query ได้ */;
 
   if (filters.application) {
     interviewQuery = interviewQuery.eq("application_id", filters.application);
@@ -29,7 +29,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
   let applicationQuery = client
     .from("applications")
     .select("id,student_name,application_no,scholarship_id,status")
-    .in("status", interviewApplicationStatuses);
+    .in("status", interviewApplicationStatuses) /* คำสั่งอ่านใบสมัครที่เข้าเงื่อนไขการนัดสัมภาษณ์ */;
 
   if (filters.application) {
     applicationQuery = applicationQuery.eq("id", filters.application);
@@ -46,12 +46,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
     client.from("portal_profiles").select("id,full_name").eq("role", "committee").eq("active", true),
     applicationQuery,
     client.from("scholarships").select("id,title"),
-  ]);
+  ]) /* ผล query นัดสัมภาษณ์ กรรมการ ใบสมัคร และทุน ตามลำดับ */;
   if (interviews.error || people.error || applications.error || scholarships.error) throw Error("โหลดตารางสัมภาษณ์ไม่ได้");
 
-  const applicationById = new Map(applications.data.map(item => [item.id, item]));
-  const personById = new Map(people.data.map(person => [person.id, person]));
-  const interviewApplicationIds = new Set(interviews.data.map(item => item.application_id));
+  const applicationById = new Map(applications.data.map(item => [item.id, item])) /* Map สำหรับค้นข้อมูลใบสมัครด้วยรหัสโดยไม่ต้องวนหาใหม่ทุกครั้ง */;
+  const personById = new Map(people.data.map(person => [person.id, person])) /* Map สำหรับค้นชื่อกรรมการด้วยรหัสบัญชี */;
+  const interviewApplicationIds = new Set(interviews.data.map(item => item.application_id)) /* Set ของรหัสใบสมัครที่มีข้อมูลนัด */;
   const eligible = applications.data;
   const eligibleApplicationIds = new Set(eligible.map(item => item.id));
   const matches = (interviews.data as Interview[]).filter(item =>
@@ -59,7 +59,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
     (!filters.scholarship || applicationById.get(item.application_id)?.scholarship_id === filters.scholarship));
   const requestedDate = filters.date && /^\d{4}-\d{2}-\d{2}$/.test(filters.date) && !Number.isNaN(Date.parse(filters.date)) ? filters.date : null;
   const date = requestedDate ?? (filters.application && matches[0] ? bangkokDate(matches[0].scheduled_at) : bangkokDate(new Date().toISOString()));
-  const rows = matches.filter(item => bangkokDate(item.scheduled_at) === date);
+  const rows = matches.filter(item => bangkokDate(item.scheduled_at) === date) /* รายการงานหลังใช้ตัวกรองจาก URL */;
   const counts: Record<string, number> = {};
   for (const item of matches) if (item.status !== "cancelled") { const day = bangkokDate(item.scheduled_at); counts[day] = (counts[day] ?? 0) + 1; }
   const unscheduled = eligible.filter(app => (!filters.application || app.id === filters.application) && (!filters.scholarship || app.scholarship_id === filters.scholarship) && !interviewApplicationIds.has(app.id));
