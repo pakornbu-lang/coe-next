@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { requireViewer, invalidateViewerCache } from "@/lib/auth/server";
+import { requireViewer } from "@/lib/auth/server";
 import { createClient } from "@/lib/supabase/server";
 import { prepareAvatar, MAX_AVATAR_BYTES } from "@/lib/account/avatar.mjs";
 import type { ProfileState } from "@/lib/account/types";
@@ -59,7 +59,6 @@ export async function updateMyProfile(_previous: ProfileState, form: FormData): 
   if ((newPath || remove) && previous.avatar_path) {
     await client.storage.from("portal-avatars").remove([previous.avatar_path]);
   }
-  invalidateViewerCache(viewer.id);
   revalidatePath("/", "layout");
   return { error: "", success: "บันทึกโปรไฟล์แล้ว พร้อมเก็บประวัติการแก้ไข", version: version + 1 };
 }

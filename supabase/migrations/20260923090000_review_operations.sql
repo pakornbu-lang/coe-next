@@ -1,4 +1,8 @@
 -- Review operations, interview scheduling and idempotent reminders.
+-- ส่วนขยายการจัดการกรรมการและสัมภาษณ์: อ่านประกอบ migration รุ่นใหม่กว่านี้ด้วย
+-- ตัวอย่าง: 20260924120000_review_ui_workflow.sql ปรับสถานะใบสมัครที่นัดได้
+-- การปรับกฎระบบที่ติดตั้งแล้วให้เพิ่ม migration ใหม่ ไม่แก้ SQL เก่าแล้วคาดว่าจะถูกรันซ้ำ
+-- เพิ่มคอลัมน์ใดต้องแก้ type, select, ฟอร์ม และ Server Action ที่ส่งข้อมูลนั้นด้วย
 alter table public.review_assignments add column due_at timestamptz,
   add column version integer not null default 1;
 alter table public.application_interviews add column ends_at timestamptz,
@@ -9,6 +13,8 @@ alter table public.application_interviews alter column ends_at set not null;
 create index on public.review_assignments(due_at) where status='assigned';
 create index on public.application_interviews(interviewer_id,scheduled_at) where status='scheduled';
 
+-- Trigger ล็อกงานที่ประเมินเสร็จแล้วไม่ให้เปลี่ยนกลับ และเพิ่ม version ทุกครั้งที่แก้งาน
+-- หากต้องการเปิดงานย้อนหลัง ต้องออกแบบประวัติผลเดิมและสิทธิ์ร่วมกับ RPC ไม่ปลดเงื่อนไขหน้าเว็บอย่างเดียว
 create function private.guard_review_assignment()
 returns trigger language plpgsql set search_path='' as $$
 begin
@@ -21,6 +27,9 @@ end; $$;
 create trigger guard_review_assignment before update on public.review_assignments
 for each row execute function private.guard_review_assignment();
 
+-- RPC ของ manageReview: ตรวจ staff, ล็อกใบสมัคร/งาน, ตรวจ version และสถานะก่อนแก้
+-- เปลี่ยนกรรมการจะถอนงานเดิมแล้วสร้างงานใหม่ เพื่อเก็บเส้นทางการมอบหมาย
+-- ข้อจำกัดกำหนดส่ง/เหตุผล/งานซ้ำต้องปรับใน migration ใหม่ พร้อม validation ของ AssignmentControl
 create function public.staff_manage_review(p_id uuid,p_version integer,p_due_at timestamptz,p_replacement uuid,p_revoke boolean,p_reason text)
 returns void language plpgsql security definer set search_path='' as $$
 declare old_row public.review_assignments; new_id uuid;
@@ -47,6 +56,9 @@ end; $$;
 revoke all on function public.staff_manage_review(uuid,integer,timestamptz,uuid,boolean,text) from public,anon;
 grant execute on function public.staff_manage_review(uuid,integer,timestamptz,uuid,boolean,text) to authenticated;
 
+-- Trigger ตรวจเวลาสิ้นสุดและนัดซ้อนของกรรมการ นักศึกษา หรือสถานที่
+-- advisory lock ป้องกันคำขอนัดพร้อมกันตรวจผ่านทั้งคู่; ต้องพิจารณากลไกนี้เมื่อเปลี่ยนวิธีตรวจเวลาชน
+-- ช่วงติดกันพอดีไม่ถือว่าซ้อนตามเงื่อนไข < และ > ด้านล่าง
 create function private.guard_interview_time()
 returns trigger language plpgsql set search_path='' as $$
 begin
@@ -72,6 +84,9 @@ end; $$;
 create trigger guard_interview_time before insert or update on public.application_interviews
 for each row execute function private.guard_interview_time();
 
+-- RPC หลักของ saveInterview: ตรวจสิทธิ์ รุ่นข้อมูล เวลา กรรมการ สถานะ และผลสัมภาษณ์
+-- insert ... on conflict(application_id) คือสร้างนัดใหม่หรือแก้นัดของใบสมัครเดิม
+-- เปลี่ยนชื่อ/เพิ่ม parameter ต้องแก้ app/actions/review-operations.ts และฟอร์ม InterviewControl คู่กัน
 create function public.staff_schedule_interview_v2(p_application_id uuid,p_version integer,p_start timestamptz,p_end timestamptz,p_interviewer uuid,p_location text,p_url text,p_note text,p_status text,p_outcome text)
 returns void language plpgsql security definer set search_path='' as $$
 declare old_row public.application_interviews; new_row public.application_interviews; student uuid;

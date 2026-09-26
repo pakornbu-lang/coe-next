@@ -24,11 +24,11 @@ export const metadata = {
 export default async function StaffScholarshipsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string }>;
+  searchParams: Promise<{ edit?: string; delete_result?: string }>;
 }) {
   await requireRole(["staff"]);
 
-  const { edit } = await searchParams;
+  const { edit, delete_result: deleteResult } = await searchParams;
 
   const client = await createClient();
 
@@ -98,6 +98,24 @@ export default async function StaffScholarshipsPage({
         </Link>
       </section>
 
+      {deleteResult === "deleted" && (
+        <p className="workflow-success" role="status">
+          ?????????????????
+        </p>
+      )}
+
+      {deleteResult === "blocked" && (
+        <p className="workflow-error" role="alert">
+          ???????????????????? ?????????????????????????????????????
+        </p>
+      )}
+
+      {deleteResult === "failed" && (
+        <p className="workflow-error" role="alert">
+          ?????????????? ????????????????????
+        </p>
+      )}
+
       {edit && selected ? (
         <ScholarshipEditor
           scholarship={selected}
@@ -165,10 +183,12 @@ export default async function StaffScholarshipsPage({
                           }}
                         >
                           <Link
-                            className="btn secondary"
+                            className="btn secondary scholarship-icon-action"
                             href={`/staff/scholarships?edit=${item.id}`}
+                            aria-label={`แก้ไขทุน ${item.title}`}
+                            title="แก้ไขทุน"
                           >
-                            แก้ไข
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m16 3 5 5L8 21H3v-5L16 3ZM13 6l5 5"/></svg>
                           </Link>
 
                           <form action={deleteScholarship}>
@@ -180,13 +200,15 @@ export default async function StaffScholarshipsPage({
 
                             <button
                               type="submit"
-                              className="btn secondary"
+                              className="btn secondary scholarship-icon-action"
+                              aria-label={`ลบทุน ${item.title}`}
+                              title="ลบทุน"
                               style={{
                                 color: "#dc2626",
                                 borderColor: "#dc2626",
                               }}
                             >
-                              ลบ
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>
                             </button>
                           </form>
                         </span>

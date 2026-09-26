@@ -21,11 +21,14 @@ export function ConflictDisclosure({ assignmentId, status }: { assignmentId: str
   return <form action={action} className="workflow-form"><input type="hidden" name="assignment_id" value={assignmentId}/><section className="panel"><h2>ยืนยันผลประโยชน์ทับซ้อน</h2><p>ก่อนเริ่มให้คะแนน กรุณายืนยันว่าคุณไม่มีความสัมพันธ์หรือผลประโยชน์ที่อาจกระทบความเป็นกลาง</p><label>สถานะ *<select name="conflict" required defaultValue=""><option value="" disabled>เลือกสถานะ</option><option value="no">ไม่มีผลประโยชน์ทับซ้อน</option><option value="yes">มีหรืออาจมีผลประโยชน์ทับซ้อน</option></select></label><label>รายละเอียดกรณีมีผลประโยชน์ทับซ้อน<textarea name="note" maxLength={1000} rows={3}/></label><button className="btn" disabled={pending} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังบันทึก…" : "ยืนยันสถานะ"}</button><Result state={state}/></section></form>;
 }
 
+// ตั้งจำนวนกรรมการขั้นต่ำรายทุนและการเผยแพร่ผล; เปลี่ยนช่วงค่าที่กรอกต้องตรวจ RPC staff_set_scholarship_process ด้วย
 export function ScholarshipProcessForm({ scholarship }: { scholarship: { id: string; required_reviewer_count?: number; results_published_at?: string | null; appeal_deadline?: string | null } }) {
   const [state, action, pending] = useActionState(setScholarshipProcess, empty);
   return <details className="workflow-process"><summary>ตั้งค่ากระบวนการ / ประกาศผล</summary><form action={action} className="workflow-form"><input type="hidden" name="scholarship_id" value={scholarship.id}/><div className="workflow-grid"><label>จำนวนกรรมการขั้นต่ำ *<input name="required_reviewers" type="number" required min="1" max="10" step="1" defaultValue={scholarship.required_reviewer_count ?? 1}/></label><label className="structure-check"><input name="publish_results" type="checkbox" defaultChecked={Boolean(scholarship.results_published_at)}/> เผยแพร่ผลให้ผู้สมัครตรวจสอบ</label><label>ปิดรับอุทธรณ์<input name="appeal_deadline" type="datetime-local" defaultValue={localDateTime(scholarship.appeal_deadline)}/></label><label className="workflow-wide">เหตุผลการเปลี่ยนแปลง *<textarea name="reason" required minLength={3} maxLength={500} rows={2}/></label></div><button className="btn" disabled={pending} aria-busy={pending}>{pending && <span className="action-spinner" aria-hidden="true"/>}{pending ? "กำลังบันทึก…" : "บันทึกกระบวนการ"}</button><Result state={state}/></form></details>;
 }
 
+// ส่วนนี้เป็นลิงก์ไปหน้าจัดการสัมภาษณ์ ไม่ใช่ฟอร์มบันทึกนัด
+// ต้องการเพิ่มช่องวันเวลา/ผลสัมภาษณ์ ให้แก้ InterviewControl ใน OperationsForms.tsx
 export function InterviewForm({ applicationId }: { applicationId: string; interview?: unknown }) {
   return <p>จัดการเวลา กรรมการ และผลสัมภาษณ์ได้ที่ <a className="btn secondary" href={"/staff/interviews?application="+applicationId}>ตารางสัมภาษณ์</a></p>;
 }

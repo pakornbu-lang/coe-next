@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { PersonalProfile } from "@/lib/account/types";
 import "./account.css";
 
+
 export const metadata = { title: "บัญชีของฉัน" };
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   const viewer = await requireViewer();
@@ -17,7 +18,6 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   if (authError) throw new Error("โหลดข้อมูลอีเมลไม่สำเร็จ");
   return (
     <div className="account-page">
-      <header className="profile-heading"><div><span className="profile-eyebrow">MY PROFILE</span><h1>โปรไฟล์ของฉัน</h1><p>จัดการข้อมูลส่วนตัวและข้อมูลติดต่อของคุณ</p></div></header>
       <ProfileOverview key={viewer.id} viewer={viewer} profile={data as PersonalProfile} initialEditing={viewer.role === "student" && edit === "1"} />
       <EmailChangeForm key={viewer.email} email={viewer.email} pendingEmail={auth.user?.new_email} />
     {viewer.role === "student" && <section id="documents" className="panel profile-security"><h2>เอกสารประกอบการสมัครทุน</h2><p>อัปโหลดและติดตามผลตรวจเอกสารได้จากใบสมัครของแต่ละทุน เพื่อให้เอกสารผูกกับรอบสมัครอย่างถูกต้อง</p><Link className="btn secondary" href="/applications">ดูใบสมัครของฉัน</Link></section>}

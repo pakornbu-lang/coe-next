@@ -39,6 +39,7 @@ let publishedScholarshipsCache: CachedScholarships | null = null;
 
 export function invalidatePublishedScholarshipsCache() {
   publishedScholarshipsCache = null;
+  landingScholarshipsCache = null;
 }
 
 export async function listPublishedScholarships(): Promise<ScholarshipSummary[]> {
@@ -77,7 +78,13 @@ export type ScholarshipWithRequirements = ScholarshipSummary & {
  */
 export type LandingScholarshipData = {
   scholarships: ScholarshipWithRequirements[];
+  latestAnnouncements: Pick<ScholarshipSummary, "id" | "title" | "closes_at">[];
   total: number;
+  counts: {
+    open: number;
+    upcoming: number;
+    closed: number;
+  };
 };
 
 let landingScholarshipsCache: { data: LandingScholarshipData; expiresAt: number } | null = null;
@@ -89,52 +96,154 @@ export async function listLandingScholarships(): Promise<LandingScholarshipData>
   }
 
   const client = await createClient();
-  const { data, count, error } = await client
-    .from("scholarships")
-    .select("id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at", { count: "exact" })
-    .in("status", ["published", "closed"])
-    .order("closes_at", { ascending: true })
-    .limit(18);
+  const nowIso = new Date(now).toISOString();
+  const columns =
+    "id,title,scholarship_type_id,program_kind,cover_path,description,eligibility,amount,quota,minimum_gpa,eligible_faculties,eligible_majors,opens_at,closes_at,status,version,created_at";
 
-  if (error) fail("ไม่สามารถโหลดรายการทุนหน้าแรกได้");
+  const [
+    openResult,
+    upcomingResult,
+    closedResult,
+    expiredResult,
+    latestResult,
+  ] = await Promise.all([
+    client
+      .from("scholarships")
+      .select(columns, { count: "exact" })
+      .eq("status", "published")
+      .lte("opens_at", nowIso)
+      .gt("closes_at", nowIso)
+      .order("closes_at", { ascending: true })
+      .limit(6),
 
-  const scholarships = (data ?? []) as ScholarshipSummary[];
-  const ids = scholarships.map((item) => item.id);
-  if (!ids.length) {
-    const empty = { scholarships: [], total: count ?? 0 };
-    landingScholarshipsCache = { data: empty, expiresAt: now + 60_000 };
-    return empty;
+    client
+      .from("scholarships")
+      .select(columns, { count: "exact" })
+      .eq("status", "published")
+      .gt("opens_at", nowIso)
+      .gt("closes_at", nowIso)
+      .order("opens_at", { ascending: true })
+      .limit(3),
+
+    client
+      .from("scholarships")
+      .select(columns, { count: "exact" })
+      .eq("status", "closed")
+      .order("closes_at", { ascending: false })
+      .limit(3),
+
+    client
+      .from("scholarships")
+      .select(columns, { count: "exact" })
+      .eq("status", "published")
+      .lte("closes_at", nowIso)
+      .order("closes_at", { ascending: false })
+      .limit(3),
+
+    client
+      .from("scholarships")
+      .select("id,title,closes_at")
+      .in("status", ["published", "closed"])
+      .order("created_at", { ascending: false })
+      .limit(3),
+  ]);
+
+  if (
+    openResult.error ||
+    upcomingResult.error ||
+    closedResult.error ||
+    expiredResult.error ||
+    latestResult.error
+  ) {
+    fail("ไม่สามารถโหลดข้อมูลทุนสำหรับหน้าแรกได้");
   }
 
-  const { data: requirementData, error: requirementError } = await client
-    .from("scholarship_document_requirements")
-    .select("scholarship_id,id,label,details,required,sort_order")
-    .in("scholarship_id", ids)
-    .order("sort_order");
+  const openScholarships =
+    (openResult.data ?? []) as unknown as ScholarshipSummary[];
 
-  if (requirementError) fail("ไม่สามารถโหลดรายการเอกสารทุนได้");
+  const upcomingScholarships =
+    (upcomingResult.data ?? []) as unknown as ScholarshipSummary[];
+
+  const closedScholarships = [
+    ...((closedResult.data ?? []) as unknown as ScholarshipSummary[]),
+    ...((expiredResult.data ?? []) as unknown as ScholarshipSummary[]),
+  ]
+    .sort(
+      (a, b) =>
+        new Date(b.closes_at).getTime() -
+        new Date(a.closes_at).getTime(),
+    )
+    .slice(0, 3);
+
+  const requirementIds = openScholarships.map((item) => item.id);
 
   const requirementsByScholarship = new Map<string, Requirement[]>();
-  for (const row of (requirementData ?? []) as Array<Requirement & { scholarship_id: string }>) {
-    const requirements = requirementsByScholarship.get(row.scholarship_id) ?? [];
-    requirements.push({
-      id: row.id,
-      label: row.label,
-      details: row.details,
-      required: row.required,
-      sort_order: row.sort_order,
-    });
-    requirementsByScholarship.set(row.scholarship_id, requirements);
+
+  if (requirementIds.length) {
+    const { data: requirementData, error: requirementError } = await client
+      .from("scholarship_document_requirements")
+      .select("scholarship_id,id,label,details,required,sort_order")
+      .in("scholarship_id", requirementIds)
+      .order("sort_order");
+
+    if (requirementError) {
+      fail("ไม่สามารถโหลดเงื่อนไขเอกสารทุนสำหรับหน้าแรกได้");
+    }
+
+    for (
+      const row of (requirementData ?? []) as Array<
+        Requirement & { scholarship_id: string }
+      >
+    ) {
+      const requirements =
+        requirementsByScholarship.get(row.scholarship_id) ?? [];
+
+      requirements.push({
+        id: row.id,
+        label: row.label,
+        details: row.details,
+        required: row.required,
+        sort_order: row.sort_order,
+      });
+
+      requirementsByScholarship.set(row.scholarship_id, requirements);
+    }
   }
 
-  const result = {
-    scholarships: scholarships.map((scholarship) => ({
+  const scholarships = [
+    ...openScholarships,
+    ...upcomingScholarships,
+    ...closedScholarships,
+  ].map((scholarship) => ({
     ...scholarship,
-    requirements: requirementsByScholarship.get(scholarship.id) ?? [],
-    })),
-    total: count ?? scholarships.length,
+    requirements:
+      requirementsByScholarship.get(scholarship.id) ?? [],
+  }));
+
+  const counts = {
+    open: openResult.count ?? 0,
+    upcoming: upcomingResult.count ?? 0,
+    closed:
+      (closedResult.count ?? 0) +
+      (expiredResult.count ?? 0),
   };
-  landingScholarshipsCache = { data: result, expiresAt: now + 60_000 };
+
+  const result: LandingScholarshipData = {
+    scholarships,
+    latestAnnouncements:
+      (latestResult.data ?? []) as Pick<
+        ScholarshipSummary,
+        "id" | "title" | "closes_at"
+      >[],
+    total: counts.open + counts.upcoming + counts.closed,
+    counts,
+  };
+
+  landingScholarshipsCache = {
+    data: result,
+    expiresAt: now + 60_000,
+  };
+
   return result;
 }
 
@@ -408,8 +517,11 @@ export async function listStaffApplications(status?: string | readonly string[],
   return applications.filter((item) => [item.student_name, item.student_code, String(item.application_no), item.scholarship?.title ?? ""].some((value) => value.toLocaleLowerCase("th").includes(term)));
 }
 
-export async function getStaffApplicationDetail(id: string) {
-  const client = await createClient();
+// ข้อมูลหน้าตรวจใบสมัครของเจ้าหน้าที่: รวมงานกรรมการ ผลประเมิน และนัดสัมภาษณ์
+// เพิ่มข้อมูลที่ต้องแสดงใน StaffReviewPanel ให้เพิ่ม select และชนิดข้อมูลที่รับ props ด้วย
+// reviews ในคำอธิบายระบบใช้ตาราง evaluations; interviews ใช้ application_interviews
+export async function getStaffApplicationDetail /* รวมข้อมูลใบสมัครสำหรับเจ้าหน้าที่ รวมงานกรรมการ ผลประเมิน และนัด */(id: string /* รหัสเฉพาะของรายการนี้ ใช้อ้างอิงตอนอ่านหรือแก้ข้อมูล */) {
+  const client = await createClient() /* Supabase client ที่ใช้ session ของผู้ใช้ปัจจุบัน */;
   const { data: application, error: appError } = await client
     .from("applications")
     .select("id,application_no,scholarship_id,student_id,student_name,student_code,application_data,status,submitted_at,decision_reason,version,created_at,updated_at")
@@ -445,33 +557,33 @@ export async function getStaffApplicationDetail(id: string) {
 
   const assignments = ((assignmentsResult.data ?? []) as unknown as Record<string, unknown>[]).map((row) => {
     const base = row as unknown as {
-      id: string;
-      reviewer_id: string;
-      assigned_by: string;
+      id: string; /* รหัสเฉพาะของรายการนี้ ใช้อ้างอิงตอนอ่านหรือแก้ข้อมูล */
+      reviewer_id: string; /* รหัสบัญชีกรรมการผู้ประเมิน */
+      assigned_by: string; /* รหัสเจ้าหน้าที่ที่มอบหมายงาน */
       status: string;
       reason: string;
-      assigned_at: string;
-      completed_at: string | null;
-      conflict_status?: string;
-      conflict_note?: string | null;
+      assigned_at: string; /* วันเวลาที่มอบหมายงาน */
+      completed_at: string | null; /* วันเวลาที่งานประเมินเสร็จ */
+      conflict_status?: string; /* สถานะการแจ้งผลประโยชน์ทับซ้อน */
+      conflict_note?: string | null; /* เหตุผลประกอบการแจ้งผลประโยชน์ทับซ้อน */
     };
     return {
-      id: base.id,
-      reviewer_id: base.reviewer_id,
-      assigned_by: base.assigned_by,
+      id: base.id /* รหัสเฉพาะของรายการนี้ ใช้อ้างอิงตอนอ่านหรือแก้ข้อมูล */,
+      reviewer_id: base.reviewer_id /* รหัสบัญชีกรรมการผู้ประเมิน */,
+      assigned_by: base.assigned_by /* รหัสเจ้าหน้าที่ที่มอบหมายงาน */,
       status: base.status,
       reason: base.reason,
-      assigned_at: base.assigned_at,
-      completed_at: base.completed_at,
-      conflict_status: base.conflict_status,
-      conflict_note: base.conflict_note,
-      reviewer: first(row.reviewer as { full_name: string; student_id: string } | { full_name: string; student_id: string }[] | null),
-      evaluation: first(row.evaluation as { id: string; total_score: number; recommendation: string; comment: string; submitted_at: string | null; version: number } | { id: string; total_score: number; recommendation: string; comment: string; submitted_at: string | null; version: number }[] | null),
+      assigned_at: base.assigned_at /* วันเวลาที่มอบหมายงาน */,
+      completed_at: base.completed_at /* วันเวลาที่งานประเมินเสร็จ */,
+      conflict_status: base.conflict_status /* สถานะการแจ้งผลประโยชน์ทับซ้อน */,
+      conflict_note: base.conflict_note /* เหตุผลประกอบการแจ้งผลประโยชน์ทับซ้อน */,
+      reviewer: first(row.reviewer as { full_name: string; /* ชื่อเต็มของบัญชีที่นำมาแสดง */ student_id: string } | { full_name: string; /* ชื่อเต็มของบัญชีที่นำมาแสดง */ student_id: string }[] | null),
+      evaluation: first(row.evaluation as { id: string; /* รหัสเฉพาะของรายการนี้ ใช้อ้างอิงตอนอ่านหรือแก้ข้อมูล */ total_score: number; /* คะแนนรวมของผลประเมิน */ recommendation: string; /* ข้อเสนอจากกรรมการ ยังไม่ใช่ผลตัดสินสุดท้าย */ comment: string; /* ความคิดเห็นประกอบผลประเมิน */ submitted_at: string | null; /* วันเวลาส่งผลจริง; null คือยังไม่ส่ง */ version: number /* รุ่นข้อมูล ใช้ป้องกันการบันทึกจากหน้าเก่าทับข้อมูลใหม่ */ } | { id: string; /* รหัสเฉพาะของรายการนี้ ใช้อ้างอิงตอนอ่านหรือแก้ข้อมูล */ total_score: number; /* คะแนนรวมของผลประเมิน */ recommendation: string; /* ข้อเสนอจากกรรมการ ยังไม่ใช่ผลตัดสินสุดท้าย */ comment: string; /* ความคิดเห็นประกอบผลประเมิน */ submitted_at: string | null; /* วันเวลาส่งผลจริง; null คือยังไม่ส่ง */ version: number /* รุ่นข้อมูล ใช้ป้องกันการบันทึกจากหน้าเก่าทับข้อมูลใหม่ */ }[] | null) /* ผลประเมินเดิมสำหรับอ่านหรือเติมฟอร์ม */,
     };
-  });
+  }) /* รายการงานมอบหมายกรรมการ */;
 
   return {
-    application: application as ApplicationSummary,
+    application: application as ApplicationSummary /* ข้อมูลใบสมัคร */,
     scholarship,
     requirements: scholarship.requirements,
     documents,
@@ -495,8 +607,12 @@ export async function listStaffScholarships(): Promise<ScholarshipSummary[]> {
   return (data ?? []) as unknown as ScholarshipSummary[];
 }
 
-export async function getCommitteeAssignment(id: string) {
-  const client = await createClient();
+// โหลดงานมอบหมายหนึ่งรายการ พร้อมใบสมัคร คะแนนเดิม เกณฑ์ และเอกสารสำหรับ EvaluationPanel
+// id ที่รับคือ review_assignments.id; evaluations เชื่อมด้วย assignment_id ไม่ใช่ application_id
+// การมองเห็นข้อมูลอยู่ภายใต้ RLS; หน้าเรียกใช้งานตรวจ requireRole([committee]) ก่อน
+// หากเพิ่มช่องแสดงผล ให้แก้ select ในฟังก์ชันนี้และ type/props ของ EvaluationPanel ให้ตรงกัน
+export async function getCommitteeAssignment /* อ่านงานที่ระบุพร้อมข้อมูลประกอบการประเมินภายใต้ RLS */(id: string /* รหัสเฉพาะของรายการนี้ ใช้อ้างอิงตอนอ่านหรือแก้ข้อมูล */) {
+  const client = await createClient() /* Supabase client ที่ใช้ session ของผู้ใช้ปัจจุบัน */;
   const { data: assignment, error } = await client
     .from("review_assignments")
     .select("id,application_id,reviewer_id,assigned_by,status,reason,assigned_at,completed_at,conflict_status,conflict_note")
@@ -521,7 +637,7 @@ export async function getCommitteeAssignment(id: string) {
   if (appResult.error || !appResult.data) fail("ไม่สามารถโหลดใบสมัครได้");
   if (evaluationResult.error) fail("ไม่สามารถโหลดผลประเมินได้");
 
-  const application = appResult.data as ApplicationSummary;
+  const application = appResult.data as ApplicationSummary /* ข้อมูลใบสมัคร */;
   const [scholarship, documents] = await Promise.all([
     getScholarship(application.scholarship_id),
     getApplicationDocuments(application.id),
@@ -535,12 +651,15 @@ export async function getCommitteeAssignment(id: string) {
     scholarship,
     requirements: scholarship.requirements,
     documents,
-    evaluation: evaluationResult.data ?? null,
+    evaluation: evaluationResult.data ?? null /* ผลประเมินเดิมสำหรับอ่านหรือเติมฟอร์ม */,
   };
 }
 
-export async function listCommitteeAssignments() {
-  const client = await createClient();
+// อ่านงาน assigned สำหรับหน้า /committee; RLS จำกัดแถวตามกรรมการที่เข้าสู่ระบบ
+// เพิ่มข้อมูลบนการ์ดงานได้ที่ select นี้และ app/committee/page.tsx
+// หากต้องการแสดงงานที่ส่งแล้วด้วย ให้ทบทวนตัวกรอง status และเส้นทางไปหน้าอ่านผล
+export async function listCommitteeAssignments /* อ่านรายการงาน assigned ภายใต้สิทธิ์ของ session ปัจจุบัน */() {
+  const client = await createClient() /* Supabase client ที่ใช้ session ของผู้ใช้ปัจจุบัน */;
   const { data, error } = await client
     .from("review_assignments")
     .select("id,application_id,status,reason,assigned_at,due_at,application:applications(id,application_no,student_name,student_code,status,scholarship:scholarships(title))")

@@ -1,0 +1,26 @@
+﻿.page { max-width:1120px; margin:0 auto; padding-bottom:24px; }
+.heading { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:10px 0; }
+.eyebrow { color:#397863; font-size:12px; font-weight:700; letter-spacing:.04em; }
+.heading h1 { margin:8px 0; }
+.heading p { margin:0; color:#63768a; line-height:1.8; }
+.count { flex-shrink:0; background:white; border:1px solid #dbe7e2; color:#397863; padding:8px 16px; border-radius:24px; font-size:14px; }
+.empty { display:flex; align-items:center; flex-direction:column; text-align:center; padding:32px 28px 0; border:1px solid #dae8e0; border-radius:22px; background:radial-gradient(ellipse at 50% 0%,#f0f8f2 0%,white 65%); box-shadow:0 8px 30px #183d2c05; overflow:hidden; }
+.tag { display:inline-block; color:#39735f; background:#edf5ef; border-radius:20px; padding:5px 13px; font-size:13px; }
+.empty h2 { color:#152e56; margin:18px 0 10px; font-size:clamp(21px,3vw,28px); }
+.empty>p { color:#63768a; line-height:1.9; margin:0; max-width:580px; }
+.actions { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin:26px 0 30px; }
+.notice { width:calc(100% + 56px); padding:17px 28px; color:#547365; background:#f4f9f6; border-top:1px solid #e4ede7; font-size:13px; line-height:1.8; }
+.preparation { padding:24px 0; }
+.preparation h2 { font-size:20px; margin:6px 0 20px; }
+.steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; list-style:none; padding:0; margin:0; }
+.steps li { display:flex; align-items:flex-start; gap:12px; }
+.steps li>span { background:#e4efe9; color:#39735f; width:34px; height:34px; border-radius:10px; display:grid; place-items:center; flex-shrink:0; font-size:12px; font-weight:700; }
+.steps h3 { font-size:15px; margin:3px 0 6px; }
+.steps p { font-size:13px; color:#63768a; line-height:1.8; margin:0; }
+.list { display:grid; gap:16px; }
+.appointmentHeader { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+.appointmentHeader h2 { font-size:20px; margin:0; }
+.facts { display:flex; gap:36px; flex-wrap:wrap; }
+.facts dt { color:#63768a; font-size:13px; }
+.facts dd { margin:5px 0 0; font-weight:600; overflow-wrap:anywhere; }
+@media(max-width:640px) { .heading { align-items:flex-start; } .heading h1 { font-size:26px; } .steps { grid-template-columns:1fr; gap:20px; } .empty { padding:24px 18px 0; } .notice { width:calc(100% + 36px); padding:16px 18px; } .actions { width:100%; } .actions a { width:100%; justify-content:center; } }

@@ -1,25 +1,31 @@
 import Link from "next/link";
 
-export default function InterviewCalendar({ date, counts, scholarship, application }: {
-  date: string; counts: Record<string, number>; scholarship?: string; application?: string;
+// ปฏิทินเดือนสำหรับหน้าเจ้าหน้าที่: counts เป็นจำนวนรายการนัดรายวันที่หน้าหลักส่งมา
+// แก้ชื่อวัน ปุ่มเดือน และหน้าตาแต่ละช่อง: JSX ด้านล่าง; รูปแบบใช้ class calendar-* ใน app/globals.css
+// แก้วิธีนับนัดหรือสถานะที่นำมานับ: ตรวจ app/staff/interviews/page.tsx ซึ่งเตรียม counts
+// ปฏิทินนี้ใช้เลือกวันผ่าน URL ไม่ได้บันทึกนัดหรือยืนยันช่วงเวลาว่าง
+export default function InterviewCalendar /* แสดงปฏิทินเดือนและลิงก์เลือกวัน */({ date, counts, scholarship, application }: {
+  date: string; counts: Record<string, number>; scholarship?: string; /* ข้อมูลทุนที่ใบสมัครอ้างถึง */ application?: string; /* ข้อมูลใบสมัคร */
 }) {
-  const selected = new Date(`${date}T12:00:00Z`);
-  const year = selected.getUTCFullYear(), month = selected.getUTCMonth();
-  const first = new Date(Date.UTC(year, month, 1));
-  const length = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const selected = new Date(`${date}T12:00:00Z`) /* วันที่ที่เลือก ใช้หาเดือนและปีของปฏิทิน */;
+  const year = selected.getUTCFullYear() /* ปีของปฏิทินที่กำลังแสดง */, month = selected.getUTCMonth() /* เดือนของปฏิทิน โดย JavaScript นับมกราคมเป็น 0 */;
+  const first = new Date(Date.UTC(year, month, 1)) /* วันที่หนึ่งของเดือน ใช้คำนวณตำแหน่งช่องวันแรก */;
+  const length = new Date(Date.UTC(year, month + 1, 0)).getUTCDate() /* จำนวนวันในเดือนที่แสดง */;
+// เก็บตัวกรองทุนและใบสมัครเดิมไว้เมื่อเลือกวัน/เปลี่ยนเดือน
+// หากเพิ่มตัวกรองใหม่ ให้ส่ง prop และแนบ query string ที่นี่ด้วย
   const href = (day: string) => {
     const query = new URLSearchParams({ date: day });
     if (scholarship) query.set("scholarship", scholarship);
     if (application) query.set("application", application);
     return `/staff/interviews?${query}`;
-  };
+  } /* สร้าง URL เลือกวันพร้อมคงตัวกรองเดิม */;
   return <section className="panel interview-calendar" aria-label="ปฏิทินนัดสัมภาษณ์">
     <div className="calendar-heading"><Link className="btn secondary" aria-label="เดือนก่อนหน้า" href={href(new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10))}>‹</Link>
-      <h2>{selected.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", month: "long", year: "numeric" })}</h2>
+      <h2>{selected.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", month: "long" /* เดือนของปฏิทิน โดย JavaScript นับมกราคมเป็น 0 */, year: "numeric" /* ปีของปฏิทินที่กำลังแสดง */ })}</h2>
       <Link className="btn secondary" aria-label="เดือนถัดไป" href={href(new Date(Date.UTC(year, month + 1, 1)).toISOString().slice(0, 10))}>›</Link></div>
     <div className="calendar-grid">{["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."].map(day => <span className="calendar-weekday" key={day}>{day}</span>)}
-      {Array.from({ length: first.getUTCDay() }, (_, index) => <span key={`empty-${index}`}/>)}
-      {Array.from({ length }, (_, index) => {
+      {Array.from({ length: first.getUTCDay() /* จำนวนวันในเดือนที่แสดง */ }, (_ /* ผลก่อนหน้าใน useActionState; ฟังก์ชันนี้ไม่ได้ใช้ค่าเดิม */, index) => <span key={`empty-${index}`}/>)}
+      {Array.from({ length }, (_ /* ผลก่อนหน้าใน useActionState; ฟังก์ชันนี้ไม่ได้ใช้ค่าเดิม */, index) => {
         const day = `${year}-${String(month + 1).padStart(2, "0")}-${String(index + 1).padStart(2, "0")}`;
         return <Link key={day} href={href(day)} className={`calendar-day ${day === date ? "selected" : ""}`}
           aria-current={day === date ? "date" : undefined} aria-label={`${day} มี ${counts[day] ?? 0} นัด`}>
