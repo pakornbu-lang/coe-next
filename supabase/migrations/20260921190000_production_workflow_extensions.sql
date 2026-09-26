@@ -35,6 +35,10 @@ end;
 $$;
 create trigger require_clear_review_conflict before insert or update on public.evaluations for each row execute function private.portal_require_clear_review_conflict();
 
+-- ตารางนัดสัมภาษณ์ของใบสมัคร (ส่วน interviews): เชื่อม applications ด้วย application_id
+-- เวลาเริ่ม/สถานที่/ลิงก์/สถานะอยู่ที่นี่; ends_at/interviewer_id/outcome เพิ่มใน migration review_operations
+-- หน้าจัดการคือ app/staff/interviews/page.tsx; ฟอร์มคือ InterviewControl ใน OperationsForms.tsx
+-- หากเปลี่ยนจำนวนครั้งสัมภาษณ์ต่อใบสมัคร ให้ตรวจ unique และ RPC ที่ upsert ด้วย application_id ใน migration ใหม่
 create table public.application_interviews(
   id uuid primary key default gen_random_uuid(),
   application_id uuid not null unique references public.applications(id) on delete cascade,

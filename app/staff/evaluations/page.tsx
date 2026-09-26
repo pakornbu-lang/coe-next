@@ -1,13 +1,22 @@
 import Link from "next/link";
 import {requireRole} from "@/lib/auth/server";
 import {createClient} from "@/lib/supabase/server";
+// หน้าสรุปคะแนนสำหรับเจ้าหน้าที่ /staff/evaluations
+// ชื่อส่วนงาน reviews ในคำอธิบายตรงกับตาราง evaluations ในโปรเจกต์นี้
+// แก้ตัวกรองทุน หัวตาราง และสูตรเฉลี่ยที่แสดง: แก้หน้านี้
+// หน้าสรุปรายใบสมัครใช้ StaffEvaluationSummary ด้วย หากเปลี่ยนวิธีคิดคะแนนให้ตรวจทั้งสองจุด
+// กฎจำนวนกรรมการขั้นต่ำก่อนตัดสินผลบังคับอีกชั้นใน RPC staff_decide_application
 export default async function Page({searchParams}:{searchParams:Promise<{scholarship?:string}>}){
  await requireRole(["staff"]);const f=await searchParams,c=await createClient();
+// โหลด a=ใบสมัคร, r=งานมอบหมาย, e=ผลประเมิน, p=กรรมการ, k=เกณฑ์คะแนน, s=ทุน
+// การเพิ่มคอลัมน์รายงานต้องเพิ่ม select ของตารางที่เกี่ยวข้อง แล้วเพิ่มเซลล์ใน JSX ด้านล่าง
  const [a,r,e,p,k,s]=await Promise.all([c.from("applications").select("id,application_no,student_name,scholarship_id"),c.from("review_assignments").select("id,application_id,reviewer_id,status"),c.from("evaluations").select("assignment_id,scores,total_score,recommendation,comment,submitted_at"),c.from("portal_profiles").select("id,full_name").eq("role","committee"),c.from("scholarship_review_criteria").select("id,label,max_score,scholarship_id").order("sort_order"),c.from("scholarships").select("id,title,required_reviewer_count")]);
  if(a.error||r.error||e.error||p.error||k.error||s.error)throw Error("โหลดผลประเมินไม่ได้");
  return <div className="workflow-stack"><section className="panel"><h1>สรุปคะแนนกรรมการ</h1><p>คะแนนเฉลี่ยคำนวณเฉพาะผลที่ส่งแล้ว งานถอนและฉบับร่างไม่นับรวม</p><form><label>ทุน<select name="scholarship" defaultValue={f.scholarship??""}><option value="">ทุกทุน</option>{s.data.map(x=><option key={x.id} value={x.id}>{x.title}</option>)}</select></label><div className="evaluation-filter-actions"><button className="btn">กรอง</button></div></form></section>
  {a.data.filter(x=>(!f.scholarship||x.scholarship_id===f.scholarship)&&r.data.some(r=>r.application_id===x.id)).map(app=>{
  const assignments=r.data.filter(x=>x.application_id===app.id&&x.status!=="revoked");
+// นับเฉพาะงาน completed ที่มี submitted_at; ฉบับร่างและงานถอนจะไม่เข้าเฉลี่ย
+// คะแนนในรายงานเป็นผลรวม/ค่าเฉลี่ยเพื่อแสดง ไม่ใช่คำสั่งอนุมัติทุนอัตโนมัติ
  const submitted=assignments.filter(x=>x.status==="completed").flatMap(x=>e.data.filter(e=>e.assignment_id===x.id&&e.submitted_at));
  const criteria=k.data.filter(x=>x.scholarship_id===app.scholarship_id);
  return <section className="panel" key={app.id}><h2>#{app.application_no} · {app.student_name}</h2><p>{s.data.find(x=>x.id===app.scholarship_id)?.title} · ส่งแล้ว {submitted.length}/{assignments.length} · ขั้นต่ำ {s.data.find(x=>x.id===app.scholarship_id)?.required_reviewer_count}</p><p>เฉลี่ยรวม: {submitted.length?(submitted.reduce((n,e)=>n+Number(e.total_score),0)/submitted.length).toFixed(2):"ยังไม่มีคะแนน"}</p>

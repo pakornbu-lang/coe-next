@@ -1080,6 +1080,10 @@ export async function reviewApplicationDocuments(
   };
 }
 
+// มอบหมายกรรมการครั้งแรกจาก StaffReviewPanel ให้ใบสมัคร ผ่าน RPC staff_assign_reviewer
+// แก้ช่องเลือกกรรมการ/เหตุผล: components/workflow/StaffReviewPanel.tsx
+// แก้ข้อมูลที่ส่ง: parameter p_* ด้านล่าง; เปลี่ยนกฎงานซ้ำหรือสถานะใบสมัครต้องเพิ่ม migration ของ RPC
+// การเปลี่ยน/ถอนงานหลังมอบหมายใช้ manageReview ใน app/actions/review-operations.ts
 export async function assignReviewer(
   _previous: WorkflowState,
   form: FormData,
@@ -1139,6 +1143,11 @@ export async function assignReviewer(
   };
 }
 
+// รับคะแนนจาก EvaluationPanel แล้วบันทึกลง evaluations ผ่าน committee_save_evaluation
+// assignment_id อ้างถึงงานใน review_assignments; scores เป็น JSON ของ criterion_id, score, comment
+// mode=draft เก็บร่าง; mode=submit ส่งผลจริง; version ป้องกันบันทึกทับข้อมูลที่เปลี่ยนแล้ว
+// เพิ่มเกณฑ์คะแนนรายทุนผ่าน ScholarshipStructureEditor; เปลี่ยน schema scores ต้องแก้ type/UI/RPC ด้วย
+// RPC มีนิยามแก้ไขใน 20260921160000_fix_committee_drafts_and_links.sql และ migration ที่ตามมา
 export async function saveEvaluation(
   _previous: WorkflowState,
   form: FormData,
@@ -1224,6 +1233,9 @@ export async function saveEvaluation(
   };
 }
 
+// รับผลตัดสินสุดท้ายจากเจ้าหน้าที่ ซึ่งแยกจาก recommendation ของกรรมการ
+// ตัวเลือกผลอยู่ StaffEvaluationSummary/StaffReviewPanel; กฎจำนวนกรรมการและโควตาอยู่ staff_decide_application
+// หากเปลี่ยนกฎอนุมัติ ให้เพิ่ม migration ใหม่ ไม่แก้เฉพาะเงื่อนไขแสดงปุ่มบนหน้าเว็บ
 export async function decideApplication(
   _previous: WorkflowState,
   form: FormData,

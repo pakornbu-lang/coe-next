@@ -131,6 +131,11 @@ create table public.application_documents (
 );
 create index application_documents_application_idx on public.application_documents(application_id, status);
 
+-- งานมอบหมายกรรมการ: application_id=ใบสมัคร, reviewer_id=กรรมการ, assigned_by=เจ้าหน้าที่ผู้มอบหมาย
+-- หนึ่งใบสมัครมีหลายกรรมการ แต่ unique(application_id, reviewer_id) ไม่ให้คนเดิมซ้ำในใบสมัครเดียวกัน
+-- สถานะ assigned=รอประเมิน, completed=ส่งแล้ว, revoked=ถอนงาน; คะแนนเก็บแยกใน evaluations
+-- due_at/version เพิ่มภายหลังใน 20260923090000_review_operations.sql
+-- ไฟล์นี้เป็นประวัติ migration: ถ้าต้องเปลี่ยน schema ที่ติดตั้งแล้ว ให้สร้าง migration ใหม่
 create table public.review_assignments (
   id uuid primary key default gen_random_uuid(),
   application_id uuid not null references public.applications(id) on delete cascade,
@@ -144,6 +149,10 @@ create table public.review_assignments (
 );
 create index review_assignments_reviewer_idx on public.review_assignments(reviewer_id, status, assigned_at desc);
 
+-- ผลประเมิน (ส่วนที่เรียกว่า reviews): เชื่อมงานมอบหมายด้วย assignment_id แบบหนึ่งงานมีผลได้หนึ่งชุด
+-- scores เก็บคะแนนรายเกณฑ์เป็น JSON; total_score เก็บยอดรวม; recommendation คือข้อเสนอ ไม่ใช่ผลตัดสินสุดท้าย
+-- submitted_at แยกฉบับร่างจากผลที่ส่งแล้ว; การบันทึกผ่าน committee_save_evaluation
+-- เพิ่มช่องผลประเมินต้องแก้ migration ใหม่, RPC, saveEvaluation และ EvaluationPanel ให้ครบ
 create table public.evaluations (
   id uuid primary key default gen_random_uuid(),
   assignment_id uuid not null unique references public.review_assignments(id) on delete cascade,

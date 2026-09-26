@@ -8,6 +8,10 @@ import { saveEvaluation, type WorkflowState } from "@/app/actions/scholarships";
 import type { ApplicationDocument, ApplicationSummary, Criterion, ScholarshipSummary } from "@/lib/scholarships/types";
 import { ConflictDisclosure } from "./WorkflowExtensions";
 
+// ฟอร์มคะแนนกรรมการ: evaluations เก็บผล ส่วน review_assignments เก็บงานมอบหมาย
+// แก้ชื่อ/คะแนนเต็มของเกณฑ์ทุน: ScholarshipStructureEditor.tsx และ scholarship_review_criteria
+// แก้ช่องกรอก/ข้อเสนอแนะ/ความคิดเห็น: JSX ในไฟล์นี้ | แก้ปุ่มปรับคะแนน: components/forms/ScoreInput.tsx
+// เปลี่ยนรูปแบบ scores หรือวิธีคิดคะแนนจริง: saveEvaluation และ RPC committee_save_evaluation ต้องรองรับด้วย
 const empty: WorkflowState = { error: "", success: "" };
 type Evaluation = { scores: { criterion_id: string; score: string; comment: string }[]; total_score: number; recommendation: string; comment: string; submitted_at: string | null; version: number } | null;
 
@@ -21,12 +25,17 @@ export default function EvaluationPanel({ assignment, application, scholarship, 
 }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(saveEvaluation, empty);
+// สร้างช่องคะแนนจากเกณฑ์ของทุน แล้วเติมคะแนนเดิมโดยจับคู่ criterion_id
+// อย่าจับคู่คะแนนด้วยลำดับแถวอย่างเดียว เพราะเกณฑ์อาจมีการจัดลำดับใหม่
   const [scores, setScores] = useState(() => criteria.map((criterion) => {
     const previous = evaluation?.scores.find((item) => item.criterion_id === criterion.id);
     return { criterion_id: criterion.id, score: previous?.score ?? "", comment: previous?.comment ?? "" };
   }));
   useEffect(() => { if (state.success) router.refresh(); }, [router, state.success]);
+// total เป็นยอดรวมเพื่อแสดงบนหน้าจอ; ไม่ควรเชื่อยอดจาก browser เป็นคะแนนจริงโดยไม่ตรวจใน RPC
   const total = scores.reduce((sum, item) => sum + (Number(item.score) || 0), 0);
+// ล็อกการให้คะแนนหากยังไม่ยืนยันว่าไม่มีผลประโยชน์ทับซ้อน
+// เปลี่ยนกฎการล็อก/เปิดแก้ผลที่ส่งแล้ว ต้องตรวจ trigger และ RPC ด้วย ไม่ใช่ปลด disabled อย่างเดียว
   const conflictPending = assignment.conflict_status !== undefined && assignment.conflict_status !== "clear";
   const locked = Boolean(evaluation?.submitted_at) || assignment.status !== "assigned" || conflictPending;
 

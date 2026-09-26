@@ -6,10 +6,17 @@ import InterviewCalendar from "@/components/workflow/InterviewCalendar";
 import { thaiDate } from "@/lib/scholarships/types";
 import { bangkokDate, interviewApplicationStatuses } from "@/lib/scholarships/interviews";
 
+// หน้าตารางสัมภาษณ์ /staff/interviews สำหรับเจ้าหน้าที่ อ่านตาราง application_interviews
+// แก้ตัวกรองและรายการนัด: หน้านี้ | แก้ตารางเดือน: components/workflow/InterviewCalendar.tsx
+// แก้ฟอร์มวันเวลา/กรรมการ/สถานที่: InterviewControl ใน components/workflow/OperationsForms.tsx
+// แก้การบันทึก: saveInterview ใน app/actions/review-operations.ts -> staff_schedule_interview_v2
+// แก้สถานะใบสมัครที่นัดได้: lib/scholarships/interviews.ts และกฎ RPC ใน migration ใหม่ต้องตรงกัน
 export default async function Page({ searchParams }: { searchParams: Promise<{ date?: string; scholarship?: string; application?: string }> }) {
   await requireRole(["staff"]);
   const filters = await searchParams, client = await createClient();
 
+// เลือกคอลัมน์ของนัดที่ใช้ทั้งแสดงผลและเติมฟอร์มแก้ไข
+// เพิ่มฟิลด์นัดใหม่ให้แก้ตารางด้วย migration, type Interview, select นี้, ฟอร์ม และ RPC ให้ครบ
   let interviewQuery = client
     .from("application_interviews")
     .select("id,application_id,scheduled_at,ends_at,interviewer_id,location,meeting_url,note,status,outcome,version")
@@ -32,6 +39,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
     applicationQuery = applicationQuery.eq("scholarship_id", filters.scholarship);
   }
 
+// ดึงนัด กรรมการ ใบสมัคร และทุนพร้อมกัน; รายชื่อกรรมการจำกัดบัญชี active
+// ตัวกรอง application/scholarship มาจาก URL ส่วนสิทธิ์อ่านข้อมูลยังบังคับด้วย RLS ของฐานข้อมูล
   const [interviews, people, applications, scholarships] = await Promise.all([
     interviewQuery,
     client.from("portal_profiles").select("id,full_name").eq("role", "committee").eq("active", true),

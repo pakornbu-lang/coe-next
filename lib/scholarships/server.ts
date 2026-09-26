@@ -517,6 +517,9 @@ export async function listStaffApplications(status?: string | readonly string[],
   return applications.filter((item) => [item.student_name, item.student_code, String(item.application_no), item.scholarship?.title ?? ""].some((value) => value.toLocaleLowerCase("th").includes(term)));
 }
 
+// ข้อมูลหน้าตรวจใบสมัครของเจ้าหน้าที่: รวมงานกรรมการ ผลประเมิน และนัดสัมภาษณ์
+// เพิ่มข้อมูลที่ต้องแสดงใน StaffReviewPanel ให้เพิ่ม select และชนิดข้อมูลที่รับ props ด้วย
+// reviews ในคำอธิบายระบบใช้ตาราง evaluations; interviews ใช้ application_interviews
 export async function getStaffApplicationDetail(id: string) {
   const client = await createClient();
   const { data: application, error: appError } = await client
@@ -604,6 +607,10 @@ export async function listStaffScholarships(): Promise<ScholarshipSummary[]> {
   return (data ?? []) as unknown as ScholarshipSummary[];
 }
 
+// โหลดงานมอบหมายหนึ่งรายการ พร้อมใบสมัคร คะแนนเดิม เกณฑ์ และเอกสารสำหรับ EvaluationPanel
+// id ที่รับคือ review_assignments.id; evaluations เชื่อมด้วย assignment_id ไม่ใช่ application_id
+// การมองเห็นข้อมูลอยู่ภายใต้ RLS; หน้าเรียกใช้งานตรวจ requireRole([committee]) ก่อน
+// หากเพิ่มช่องแสดงผล ให้แก้ select ในฟังก์ชันนี้และ type/props ของ EvaluationPanel ให้ตรงกัน
 export async function getCommitteeAssignment(id: string) {
   const client = await createClient();
   const { data: assignment, error } = await client
@@ -648,6 +655,9 @@ export async function getCommitteeAssignment(id: string) {
   };
 }
 
+// อ่านงาน assigned สำหรับหน้า /committee; RLS จำกัดแถวตามกรรมการที่เข้าสู่ระบบ
+// เพิ่มข้อมูลบนการ์ดงานได้ที่ select นี้และ app/committee/page.tsx
+// หากต้องการแสดงงานที่ส่งแล้วด้วย ให้ทบทวนตัวกรอง status และเส้นทางไปหน้าอ่านผล
 export async function listCommitteeAssignments() {
   const client = await createClient();
   const { data, error } = await client

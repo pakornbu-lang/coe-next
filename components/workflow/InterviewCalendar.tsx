@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+// ปฏิทินเดือนสำหรับหน้าเจ้าหน้าที่: counts เป็นจำนวนรายการนัดรายวันที่หน้าหลักส่งมา
+// แก้ชื่อวัน ปุ่มเดือน และหน้าตาแต่ละช่อง: JSX ด้านล่าง; รูปแบบใช้ class calendar-* ใน app/globals.css
+// แก้วิธีนับนัดหรือสถานะที่นำมานับ: ตรวจ app/staff/interviews/page.tsx ซึ่งเตรียม counts
+// ปฏิทินนี้ใช้เลือกวันผ่าน URL ไม่ได้บันทึกนัดหรือยืนยันช่วงเวลาว่าง
 export default function InterviewCalendar({ date, counts, scholarship, application }: {
   date: string; counts: Record<string, number>; scholarship?: string; application?: string;
 }) {
@@ -7,6 +11,8 @@ export default function InterviewCalendar({ date, counts, scholarship, applicati
   const year = selected.getUTCFullYear(), month = selected.getUTCMonth();
   const first = new Date(Date.UTC(year, month, 1));
   const length = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+// เก็บตัวกรองทุนและใบสมัครเดิมไว้เมื่อเลือกวัน/เปลี่ยนเดือน
+// หากเพิ่มตัวกรองใหม่ ให้ส่ง prop และแนบ query string ที่นี่ด้วย
   const href = (day: string) => {
     const query = new URLSearchParams({ date: day });
     if (scholarship) query.set("scholarship", scholarship);

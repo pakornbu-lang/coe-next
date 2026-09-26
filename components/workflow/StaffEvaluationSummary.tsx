@@ -18,10 +18,16 @@ type Assignment = {
 };
 const empty: WorkflowState = { error: "", success: "" };
 function Result({state}: {state: WorkflowState}) { return <>{state.error && <p role="alert" className="workflow-error">{state.error}</p>}{state.success && <p role="status" className="workflow-success"><span className="action-success-mark" aria-hidden="true">✓</span>{state.success}</p>}</>; }
+// สรุปผลรายใบสมัครและแบบฟอร์มตัดสินผลสำหรับเจ้าหน้าที่
+// แก้การแสดงคะแนน/ตัวเลือกตัดสิน/ข้อความเหตุผล: JSX ด้านล่าง
+// เปลี่ยนจำนวนขั้นต่ำรายทุนผ่าน ScholarshipProcessForm ใน WorkflowExtensions.tsx
+// กฎอนุมัติจริงอยู่ใน decideApplication -> RPC staff_decide_application ซึ่งตรวจจำนวนกรรมการและโควตาซ้ำ
 export default function StaffEvaluationSummary({application, assignments, requiredReviewerCount}: { application: ApplicationSummary; assignments: Assignment[]; requiredReviewerCount: number }) {
 const router=useRouter();
 const [decisionState,decisionAction,decisionPending]=useActionState(decideApplication,empty);
 useEffect(()=>{if(decisionState.success)router.refresh();},[decisionState.success,router]);
+// คัดเฉพาะงาน completed ที่ส่งผลแล้วและไม่ได้ประกาศผลประโยชน์ทับซ้อน
+// หากเปลี่ยนวิธีคำนวณ ให้ตรวจหน้ารวม app/staff/evaluations/page.tsx ให้สอดคล้องด้วย
 const submitted=assignments.filter(item=>item.status==="completed" && item.conflict_status!=="declared" && item.evaluation?.submitted_at);
 const scores=submitted.map(item=>Number(item.evaluation!.total_score));
 const average=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null;

@@ -5,6 +5,7 @@ import { thaiDate } from "@/lib/scholarships/types";
 import styles from "./interviews.module.css";
 
 export const metadata = { title: "นัดสัมภาษณ์ของฉัน" };
+// แก้คำแปลสถานะบนหน้ากรรมการได้ที่นี่; ถ้าเพิ่มรหัสสถานะใหม่ต้องแก้ constraint/RPC และตัวเลือกฟอร์มด้วย
 const statusLabels: Record<string, string> = { scheduled: "นัดหมายแล้ว", completed: "สัมภาษณ์แล้ว", cancelled: "ยกเลิก", no_show: "ไม่มาตามนัด" };
 
 function CalendarIllustration() {
@@ -20,6 +21,9 @@ function CalendarIllustration() {
   </svg>;
 }
 
+// หน้านัดของกรรมการ /committee/interviews: กรอง interviewer_id ด้วยผู้ใช้ที่เข้าสู่ระบบ
+// แก้ข้อมูลที่แสดง: select และ JSX ด้านล่าง | แก้สี/ระยะห่าง: interviews.module.css ในโฟลเดอร์นี้
+// หน้านี้อ่านนัดเท่านั้น; การสร้างหรือแก้นัดอยู่ /staff/interviews
 export default async function Page() {
   const viewer = await requireRole(["committee"]);
   const client = await createClient();

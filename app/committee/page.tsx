@@ -4,6 +4,9 @@ import { thaiDate } from "@/lib/scholarships/types";
 import { listCommitteeAssignments } from "@/lib/scholarships/server";
 
 export const metadata = { title: "พื้นที่กรรมการ" };
+// หน้ารวมงานประเมิน /committee ใช้ listCommitteeAssignments ซึ่งอ่าน review_assignments ภายใต้ RLS
+// แก้ข้อความและการ์ดงาน: หน้านี้ | เพิ่มข้อมูลที่แสดง: select ใน lib/scholarships/server.ts
+// ลิงก์เริ่มประเมินส่ง id ของงานมอบหมายไป /staff/evaluation ไม่ใช่ id ใบสมัคร
 export default async function CommitteePage() {
   const viewer = await requireRole(["committee"]);
   const assignments = await listCommitteeAssignments();
